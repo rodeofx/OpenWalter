@@ -1,0 +1,41 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+// Returns 0 if the file has specified number of objects.
+proc int testNumObjects(string $path, int $nObjects)
+{
+    // Create a walter node.
+    string $node = wCreateStandin($path);
+
+    // Query the standin. There should be two objects.
+    if (wGetNumberOfChildren($node, "/") == $nObjects)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+global proc int testOpenFile()
+{
+    // Directory to the alembics.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/alembics/";
+
+    int $fails = 0;
+
+    string $poly = $dir + "simple-poly.abc";
+    string $torus = $dir + "sphere-torus.abc";
+    string $cubes = $dir + "cubes.abc";
+
+    // Test files.
+    $fails += testNumObjects($poly, 2);
+    $fails += testNumObjects($torus, 4);
+    $fails += testNumObjects($cubes, 10);
+
+    // Test layers.
+    $fails += testNumObjects($poly + ":" + $torus, 6);
+    $fails += testNumObjects($poly + ":" + $cubes, 12);
+    $fails += testNumObjects($torus + ":" + $cubes, 14);
+    $fails += testNumObjects($poly + ":" + $torus + ":" + $cubes, 16);
+
+    return $fails;
+}

@@ -1,0 +1,15 @@
+#usda 1.0
+(
+	defaultPrim = "sphere_lo"
+)
+ 
+def Xform "sphere_lo" (
+    kind = "component"
+)
+{
+	def Cube "geo"
+	{
+		double3 xformOp:scale = (0.6, 0.6, 0.6)
+		uniform token[] xformOpOrder = [ "xformOp:scale" ]			
+	}
+}

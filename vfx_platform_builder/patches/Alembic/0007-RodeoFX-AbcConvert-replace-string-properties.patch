@@ -1,0 +1,140 @@
+From 3d6ed27f4b323d628c1387e6764c9a56fcf87eed Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 29 Nov 2017 12:02:46 -0500
+Subject: [PATCH 07/10] RodeoFX: AbcConvert: replace string properties
+
+Added an option that allows to replace string properties.
+
+Example:
+abcconvert -replaceString /mnt/server01 /home/projects materials.abc materials01.abc
+---
+ bin/AbcConvert/AbcConvert.cpp | 60 ++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 59 insertions(+), 1 deletion(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index 148242c9..e08111db 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -48,6 +48,7 @@ enum ArgMode
+     kInFiles,
+     kOutFile,
+     kReplaceName,
++    kReplaceString,
+ };
+ 
+ class ConversionOptions
+@@ -71,6 +72,7 @@ public:
+     bool                        replaceProps;
+     bool                        animlayer;
+     std::map<std::string, std::string> replaceNames;
++    std::map<std::string, std::string> replaceStrings;
+ };
+ 
+ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+@@ -134,10 +136,44 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+                 Alembic::Abc::ISampleSelector sel(
+                     (Alembic::Abc::index_t) j);
+ 
++                // Replace the string.
+                 if (header.getDataType().getPod() ==
+                     Alembic::AbcCoreAbstract::kStringPOD)
+                 {
+                     inProp.get(&sampStrVec.front(), sel);
++
++                    std::map<std::string, std::string>::const_iterator replace;
++                    for (replace = options.replaceStrings.begin();
++                         replace != options.replaceStrings.end();
++                         replace++)
++                    {
++                        std::vector<std::string>::iterator current;
++
++                        for (current = sampStrVec.begin();
++                             current != sampStrVec.end();
++                             current++)
++                        {
++                            size_t found = 0;
++
++                            while (true)
++                            {
++                                found = current->find(replace->first, found);
++
++                                if (found == std::string::npos)
++                                {
++                                    break;
++                                }
++
++                                current->replace(
++                                    found,
++                                    replace->first.size(),
++                                    replace->second);
++
++                                found += replace->second.size();
++                            }
++                        }
++                    }
++
+                     outProp.set(&sampStrVec.front());
+                 }
+                 else if (header.getDataType().getPod() ==
+@@ -228,6 +264,7 @@ void displayHelp()
+     printf ("to add a Layer metadata to objects or properties\n\n");
+     printf ("Change an object name: -replaceName /full/old/name newName\n\n");
+     printf ("-animlayer adds the replace flag to transforms and meshes.\n\n");
++    printf ("-replaceString allows to replace parts of string properties.\n\n");
+ }
+ 
+ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDoConversion )
+@@ -235,6 +272,7 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+     oDoConversion = true;
+     ArgMode argMode = kOptions;
+     std::string replaceName;
++    std::string replaceString;
+ 
+     for( int i = 1; i < iArgc; i++ )
+     {
+@@ -269,6 +307,10 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 {
+                     argMode = kReplaceName;
+                 }
++                else if(arg == "-replaceString")
++                {
++                    argMode = kReplaceString;
++                }
+                 else if(arg == "-in" )
+                 {
+                     argMode = kInFiles;
+@@ -339,6 +381,20 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                     argMode = kOptions;
+                 }
+             }
++
++            case kReplaceString:
++            {
++                if (replaceString.empty())
++                {
++                    replaceString = arg;
++                }
++                else
++                {
++                    oOptions.replaceStrings[replaceString] = arg;
++                    replaceString.clear();
++                    argMode = kOptions;
++                }
++            }
+             break;
+         }
+ 
+@@ -399,7 +455,9 @@ int main(int argc, char *argv[])
+                 options.force ||
+                 options.replaceObjs ||
+                 options.replaceProps ||
+-                options.animlayer;
++                options.animlayer ||
++                !options.replaceNames.empty() ||
++                !options.replaceStrings.empty();
+             if (!archive.valid())
+             {
+                 printf("Error: Invalid Alembic file specified: %s\n",
+-- 
+2.12.1
+

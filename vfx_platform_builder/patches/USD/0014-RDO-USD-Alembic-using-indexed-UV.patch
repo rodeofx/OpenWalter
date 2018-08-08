@@ -1,0 +1,80 @@
+From 438356d57374ad71230672800893a3c6a7391fab Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 20 Dec 2017 17:27:08 -0500
+Subject: [PATCH] RDO: USD Alembic: using indexed UV
+
+We faced with problem that Arnold doesn't smooth UVs correctly if it's not
+indexed. So we need to use the raw data from Alembic.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 27 +++++++++++++++++++++++++--
+ 1 file changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 259a7202..4d68097a 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -1919,6 +1919,8 @@ public:
+     /// from the context so it cannot be extracted again.
+     AlembicProperty ExtractSchema(const std::string& name);
+ 
++    AlembicProperty ExtractUV(const std::string& name);
++
+     /// Returns the names of properties that have not been extracted yet
+     /// in Alembic property order.
+     std::vector<std::string> GetUnextractedNames() const;
+@@ -1947,6 +1949,7 @@ private:
+     _ReaderContext& _context;
+     IObject _prim;
+     ICompoundProperty _schema;
++    ICompoundProperty _uvSchema;
+     SdfPath _path;
+     std::vector<std::string> _unextracted;
+     std::vector<std::string> _unextractedSchema;
+@@ -2033,6 +2036,9 @@ _PrimReaderContext::SetSchema(const std::string& schemaName)
+     _schema = ICompoundProperty(_prim.getProperties(), schemaName,
+                                 ErrorHandler::kQuietNoopPolicy);
+     if (_schema.valid()) {
++        _uvSchema =
++            ICompoundProperty(_schema, "uv", ErrorHandler::kQuietNoopPolicy);
++
+         // Fill _unextractedSchema with all of the property names.
+         _unextractedSchema.resize(_schema.getNumProperties());
+         for (size_t i = 0, n = _unextractedSchema.size(); i != n; ++i) {
+@@ -2068,6 +2074,17 @@ _PrimReaderContext::ExtractSchema(const std::string& name)
+     return AlembicProperty(GetPath(), name);
+ }
+ 
++AlembicProperty
++_PrimReaderContext::ExtractUV(const std::string& name)
++{
++    if (_uvSchema.valid())
++    {
++        return AlembicProperty(GetPath(), name, _uvSchema);
++    }
++
++    return AlembicProperty(GetPath(), name);
++}
++
+ std::vector<std::string>
+ _PrimReaderContext::GetUnextractedNames() const
+ {
+@@ -3172,8 +3189,14 @@ _ReadPolyMesh(_PrimReaderContext* context)
+     context->AddProperty(
+         UsdAbcPropertyNames->uv,
+         SdfValueTypeNames->Float2Array,
+-        _CopyGeneric<IV2fGeomParam, GfVec2f>(
+-            context->ExtractSchema("uv")));
++        _CopyGeneric<IV2fArrayProperty, GfVec2f>(
++            context->ExtractUV(".vals")));
++    static const TfToken uvIndices("primvars:uv:indices");
++    context->AddProperty(
++        uvIndices,
++        SdfValueTypeNames->IntArray,
++        _CopyGeneric<IUInt32ArrayProperty, int>(
++            context->ExtractUV(".indices")));
+ 
+     // Custom subdivisionScheme property.  Alembic doesn't have this since
+     // the Alembic schema is PolyMesh.  Usd needs "none" as the scheme.
+-- 
+2.14.3
+

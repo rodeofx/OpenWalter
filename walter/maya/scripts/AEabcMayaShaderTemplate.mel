@@ -1,0 +1,283 @@
+
+global string    $gAEgenericColumnLayout = "";
+global string     $gAEgenericFrameLayout = "";
+proc  AEgenericReset()
+{
+
+    global string    $gAEgenericColumnLayout;
+    global string    $gAEgenericFrameLayout;
+    string            $currentParent = `setParent -q`;
+
+
+    if ($gAEgenericColumnLayout != $currentParent)
+    {
+        // There is a new parent. Save the new colum layout
+        // parent, and find the enclosing frame layout.
+        //
+        $gAEgenericColumnLayout = $currentParent;
+
+        int        $columnLytCnt = size( $gAEgenericColumnLayout );
+        int        $count = 0;
+
+        for ($i = $columnLytCnt; $i >= 1; $i--)
+        {
+            if (substring( $gAEgenericColumnLayout, $i, $i ) == "|") $count++;
+
+            if ($count == 2)
+            {
+                $gAEgenericFrameLayout = substring( $gAEgenericColumnLayout, 1, ($i - 1) );
+                break;
+            }
+        }
+    }
+
+
+}  // AEgenericReset //
+
+global proc vioAEcacheFileBrowser( string $cmd, string $cacheName )
+{
+    string  $workspace = `workspace -q -fn`;
+    setWorkingDirectory $workspace "shaders" "shaders";
+
+    fileBrowser ($cmd, "ABC File", "", 0);
+}
+
+global proc vioAEFileBrowser( string $cmd, string $cacheName )
+{
+    string  $workspace = `workspace -q -fn`;
+    setWorkingDirectory $workspace "sourceImages" "image";
+
+    fileBrowser ($cmd, "File", "", 0);
+}
+
+global proc int vioAEassignCacheFileCB( string $fileAttribute,
+                                        string $fileName,
+                                        string $fileType )
+{
+    string $components[];
+      tokenize $fileAttribute "." $components;
+      string $nodeName = $components[0];
+
+    setAttr ($nodeName + ".shader") -type "string" $fileAttribute;
+
+  string $currentDir = `workspace -q -dir`;
+  retainWorkingDirectory ($currentDir);
+
+  return true;
+}
+
+global proc int vioAEassignFileCB( string $attr,
+                                        string $fileName,
+                                        string $fileType )
+{
+    setAttr $attr -type "string" $fileName;
+
+  string $currentDir = `workspace -q -dir`;
+  retainWorkingDirectory ($currentDir);
+
+  return true;
+}
+
+global proc vioAEoutpathNew(string $cacheName)
+{
+    setUITemplate -pst attributeEditorTemplate;
+        columnLayout -adj true;
+            rowLayout -nc 3 outpathLayout;
+                text -label "ABC Path" outpathText;
+                textField diskNameField;
+                    symbolButton -image "navButtonBrowse.png" browser;
+                setParent ..;
+
+        setParent ..;
+
+    setUITemplate -ppt;
+    setParent ..;
+
+    vioAEoutpathReplace( $cacheName );
+}
+
+global proc vioAEoutpathReplace(string $shader)
+{
+    string $fileName = `getAttr $shader`;
+    string    $buffer[];
+    tokenize($shader, ".", $buffer);
+    string    $nodeName = $buffer[0];
+
+    // Filename Attribute
+  connectControl diskNameField $shader;
+  string $command = "vioAEassignCacheFileCB " + " " + $shader;
+  button -e -c ("vioAEcacheFileBrowser \"" + $command + "\" " + $nodeName ) browser;
+}
+
+
+global proc AEabcMayaShaderTemplate( string $nodeName )
+{
+    editorTemplate -beginLayout "Global" -collapse 0;
+    editorTemplate -callCustom vioAEoutpathNew vioAEoutpathReplace shader;
+    editorTemplate -callCustom "vioVizCustomAttrsManage" "vioVizCustomAttrsManage" $nodeName;
+    editorTemplate -endLayout;
+    
+    editorTemplate -beginLayout "Attributes" -collapse 0;
+    editorTemplate -callCustom "vioVizCustomAttrs" "vioVizCustomAttrs" $nodeName;
+    editorTemplate -endLayout;
+    
+    editorTemplate -beginScrollLayout -collapse 1;
+    editorTemplate -addExtraControls;
+    editorTemplate -endScrollLayout;
+
+}
+
+global proc string vioStripNodeName (string $nodeName)
+{
+    string $buffer[];
+    tokenize $nodeName "." $buffer;
+    return $buffer[0];
+}
+
+global proc string vioStripAttributeName (string $nodeName)
+{
+    string $buffer[];
+    tokenize $nodeName "_" $buffer;
+    return $buffer[0];
+}
+
+global proc string vioStripPrefixName (string $nodeName)
+{
+    string $buffer[];
+    tokenize $nodeName "_" $buffer;
+    return $buffer[1];
+}
+
+
+global proc vioVizCustomAttrs (string $nodeName)
+{
+    $nodeName = vioStripNodeName ($nodeName);
+    
+
+    if (`columnLayout -q -exists "attributes"`)
+    { deleteUI "attributes"; }
+
+    string $form = `columnLayout -adjustableColumn true attributes`;
+    string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5`;
+
+    
+    string $attrList[] = `listAttr -w -ct "*" $nodeName`;
+    
+    string $general[];
+    string $cats[];
+
+    for ($attr in $attrList)
+    {
+        if ($attr != "shaderFrom")
+        {
+            $tabName = vioStripAttributeName ($attr);
+            if($tabName == $attr)
+                $general[ size($general) ]  = $tabName;
+            else
+            {
+                if (stringArrayFind( $tabName, 0, $cats ) == -1)
+                    $cats[ size($cats) ]  = $tabName;
+            }
+        }
+    }
+    
+    string $catLayouts[];
+    for ($cat in $cats)
+    {
+        $catLayouts[size($catLayouts)] = `columnLayout -adjustableColumn true`;
+        for ($attr in $attrList)
+        {
+            $tabName = vioStripAttributeName ($attr);
+            if($tabName == $cat)
+            {
+                $lowerAttr = `tolower($attr)`;
+                if ( `gmatch  $lowerAttr "*file*"` == 1)
+                {    
+                    columnLayout -adj true;
+                        rowLayout -nc 3 outpathLayout;
+                            text -label `vioStripPrefixName($attr)` outpathText;
+                            textField diskNameField;
+                                symbolButton -image "navButtonBrowse.png" browser;
+                            setParent ..;
+
+                    setParent ..;
+                    string $command = "vioAEassignFileCB " + " " + $nodeName + "." +$attr;
+                    connectControl diskNameField ($nodeName + "." +$attr);
+                    button -e -c ("vioAEFileBrowser \"" + $command + "\" " + $nodeName + "." +$attr ) browser;
+                }
+                else
+                    attrControlGrp -attribute ($nodeName + "." +$attr) -label `vioStripPrefixName($attr)`;
+            }
+        }
+        setParent ..;
+    }    
+
+    $genLayout = `columnLayout -adjustableColumn true`;
+    for ($gen in $general)
+    {
+        for ($attr in $attrList)
+        {
+            $tabName = vioStripAttributeName ($attr);
+            if($tabName == $gen)
+                attrControlGrp -attribute ($nodeName + "." +$attr);
+        }
+    }
+    setParent ..;    
+    
+    $i =0;
+    for ($cat in $cats)
+    {
+        tabLayout -edit
+         -tabLabel $catLayouts[$i] $cat 
+         $tabs;    
+        $i++;
+    }
+
+    tabLayout -edit
+         -tabLabel $genLayout "General" 
+         $tabs;    
+    
+}
+
+global proc vioVizCustomAttrsManage (string $nodeName)
+{
+    $nodeName = vioStripNodeName ($nodeName);
+    
+    if (`columnLayout -q -exists "foobar"`)
+    { deleteUI "foobar"; }
+
+    columnLayout  foobar;
+    
+    string $multiList[] = `listAttr -multi ($nodeName+".shaders")`;
+
+    string $shaderFrom = `getAttr ($nodeName+".shaderFrom")`;
+
+    string $shaderMenu = `optionMenuGrp -label "Shader :"`;
+    menuItem -l "None";
+
+    for ($multi in $multiList)
+    {
+        string $tok[];
+        tokenize $multi "[" $tok;
+        string $index = $tok[1];
+        $index = substituteAllString($index, "]", "");
+        string $attr = `getAttr ($nodeName+"."+$multi)`;
+           menuItem -label $attr;
+    }
+    optionMenuGrp -e -cc ("vioVizSwitchAttributeFrom " + $nodeName + " " + $shaderMenu) $shaderMenu;
+
+    if (`size($multiList)` && $shaderFrom != "")
+    {
+        optionMenuGrp -e -v $shaderFrom $shaderMenu;
+    }
+
+
+
+}
+
+global proc vioVizSwitchAttributeFrom(string $nodeName, string $menu)
+{
+    $sel = `optionMenuGrp -q -v $menu`;
+    setAttr -type "string" ($nodeName+".shaderFrom") $sel;
+
+}

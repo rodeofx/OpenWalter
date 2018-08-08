@@ -1,0 +1,47 @@
+// Copyright 2018 Rodeo FX.  All rights reserved.
+
+proc int testExpressions(string $path, string $expected[])
+{
+    // Create a walter node.
+    string $node = wCreateStandin($path);
+
+    string $expressions[] = `walterStandin - alembicExpressions $node`;
+
+    // Checking if the size of the expected array is the same as the received.
+    if (size($expected) != size($expressions))
+    {
+        return 1;
+    }
+
+    // It's possible that the received expressions are in random order. We need
+    // to find each item to check if it's the same array.
+    for ($i = 0; $i < size($expected); ++$i)
+    {
+        if (stringArrayFind($expected[$i], 0, $expressions) < 0)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+global proc int testCacheExpressions()
+{
+    // Directory to the alembics.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/alembics/";
+
+    int $fails = 0;
+
+    string $sphere = $dir + "sphere-parent.abc";
+    string $expressions =
+        $dir + "expressions-white-and-yolk-to-second-and-third-level.abc";
+    string $materials = $dir + "materials-white-and-yolk.abc";
+
+    // Expected data:
+    string $array[2] = {"/[^/;]*/[^/;]*", "/[^/;]*/[^/;]*/[^/;]*"};
+    $fails += testExpressions(
+        $sphere + ":" + $expressions + ":" + $materials, $array);
+
+    return $fails;
+}

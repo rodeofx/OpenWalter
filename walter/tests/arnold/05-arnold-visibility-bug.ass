@@ -1,0 +1,296 @@
+### exported: Tue Nov  7 09:53:57 2017
+### from:     Arnold 5.0.1.4 [acf16ee8] linux clang-4.0.0 oiio-1.7.15 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2017/09/19 10:57:16
+### host app: MtoA 2.0.2.2 ec15fcad (master) Maya 2016
+
+options
+{
+ AA_samples 5
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 128
+ yres 128
+ texture_per_file_stats on
+ texture_automip off
+ texture_specular_blur 0
+ camera "perspShape"
+ GI_diffuse_depth 1
+ GI_specular_depth 1
+ GI_transmission_depth 1
+ declare frame constant FLOAT
+ frame 1
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+ declare fps constant FLOAT
+ fps 24
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+ width 2
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+persp_camera
+{
+ name perspShape
+ matrix 1 2 MATRIX
+ 0.99984771 0 -0.0174524058 0
+ 0 1 0 0
+ 0.0174524058 0 0.99984771 0
+ 0 0.25 15 1
+ 0.99984771 0 -0.0174524058 0
+ 0 1 0 0
+ 0.0174524058 0 0.99984771 0
+ 0 0.25 15 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start -0.5
+ motion_end 0.5
+ shutter_start -0.5
+ shutter_end 0.5
+ exposure 0
+ fov 30
+ focus_distance 1
+ aperture_size 0
+ aperture_blades 0
+ aperture_rotation 0
+ aperture_blade_curvature 0
+ aperture_aspect_ratio 1
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+point_light
+{
+ name pointLightShape1
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 10 10 10 1
+ color 1 1 1
+ intensity 100
+ exposure 0
+ cast_shadows on
+ cast_volumetric_shadows on
+ shadow_density 1
+ shadow_color 0 0 0
+ samples 1
+ normalize on
+ diffuse 1
+ specular 1
+ sss 1
+ indirect 1
+ max_bounces 999
+ volume_samples 2
+ volume 1
+ aov "default"
+ radius 0
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix 1 3 MATRIX
+
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 1 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 1 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 1 0 1
+ motion_start -0.5
+ motion_end 0.5
+ filePaths "../resources/alembics/cubes-animated.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+def \"materials\"
+{
+    def Expression \"_pCube1\"
+    {
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1/aiStandardSurface1>
+        string expression = \"/pCube1\"
+    }
+
+    def Expression \"_pCube1_pCube2_pCube4\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/walterOverride1>
+        string expression = \"/pCube1/pCube2/pCube4\"
+    }
+
+    def Material \"walterOverride1\"
+    {
+        bool arnold:attribute:visibility = 0
+    }
+}
+
+"
+ declare frame constant ARRAY FLOAT
+ frame 1 3 FLOAT
+1.5 2 2.5
+ declare fps constant FLOAT
+ fps 2
+}
+
+polymesh
+{
+ name BigFloorShape
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ use_light_group off
+ id 2750067574
+ nsides 4
+ vidxs 4 1 UINT
+0 1 3 2
+ nidxs 4 1 UINT
+0 1 2 3
+ uvidxs 4 1 UINT
+0 1 3 2
+ vlist 4 1 VECTOR
+-50 -1.11022302e-14 50 50 -1.11022302e-14 50 -50 1.11022302e-14 -50 50 1.11022302e-14 -50
+ nlist 4 1 VECTOR
+0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+ uvlist 4 1 VECTOR2
+0 0 1 0 0 1 1 1
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+MayaShadingEngine
+{
+ name aiStandardSurface1SG
+ beauty WhiteMirror
+ enable_matte off
+ matte_color 0 0 0 0
+}
+
+standard_surface
+{
+ name WhiteMirror
+ base 0.800000012
+ base_color 1 1 1
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0
+ specular_IOR 5
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface1
+ base 0
+ base_color 1 1 1
+ diffuse_roughness 0
+ specular 0
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 1
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+

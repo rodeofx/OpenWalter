@@ -1,0 +1,29 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int _testVisibility(string $dirIn, string $dir, string $usdFile) 
+{
+    string $nodePath = $dirIn + $usdFile;
+ 	string $node = wCreateStandin($nodePath);
+
+ 	string $assName = $dir + $usdFile + ".ass";
+
+    int $isVisible = `walterStandin -tv $node "/cube_lo"`;
+    _exportSelectionToAssFile($assName);
+
+    int $res1 = _readAndFindInFile($assName, "visibility 16");
+    return 1 - $res1; 
+}
+
+global proc int testVisibility()
+{	
+ 	string $dir = "/tmp/testVisibility/";
+    string $dirIn = dirname(wGetCurrentDir()) + "/resources/usd/variants/";
+
+	sysFile -makeDir $dir;
+
+	int $resDir = _testVisibility($dirIn, $dir ,"cubes/.layers/cube_lo.geo.usda");
+	
+    prDeleteFolder($dir);
+
+    return $resDir;
+}

@@ -1,0 +1,114 @@
+From 0ea8d7713dd0eeee091a1c34eb584beabf3efc7b Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Fri, 29 Jun 2018 13:02:14 -0400
+Subject: [PATCH] RDO: the ability to reference a root
+
+Before following USDA was producing an error:
+
+class "_class_suspension" (
+            instanceable = true
+            add references = @suspension.usda@</>)
+{}
+
+It's related to USD architecture. There was a couple of places with a
+direct check if the reference is not root, but the main reason is when
+creating an arc in primIndex, the new node is wiped out with setting it
+as inert if it points to root. The comment of this block says that it
+should happen only of the new node is unresolved, and it's fixed that it
+should happen just if the new node is unresolved.
+
+It's a minor change, and if there was no root reference, the behavior
+shouldn't be changed. It only brings the support of the root referencing.
+---
+ pxr/usd/lib/sdf/abstractData.cpp       | 14 ++++++++++----
+ pxr/usd/lib/sdf/schema.cpp             |  2 +-
+ pxr/usd/lib/sdf/textFileFormat.tab.cpp |  2 +-
+ pxr/usd/lib/sdf/textFileFormat.yy      |  2 +-
+ pxr/usd/lib/usd/stage.cpp              |  7 ++++---
+ 5 files changed, 17 insertions(+), 10 deletions(-)
+
+diff --git a/pxr/usd/lib/sdf/abstractData.cpp b/pxr/usd/lib/sdf/abstractData.cpp
+index 199adf2..214b77c 100644
+--- a/pxr/usd/lib/sdf/abstractData.cpp
++++ b/pxr/usd/lib/sdf/abstractData.cpp
+@@ -55,10 +55,16 @@ const SdfPath&
+ SdfAbstractDataSpecId::_ComputeFullSpecPath() const
+ {
+     if (!_fullSpecPathBuffer) {
+-        _fullSpecPathBuffer.reset(
+-            (_path->IsTargetPath() ? 
+-                _path->AppendRelationalAttribute(*_propertyName) :
+-                _path->AppendProperty(*_propertyName)));
++        if (*_path == SdfPath::AbsoluteRootPath()) {
++            // We can't add a propery to a root object and the root doesn't have
++            // any property.
++            _fullSpecPathBuffer.reset(SdfPath::EmptyPath());
++        } else {
++            _fullSpecPathBuffer.reset(
++                (_path->IsTargetPath() ?
++                     _path->AppendRelationalAttribute(*_propertyName) :
++                     _path->AppendProperty(*_propertyName)));
++        }
+     }
+ 
+     return *_fullSpecPathBuffer;
+diff --git a/pxr/usd/lib/sdf/schema.cpp b/pxr/usd/lib/sdf/schema.cpp
+index cbe2f59..d826f28 100644
+--- a/pxr/usd/lib/sdf/schema.cpp
++++ b/pxr/usd/lib/sdf/schema.cpp
+@@ -1107,7 +1107,7 @@ SdfSchemaBase::IsValidReference(const SdfReference& ref)
+ {
+     const SdfPath& path = ref.GetPrimPath();
+     if (!path.IsEmpty() &&
+-        !(path.IsAbsolutePath() && path.IsPrimPath())) {
++        !(path.IsAbsolutePath() && path.IsAbsoluteRootOrPrimPath())) {
+         return SdfAllowed("Reference prim path <" +
+                           ref.GetPrimPath().GetString() + "> must be either "
+                           "empty or an absolute prim path");
+diff --git a/pxr/usd/lib/sdf/textFileFormat.tab.cpp b/pxr/usd/lib/sdf/textFileFormat.tab.cpp
+index 5b75668..5ffb4ae 100644
+--- a/pxr/usd/lib/sdf/textFileFormat.tab.cpp
++++ b/pxr/usd/lib/sdf/textFileFormat.tab.cpp
+@@ -976,7 +976,7 @@ _PathSetPrim(const Value& arg1, Sdf_TextParserContext *context)
+ {
+     const std::string& pathStr = arg1.Get<std::string>();
+     context->savedPath = SdfPath(pathStr);
+-    if (!context->savedPath.IsPrimPath()) {
++    if (!context->savedPath.IsAbsoluteRootOrPrimPath()) {
+         Err(context, "'%s' is not a valid prim path", pathStr.c_str());
+     }
+ }
+diff --git a/pxr/usd/lib/sdf/textFileFormat.yy b/pxr/usd/lib/sdf/textFileFormat.yy
+index df24375..745badf 100644
+--- a/pxr/usd/lib/sdf/textFileFormat.yy
++++ b/pxr/usd/lib/sdf/textFileFormat.yy
+@@ -898,7 +898,7 @@ _PathSetPrim(const Value& arg1, Sdf_TextParserContext *context)
+ {
+     const std::string& pathStr = arg1.Get<std::string>();
+     context->savedPath = SdfPath(pathStr);
+-    if (!context->savedPath.IsPrimPath()) {
++    if (!context->savedPath.IsAbsoluteRootOrPrimPath()) {
+         Err(context, "'%s' is not a valid prim path", pathStr.c_str());
+     }
+ }
+diff --git a/pxr/usd/lib/usd/stage.cpp b/pxr/usd/lib/usd/stage.cpp
+index c2716c5..80dd29b 100644
+--- a/pxr/usd/lib/usd/stage.cpp
++++ b/pxr/usd/lib/usd/stage.cpp
+@@ -4298,9 +4298,10 @@ UsdStage::_GetDefiningSpecType(const UsdPrim& prim,
+     bool curPathValid = false;
+     while (res.IsValid()) {
+         const SdfLayerRefPtr& layer = res.GetLayer();
+-        if (layer->HasSpec(SdfAbstractDataSpecId(&res.GetLocalPath()))) {
+-            if (!curPathValid) {
+-                curPath = res.GetLocalPath().AppendProperty(propName);
++        const SdfPath& localPath = res.GetLocalPath();
++        if (layer->HasSpec(SdfAbstractDataSpecId(&localPath))) {
++            if (!curPathValid && localPath != SdfPath::AbsoluteRootPath()) {
++                curPath = localPath.AppendProperty(propName);
+                 curPathValid = true;
+             }
+             specType = layer->GetSpecType(SdfAbstractDataSpecId(&curPath));
+-- 
+2.3.0
+

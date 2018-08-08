@@ -1,0 +1,160 @@
+From 5995752bc9ccb526122a5555418b5ecda7e22dce Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 22 Feb 2017 12:34:04 -0500
+Subject: [PATCH 01/10] RodeoFX modification of AbcConvert
+
+We need an ability to add a Layer attributes to the Alembic files.
+---
+ bin/AbcConvert/AbcConvert.cpp | 53 +++++++++++++++++++++++++++++++++----------
+ 1 file changed, 41 insertions(+), 12 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index acce7885..690b0af8 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -37,6 +37,7 @@
+ #include <Alembic/Abc/All.h>
+ #include <Alembic/AbcCoreFactory/All.h>
+ #include <Alembic/AbcCoreHDF5/All.h>
++#include <Alembic/AbcCoreLayer/Util.h>
+ #include <Alembic/AbcCoreOgawa/All.h>
+ 
+ typedef Alembic::AbcCoreFactory::IFactory IFactoryNS;
+@@ -62,21 +63,30 @@ public:
+     std::string                 outFile;
+     IFactoryNS::CoreType        toType;
+     bool                        force;
++    bool                        replaceObjs;
++    bool                        replaceProps;
+ };
+ 
+ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+-    Alembic::Abc::OCompoundProperty & iWrite)
++    Alembic::Abc::OCompoundProperty & iWrite,
++    const ConversionOptions& options)
+ {
+     std::size_t numChildren = iRead.getNumProperties();
+     for (std::size_t i = 0; i < numChildren; ++i)
+     {
+         Alembic::AbcCoreAbstract::PropertyHeader header =
+             iRead.getPropertyHeader(i);
++        Alembic::AbcCoreAbstract::MetaData meta = header.getMetaData();
++        if (options.replaceProps)
++        {
++            Alembic::AbcCoreLayer::SetReplace( meta, true );
++        }
++
+         if (header.isArray())
+         {
+             Alembic::Abc::IArrayProperty inProp(iRead, header.getName());
+             Alembic::Abc::OArrayProperty outProp(iWrite, header.getName(),
+-                header.getDataType(), header.getMetaData(),
++                header.getDataType(), meta,
+                 header.getTimeSampling());
+ 
+             std::size_t numSamples = inProp.getNumSamples();
+@@ -94,7 +104,7 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+         {
+             Alembic::Abc::IScalarProperty inProp(iRead, header.getName());
+             Alembic::Abc::OScalarProperty outProp(iWrite, header.getName(),
+-                header.getDataType(), header.getMetaData(),
++                header.getDataType(), meta,
+                 header.getTimeSampling());
+ 
+             std::size_t numSamples = inProp.getNumSamples();
+@@ -140,28 +150,34 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+         else if (header.isCompound())
+         {
+             Alembic::Abc::OCompoundProperty outProp(iWrite,
+-                header.getName(), header.getMetaData());
++                header.getName(), meta);
+             Alembic::Abc::ICompoundProperty inProp(iRead, header.getName());
+-            copyProps(inProp, outProp);
++            copyProps(inProp, outProp, options);
+         }
+     }
+ }
+ 
+ void copyObject(Alembic::Abc::IObject & iIn,
+-    Alembic::Abc::OObject & iOut)
++    Alembic::Abc::OObject & iOut,
++    const ConversionOptions& options)
+ {
+     std::size_t numChildren = iIn.getNumChildren();
+ 
+     Alembic::Abc::ICompoundProperty inProps = iIn.getProperties();
+     Alembic::Abc::OCompoundProperty outProps = iOut.getProperties();
+-    copyProps(inProps, outProps);
++    copyProps(inProps, outProps, options);
+ 
+     for (std::size_t i = 0; i < numChildren; ++i)
+     {
+         Alembic::Abc::IObject childIn(iIn.getChild(i));
+-        Alembic::Abc::OObject childOut(iOut, childIn.getName(),
+-                                       childIn.getMetaData());
+-        copyObject(childIn, childOut);
++        Alembic::AbcCoreAbstract::MetaData meta = childIn.getMetaData();
++        if (options.replaceObjs)
++        {
++            Alembic::AbcCoreLayer::SetReplace( meta, true );
++        }
++
++        Alembic::Abc::OObject childOut(iOut, childIn.getName(), meta);
++        copyObject(childIn, childOut, options);
+     }
+ }
+ 
+@@ -178,6 +194,9 @@ void displayHelp()
+     printf ("OPTION has to be one of these:\n\n");
+     printf ("  -toHDF   Convert to HDF.\n");
+     printf ("  -toOgawa Convert to Ogawa.\n");
++    printf ("\nRodeoFX modification:\n");
++    printf ("It's possible to use options -replaceObjs and -replaceProps\n");
++    printf ("to add a Layer metadata to objects or properties\n");
+ }
+ 
+ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDoConversion )
+@@ -206,6 +225,14 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 {
+                     oOptions.force = true;
+                 }
++                else if(arg == "-replaceObjs")
++                {
++                    oOptions.replaceObjs = true;
++                }
++                else if(arg == "-replaceProps")
++                {
++                    oOptions.replaceProps = true;
++                }
+                 else if(arg == "-in" )
+                 {
+                     argMode = kInFiles;
+@@ -313,13 +340,15 @@ int main(int argc, char *argv[])
+         if(options.inFiles.size() == 1)
+         {
+             archive = factory.getArchive(*options.inFiles.begin(), coreType);
++            bool force =
++                options.force || options.replaceObjs || options.replaceProps;
+             if (!archive.valid())
+             {
+                 printf("Error: Invalid Alembic file specified: %s\n",
+                        options.inFiles.begin()->c_str());
+                 return 1;
+             }
+-            else if ( !options.force && (
++            else if ( !force && (
+                 (coreType == IFactoryNS::kHDF5 &&
+                  options.toType == IFactoryNS::kHDF5) ||
+                 (coreType == IFactoryNS::kOgawa &&
+@@ -361,7 +390,7 @@ int main(int argc, char *argv[])
+         }
+ 
+         Alembic::Abc::OObject outTop = outArchive.getTop();
+-        copyObject(inTop, outTop);
++        copyObject(inTop, outTop, options);
+     }
+ 
+     return 0;
+-- 
+2.12.1
+

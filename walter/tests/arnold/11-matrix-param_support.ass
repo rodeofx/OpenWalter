@@ -1,0 +1,231 @@
+### exported: Mon May 14 10:49:44 2018
+### from:     Arnold 5.1.0.0 [ae71da65] linux clang-5.0.0 oiio-1.7.17 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2018/04/04 10:34:17
+### host app: MtoA 3.0.0.1 431157db (master) Maya 2016
+### bounds: -2.5 -0.5 -3.5 2.5 3.5 3.5
+### user: glaforge
+### render_layer: defaultRenderLayer
+
+
+
+options
+{
+ AA_samples 3
+ AA_samples_max 8
+ outputs 2 1 STRING
+  "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+  "ID UINT aiAOVFilter1@closest_filter defaultArnoldDriver@driver_exr.ID"
+ xres 128   
+ yres 128
+ texture_per_file_stats on
+ texture_searchpath ""
+ texture_automip off
+ camera "perspShape"
+ frame 1
+ procedural_searchpath ""
+ GI_diffuse_depth 1
+ GI_specular_depth 1
+ GI_transmission_depth 8
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+closest_filter
+{
+ name aiAOVFilter1@closest_filter
+}
+
+persp_camera
+{
+ name perspShape
+ matrix
+ 0.707106769 0 -0.707106769 0
+ -0.331294566 0.883452237 -0.331294566 0
+ 0.624695063 0.468521297 0.624695063 0
+ 7.69540977 6.73030138 7.88126707 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 54.4322243
+ declare maya_full_name constant STRING
+ maya_full_name "|persp|perspShape"
+}
+
+skydome_light
+{
+ name aiSkyDomeLightShape1
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ exposure 0
+ cast_shadows on
+ cast_volumetric_shadows on
+ shadow_density 1
+ shadow_color 0 0 0
+ samples 1
+ normalize on
+ camera 1
+ transmission 1
+ diffuse 1
+ specular 1
+ sss 1
+ indirect 1
+ max_bounces 999
+ volume_samples 2
+ volume 1
+ aov "default"
+ resolution 1000
+ format "latlong"
+ portal_mode "interior_only"
+ aov_indirect off
+ declare maya_full_name constant STRING
+ maya_full_name "|aiSkyDomeLight1|aiSkyDomeLightShape1"
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ filePaths "../resources/alembics/cubes-hi.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ variantsLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+def \"materials\"
+{
+    def Expression \"______\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/walterOverride1>
+        rel assign:defaultRenderLayer:shader = </materials/______/DEFAULT>
+        string expression = \"(/.*)?\"
+    }
+
+    def Material \"walterOverride1\"
+    {
+        int arnold:attribute:subdiv_iterations = 2
+        string arnold:attribute:subdiv_type = \"catclark\"
+    }
+}
+
+"
+ declare shadersAssignation constant STRING
+ shadersAssignation "{\"DEFAULT\":[\"(/.*)?\"]}
+"
+ declare attributes constant STRING
+ attributes "{\"(/.*)?\":{\"subdiv_iterations\":2,\"subdiv_type\":\"catclark\"}}
+"
+ declare displacementsAssignation constant STRING
+ displacementsAssignation "null
+"
+ declare frame constant FLOAT
+ frame 1
+ declare fps constant FLOAT
+ fps 24
+}
+
+standard_surface
+{
+ name BODY
+ base_color 1 0 0
+}
+
+standard_surface
+{
+ name BODY_BACK
+ base 1
+ base_color 1 0.154799998 0
+ specular 0
+}
+
+standard_surface
+{
+ name PROPELERS
+ base_color 0 0 0
+}
+
+standard_surface
+{
+ name BIG_PROPERLER
+ base_color 0 0 1
+}
+
+standard_surface
+{
+ name DEFAULT
+ base 1
+ base_color snow1
+ specular 0
+}
+
+MayaSnow
+{
+ name snow1
+ placementMatrix 
+ 1 0 0 0
+ 0 0.758420765 -0.651765227 0
+ 0 0.651765227 0.758420765 0
+ 0 0 0 1
+}
+
+lambert
+{
+ name lambert1
+ Kd 0.800000012
+ Kd_color 0.5 0.5 0.5
+ opacity 1 1 1
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.ID
+ filename "/rdo/shows/hwc/_asset/planetEarth/cg/maya/images/ID/spaceship.exr"
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+

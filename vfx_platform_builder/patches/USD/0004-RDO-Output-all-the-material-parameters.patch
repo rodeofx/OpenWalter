@@ -1,0 +1,58 @@
+From 423fde26dfdca99a5ab1b6455636dab5e272441a Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 7 Jul 2017 11:46:21 -0400
+Subject: [PATCH] RDO: Output all the material parameters
+
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 29 +++++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 986aebf3..ac40792c 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3428,12 +3428,41 @@ _ReadMaterial(_PrimReaderContext* context)
+         // Not of type Type.
+         return;
+     }
++
++    // Add child properties under schema.
++    context->SetSchema(Type::schema_type::info_type::defaultName());
++
+     Type object(context->GetObject(), kWrapExisting);
+     Type::schema_type& schema = object.getSchema();
+ 
+     // Set prim type.
+     context->GetPrim().typeName = UsdAbcPrimTypeNames->Material;
+ 
++    // Output the material parameters.
++    std::vector<std::string> targetNames;
++    schema.getTargetNames(targetNames);
++    for (const std::string& target : targetNames)
++    {
++        // target is "arnold"
++        std::vector<std::string> shaderTypeNames;
++        schema.getShaderTypesForTarget(target, shaderTypeNames);
++        for(const std::string& shaderType : shaderTypeNames)
++        {
++            // shaderType is "displacement"
++            const ICompoundProperty compound =
++                schema.getShaderParameters(target, shaderType);
++
++            const std::string rawName = compound.getName();
++            const std::string usdName =
++                context->GetUsdName(target + ":" + shaderType);
++
++            // Create property.
++            context->AddOutOfSchemaProperty(
++                    usdName,
++                    context->ExtractSchema(rawName));
++        }
++    }
++
+     // We don't care the used names at this point because all the names are
+     // unique as child properties of ICompound. But we need to pass something to
+     // _ClenName, so just create an empty set.
+-- 
+2.14.3
+

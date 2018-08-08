@@ -1,0 +1,120 @@
+From af8729340d403a99d0ebbc96d17c88c857433f60 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 5 Apr 2017 16:53:32 -0400
+Subject: [PATCH 04/10] AbcCoreLayer: merging objects with different names
+
+Added the ability to combine the objects if their names don't match. Added a
+metadata "linkto" that contains an expression that specifies the object to merge
+to.
+---
+ CMakeLists.txt                      |  1 +
+ cmake/AlembicBoost.cmake            | 12 +++++++++---
+ lib/Alembic/AbcCoreLayer/OrImpl.cpp | 30 +++++++++++++++++++++++++++++-
+ lib/Alembic/CMakeLists.txt          |  5 +++++
+ 4 files changed, 44 insertions(+), 4 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ce0a8e06..bbe75ac9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -67,6 +67,7 @@ OPTION(USE_HDF5 "Include HDF5 stuff" OFF)
+ OPTION(USE_MAYA "Include Maya stuff" OFF)
+ OPTION(USE_PRMAN "Include PRMan stuff" OFF)
+ OPTION(USE_PYALEMBIC "Include PyAlembic stuff" OFF)
++OPTION(USE_BOOSTREGEX "Include boost regex stuff" OFF)
+ OPTION(USE_STATIC_BOOST "Build with static Boost libs" OFF)
+ OPTION(USE_STATIC_HDF5 "Build with static HDF5 libs" OFF)
+ OPTION(USE_TESTS "Include Alembic tests" ON)
+diff --git a/cmake/AlembicBoost.cmake b/cmake/AlembicBoost.cmake
+index 21b3515b..2e1a89aa 100644
+--- a/cmake/AlembicBoost.cmake
++++ b/cmake/AlembicBoost.cmake
+@@ -78,12 +78,18 @@ IF (USE_PYALEMBIC AND APPLE)
+     SET(Boost_USE_MULTITHREADED OFF)
+ ENDIF()
+ 
++SET( Boost_COMPONENTS program_options )
++
+ IF (USE_PYALEMBIC)
+-    FIND_PACKAGE(Boost 1.42.0 COMPONENTS program_options python)
+-ELSE()
+-    FIND_PACKAGE(Boost 1.42.0 COMPONENTS program_options)
++    list(APPEND Boost_COMPONENTS python)
+ ENDIF()
+ 
++IF (USE_BOOSTREGEX)
++    list(APPEND Boost_COMPONENTS regex)
++ENDIF()
++
++FIND_PACKAGE(Boost 1.42.0 COMPONENTS ${Boost_COMPONENTS})
++
+ #-******************************************************************************
+ # Wrap it all up
+ #-******************************************************************************
+diff --git a/lib/Alembic/AbcCoreLayer/OrImpl.cpp b/lib/Alembic/AbcCoreLayer/OrImpl.cpp
+index 59ddee9d..5ad80de6 100644
+--- a/lib/Alembic/AbcCoreLayer/OrImpl.cpp
++++ b/lib/Alembic/AbcCoreLayer/OrImpl.cpp
+@@ -38,6 +38,10 @@
+ #include <Alembic/AbcCoreLayer/CprImpl.h>
+ #include <Alembic/Abc/ICompoundProperty.h>
+ 
++#ifdef ALEMBIC_BOOST_REGEX
++#include <boost/regex.hpp>
++#endif
++
+ namespace Alembic {
+ namespace AbcCoreLayer {
+ namespace ALEMBIC_VERSION_NS {
+@@ -239,7 +243,31 @@ void OrImpl::init( std::vector< AbcA::ObjectReaderPtr > & iObjects )
+             ChildNameMap::iterator nameIt = m_childNameMap.find(
+                 objHeader.getName() );
+ 
+-            size_t index = 0;
++            if ( nameIt == m_childNameMap.end() )
++            {
++                std::string linkto = objHeader.getMetaData().get( "linkto" );
++
++                if ( !linkto.empty() )
++                {
++#ifdef ALEMBIC_BOOST_REGEX
++                    boost::regex regex(linkto);
++
++                    nameIt = m_childNameMap.begin();
++                    for ( ; nameIt != m_childNameMap.end(); ++nameIt )
++                    {
++                        const std::string& current(nameIt->first);
++                        if ( boost::regex_search(current, regex) )
++                        {
++                            break;
++                        }
++                    }
++#else
++                    ChildNameMap::iterator nameIt = m_childNameMap.find(linkto);
++#endif
++                }
++            }
++
++            size_t index;
+ 
+             // brand new child, add it (if not pruning) and continue
+             if ( nameIt == m_childNameMap.end() )
+diff --git a/lib/Alembic/CMakeLists.txt b/lib/Alembic/CMakeLists.txt
+index 5028c911..b336e95a 100644
+--- a/lib/Alembic/CMakeLists.txt
++++ b/lib/Alembic/CMakeLists.txt
+@@ -78,6 +78,11 @@ IF (ALEMBIC_SHARED_LIBS AND DARWIN)
+     TARGET_LINK_LIBRARIES(${CORE_LIBS})
+ ENDIF()
+ 
++IF (USE_BOOSTREGEX)
++    ADD_DEFINITIONS( -DALEMBIC_BOOST_REGEX )
++    TARGET_LINK_LIBRARIES( Alembic ${Boost_REGEX_LIBRARY} )
++ENDIF()
++
+ INSTALL(TARGETS Alembic
+         EXPORT AlembicTargets
+         LIBRARY DESTINATION lib
+-- 
+2.12.1
+

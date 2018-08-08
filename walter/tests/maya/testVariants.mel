@@ -1,0 +1,40 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int _testVariants(string $dir, string $usdFile, string $variantListRef[])
+{
+    string $nodePath = $dir + $usdFile;
+ 	string $node = wCreateStandin($nodePath);
+
+    string $variantList[] = `walterStandin -getVariants $node`;
+    int $size = size($variantList);
+    int $sizeRef = size($variantListRef);
+
+    if (size($variantList) != size($variantListRef))
+    {
+        return 1;
+    }
+
+    for($i=0;$i<size($variantList);++$i) 
+    {
+        if (wFlattenString($variantList[ $i ]) != wFlattenString($variantListRef[ $i ]))
+            return 1;
+    }
+
+    return 0;
+}
+
+global proc int testVariants()
+{
+    // Directory to the usd.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/usd/variants/";
+ 
+
+    string $variantListRef_1[] = {"{ \"prim\": \"/cube\", \"variants\": [{ \"set\": \"Geometry\", \"names\": [\"damaged\", \"flat\", \"hi\", \"lo\"], \"selection\": \"flat\" } ]  }", "{ \"prim\": \"/another/notcube\", \"variants\": [{ \"set\": \"Geometry\", \"names\": [\"damaged\", \"flat\", \"hi\", \"lo\"], \"selection\": \"flat\" } ]  }"};
+
+    string $variantListRef_2[] = {"{ \"prim\": \"/sphere\", \"variants\": [{ \"set\": \"color\", \"names\": [\"blue\", \"red\"], \"selection\": \"blue\" } , { \"set\": \"Geometry\", \"names\": [\"hi\", \"lo\"], \"selection\": \"hi\" } ]  }"};
+
+    int $test_1 = _testVariants($dir, "cubes/cubes.usda", $variantListRef_1);
+    int $test_2 = _testVariants($dir, "sphere/sphere.usda", $variantListRef_2);
+
+    return $test_1 + $test_2;
+}

@@ -1,0 +1,29 @@
+From 3f405fe1aab46e6191669a6f622682e31b88b476 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Mon, 18 Sep 2017 16:49:53 -0400
+Subject: [PATCH] RDO: always produce xforms in alembics
+
+We need it because if the object is placed in the center, the plugin doesn't
+produce transformation and it's not possible to override the transformation of
+such object in the sublayer. So we need to force producing xform attributes and
+we can do overrides.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index c9a67209..58ea9857 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3067,7 +3067,7 @@ _ReadXform(_PrimReaderContext* context)
+     context->GetPrim().typeName = UsdAbcPrimTypeNames->Xform;
+ 
+     // Add properties.
+-    if (schema.getNumSamples() > 0) {
++    {
+         // We could author individual component transforms here, just 
+         // as the transform is represented in alembic, but round-tripping 
+         // will be an issue because of the way the alembicWriter reads
+-- 
+2.14.3
+

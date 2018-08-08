@@ -1,0 +1,27 @@
+From a8a3ae5a5ff265c3f48a410f1dbb941a347bd826 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 4 Oct 2017 15:37:37 -0400
+Subject: [PATCH] RDO: flip textures to display in Hydra as in Arnold
+
+---
+ pxr/imaging/lib/glf/oiioImage.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/pxr/imaging/lib/glf/oiioImage.cpp b/pxr/imaging/lib/glf/oiioImage.cpp
+index 3b9ff33c..437619b5 100644
+--- a/pxr/imaging/lib/glf/oiioImage.cpp
++++ b/pxr/imaging/lib/glf/oiioImage.cpp
+@@ -452,6 +452,10 @@ Glf_OIIOImage::ReadCropped(int const cropTop,
+         image = &scaled;
+     }
+ 
++    ImageBuf flipped;
++    ImageBufAlgo::flip(flipped, *image);
++    image = &flipped;
++
+ //XXX:
+ //'OpenImageIO::v1_7::ImageBuf::get_pixels': Use get_pixels(ROI, ...) instead. [1.6] 
+ ARCH_PRAGMA_PUSH
+-- 
+2.14.3
+

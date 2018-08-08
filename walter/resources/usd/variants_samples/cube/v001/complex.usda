@@ -1,0 +1,6 @@
+#usda 1.0
+(
+    subLayers = [
+        @/mnt/users/victor/usd/cube/v001/cube.usda@
+    ]
+)

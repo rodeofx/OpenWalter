@@ -1,0 +1,69 @@
+From 5fa32c9fd22a1fa7b4ab78b744684c25cdf6e520 Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Fri, 29 Jun 2018 11:44:12 -0400
+Subject: [PATCH] RDO: Houdini: Ability to import all the objects
+
+By default, it's necessary to specify the objects to import in the tree
+dialog. We need a way to import everything from USD file.
+With this commit, if nothing is specified, then everything is imported.
+---
+ third_party/houdini/lib/gusd/GU_PackedUSD.cpp        | 11 +++++++++--
+ third_party/houdini/plugin/OP_gusd/SOP_usdimport.cpp |  9 ++++++++-
+ 2 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/third_party/houdini/lib/gusd/GU_PackedUSD.cpp b/third_party/houdini/lib/gusd/GU_PackedUSD.cpp
+index 22d0934..d412e00 100644
+--- a/third_party/houdini/lib/gusd/GU_PackedUSD.cpp
++++ b/third_party/houdini/lib/gusd/GU_PackedUSD.cpp
+@@ -459,13 +459,20 @@ GusdGU_PackedUSD::getUsdTransform() const
+ 
+     UsdPrim prim = getUsdPrim();
+ 
+-    if( !prim  ) {
++    if( m_primPath == SdfPath::AbsoluteRootPath() )
++    {
++        // If it's root, use an identity matrix.
++        m_transformCache = UT_Matrix4D(1);
++        m_transformCacheValid = true;
++    }
++    else if( !prim  )
++    {
+         TF_WARN( "Invalid prim! %s", m_primPath.GetText() );
+         m_transformCache = UT_Matrix4D(1);
+         return m_transformCache;
+     }
+ 
+-    if( prim.IsA<UsdGeomXformable>() )
++    else if( prim.IsA<UsdGeomXformable>() )
+     {
+         GusdUSD_XformCache::GetInstance().GetLocalToWorldTransform( 
+              prim, m_frame, m_transformCache );
+diff --git a/third_party/houdini/plugin/OP_gusd/SOP_usdimport.cpp b/third_party/houdini/plugin/OP_gusd/SOP_usdimport.cpp
+index 9c4aaa6..ae76c3e 100644
+--- a/third_party/houdini/plugin/OP_gusd/SOP_usdimport.cpp
++++ b/third_party/houdini/plugin/OP_gusd/SOP_usdimport.cpp
+@@ -462,7 +462,7 @@ GusdSOP_usdimport::_CreateNewPrims(OP_Context& ctx,
+     UT_String file, primPath;
+     evalString(file, "import_file", 0, t);
+     evalString(primPath, "import_primpath", 0, t);
+-    if(!file.isstring() || !primPath.isstring()) {
++    if(!file.isstring()) {
+         // Nothing to do.
+         return UT_ERROR_NONE;
+     }
+@@ -480,6 +480,13 @@ GusdSOP_usdimport::_CreateNewPrims(OP_Context& ctx,
+            primPath, primPaths, variants, sev))
+         return error();
+ 
++    if ( primPaths.isEmpty() )
++    {
++        // Output everything if no object is specified.
++        primPaths.append(SdfPath::AbsoluteRootPath());
++        variants.append(SdfPath());
++    }
++
+     GusdDefaultArray<UT_StringHolder> filePaths;
+     filePaths.SetConstant(file);
+ 
+-- 
+2.3.0

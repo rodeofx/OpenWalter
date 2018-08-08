@@ -1,0 +1,25 @@
+#usda 1.0
+(
+    defaultPrim = "layout"
+    endTimeCode = 0
+    startTimeCode = 0
+)
+
+def "layout" (
+    instanceable = false
+    kind = "component"
+    variants = {
+        string layout = "default"
+    }
+    add variantSets = "layout"
+)
+{
+    variantSet "layout" = {
+        "default" (
+            add references = @./shot.defVariant.defPart_v2.usda@
+        ) {
+
+        }
+    }
+}
+

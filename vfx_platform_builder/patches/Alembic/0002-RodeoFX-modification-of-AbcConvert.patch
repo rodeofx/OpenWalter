@@ -1,0 +1,119 @@
+From 21978b6d54c5b0cad47052a40e950c24544cdbe2 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Tue, 28 Feb 2017 08:31:44 -0500
+Subject: [PATCH 02/10] RodeoFX modification of AbcConvert
+
+Added ability to rename objects in the Alembic file. The syntax is like this:
+AbcConvert -replaceName /full/old/name newName
+---
+ bin/AbcConvert/AbcConvert.cpp | 45 ++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index 690b0af8..5a4af0e9 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -47,6 +47,7 @@ enum ArgMode
+     kOptions,
+     kInFiles,
+     kOutFile,
++    kReplaceName,
+ };
+ 
+ class ConversionOptions
+@@ -65,6 +66,7 @@ public:
+     bool                        force;
+     bool                        replaceObjs;
+     bool                        replaceProps;
++    std::map<std::string, std::string> replaceNames;
+ };
+ 
+ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+@@ -159,7 +161,8 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+ 
+ void copyObject(Alembic::Abc::IObject & iIn,
+     Alembic::Abc::OObject & iOut,
+-    const ConversionOptions& options)
++    const ConversionOptions& options,
++    const std::string parentName = "")
+ {
+     std::size_t numChildren = iIn.getNumChildren();
+ 
+@@ -176,8 +179,19 @@ void copyObject(Alembic::Abc::IObject & iIn,
+             Alembic::AbcCoreLayer::SetReplace( meta, true );
+         }
+ 
+-        Alembic::Abc::OObject childOut(iOut, childIn.getName(), meta);
+-        copyObject(childIn, childOut, options);
++        std::string shortName = childIn.getName();
++        const std::string fullName = parentName + "/" + shortName;
++
++        // Find and replace names if necessary
++        std::map<std::string, std::string>::const_iterator found =
++            options.replaceNames.find(fullName);
++        if (found != options.replaceNames.end())
++        {
++            shortName = found->second;
++        }
++
++        Alembic::Abc::OObject childOut(iOut, shortName, meta);
++        copyObject(childIn, childOut, options, fullName);
+     }
+ }
+ 
+@@ -194,15 +208,17 @@ void displayHelp()
+     printf ("OPTION has to be one of these:\n\n");
+     printf ("  -toHDF   Convert to HDF.\n");
+     printf ("  -toOgawa Convert to Ogawa.\n");
+-    printf ("\nRodeoFX modification:\n");
++    printf ("\nRodeoFX modifications:\n\n");
+     printf ("It's possible to use options -replaceObjs and -replaceProps\n");
+-    printf ("to add a Layer metadata to objects or properties\n");
++    printf ("to add a Layer metadata to objects or properties\n\n");
++    printf ("Change an object name: -replaceName /full/old/name newName\n\n");
+ }
+ 
+ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDoConversion )
+ {
+     oDoConversion = true;
+     ArgMode argMode = kOptions;
++    std::string replaceName;
+ 
+     for( int i = 1; i < iArgc; i++ )
+     {
+@@ -233,6 +249,10 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 {
+                     oOptions.replaceProps = true;
+                 }
++                else if(arg == "-replaceName")
++                {
++                    argMode = kReplaceName;
++                }
+                 else if(arg == "-in" )
+                 {
+                     argMode = kInFiles;
+@@ -285,6 +305,21 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 }
+             }
+             break;
++
++            case kReplaceName:
++            {
++                if (replaceName.empty())
++                {
++                    replaceName = arg;
++                }
++                else
++                {
++                    oOptions.replaceNames[replaceName] = arg;
++                    replaceName.clear();
++                    argMode = kOptions;
++                }
++            }
++            break;
+         }
+ 
+         if( !argHandled )
+-- 
+2.12.1
+

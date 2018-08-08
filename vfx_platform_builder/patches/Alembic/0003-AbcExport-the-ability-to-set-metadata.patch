@@ -1,0 +1,296 @@
+From 464b2f9c47fa6f88c8be7f6579bc068eb1d717b2 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 5 Apr 2017 16:40:07 -0400
+Subject: [PATCH 03/10] AbcExport: the ability to set metadata
+
+Added the new flag "metadata" to AbcExport that specifies what attribute it's
+necessary to write out as metadata.
+---
+ maya/AbcExport/AbcExport.cpp                | 11 +++++++++
+ maya/AbcExport/MayaCameraWriter.cpp         |  4 ++-
+ maya/AbcExport/MayaLocatorWriter.cpp        |  4 ++-
+ maya/AbcExport/MayaMeshWriter.cpp           |  8 ++++--
+ maya/AbcExport/MayaNurbsCurveWriter.cpp     |  4 ++-
+ maya/AbcExport/MayaNurbsSurfaceWriter.cpp   |  4 ++-
+ maya/AbcExport/MayaPointPrimitiveWriter.cpp |  5 ++--
+ maya/AbcExport/MayaTransformWriter.cpp      | 24 ++++++++++++------
+ maya/AbcExport/MayaUtility.cpp              | 38 +++++++++++++++++++++++++++++
+ maya/AbcExport/MayaUtility.h                | 10 ++++++++
+ 10 files changed, 96 insertions(+), 16 deletions(-)
+
+diff --git a/maya/AbcExport/AbcExport.cpp b/maya/AbcExport/AbcExport.cpp
+index 5753f82a..3fd2b827 100644
+--- a/maya/AbcExport/AbcExport.cpp
++++ b/maya/AbcExport/AbcExport.cpp
+@@ -573,6 +573,17 @@ try
+                     asOgawa = true;
+                 }
+             }
++            else if (arg == "-md" || arg == "-metadata")
++            {
++                if (i+1 >= numJobArgs)
++                {
++                    MGlobal::displayError(
++                        "metadata incorrectly specified.");
++                    return MS::kFailure;
++                }
++
++                jobArgs.metadata.insert(jobArgsArray[++i].asChar());
++            }
+             else
+             {
+                 MString warn = "Ignoring unsupported flag: ";
+diff --git a/maya/AbcExport/MayaCameraWriter.cpp b/maya/AbcExport/MayaCameraWriter.cpp
+index f96f4efe..e4e3aeeb 100644
+--- a/maya/AbcExport/MayaCameraWriter.cpp
++++ b/maya/AbcExport/MayaCameraWriter.cpp
+@@ -55,7 +55,9 @@ MayaCameraWriter::MayaCameraWriter(MDagPath & iDag,
+     MString name = cam.name();
+     name = util::stripNamespaces(name, iArgs.stripNamespace);
+ 
+-    Alembic::AbcGeom::OCamera obj(iParent, name.asChar(), iTimeIndex);
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(cam, iArgs, md);
++    Alembic::AbcGeom::OCamera obj(iParent, name.asChar(), iTimeIndex, md);
+     mSchema = obj.getSchema();
+ 
+     MObject cameraObj = iDag.node();
+diff --git a/maya/AbcExport/MayaLocatorWriter.cpp b/maya/AbcExport/MayaLocatorWriter.cpp
+index 7b765131..ebc80929 100644
+--- a/maya/AbcExport/MayaLocatorWriter.cpp
++++ b/maya/AbcExport/MayaLocatorWriter.cpp
+@@ -56,7 +56,9 @@ MayaLocatorWriter::MayaLocatorWriter(MDagPath & iDag,
+     MString name = fnLocator.name();
+     name = util::stripNamespaces(name, iArgs.stripNamespace);
+ 
+-    mXform = Alembic::AbcGeom::OXform(iParent, name.asChar(), iTimeIndex);
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(fnLocator, iArgs, md);
++    mXform = Alembic::AbcGeom::OXform(iParent, name.asChar(), iTimeIndex, md);
+ 
+     Alembic::Abc::OCompoundProperty cp = mXform.getProperties();
+ 
+diff --git a/maya/AbcExport/MayaMeshWriter.cpp b/maya/AbcExport/MayaMeshWriter.cpp
+index 2a95d09b..8824e241 100644
+--- a/maya/AbcExport/MayaMeshWriter.cpp
++++ b/maya/AbcExport/MayaMeshWriter.cpp
+@@ -365,9 +365,12 @@ MayaMeshWriter::MayaMeshWriter(MDagPath & iDag,
+         sf = Alembic::Abc::kSparse;
+     }
+ 
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(lMesh, iArgs, md);
++
+     if ( (!plug.isNull() && plug.asBool()) || hasToWriteSubd )
+     {
+-        Alembic::AbcGeom::OSubD obj(iParent, name.asChar(), sf, iTimeIndex);
++        Alembic::AbcGeom::OSubD obj(iParent, name.asChar(), sf, iTimeIndex, md);
+         mSubDSchema = obj.getSchema();
+ 
+         Alembic::AbcGeom::OV2fGeomParam::Sample uvSamp;
+@@ -410,7 +413,8 @@ MayaMeshWriter::MayaMeshWriter(MDagPath & iDag,
+     }
+     else
+     {
+-        Alembic::AbcGeom::OPolyMesh obj(iParent, name.asChar(), sf, iTimeIndex);
++        Alembic::AbcGeom::OPolyMesh obj(
++                iParent, name.asChar(), sf, iTimeIndex, md);
+         mPolySchema = obj.getSchema();
+ 
+         Alembic::AbcGeom::OV2fGeomParam::Sample uvSamp;
+diff --git a/maya/AbcExport/MayaNurbsCurveWriter.cpp b/maya/AbcExport/MayaNurbsCurveWriter.cpp
+index 0aa2221d..624aad98 100644
+--- a/maya/AbcExport/MayaNurbsCurveWriter.cpp
++++ b/maya/AbcExport/MayaNurbsCurveWriter.cpp
+@@ -131,7 +131,9 @@ MayaNurbsCurveWriter::MayaNurbsCurveWriter(MDagPath & iDag,
+ 
+     name = util::stripNamespaces(name, iArgs.stripNamespace);
+ 
+-    Alembic::AbcGeom::OCurves obj(iParent, name.asChar(), iTimeIndex);
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(fnDepNode, iArgs, md);
++    Alembic::AbcGeom::OCurves obj(iParent, name.asChar(), iTimeIndex, md);
+     mSchema = obj.getSchema();
+ 
+     Alembic::Abc::OCompoundProperty cp;
+diff --git a/maya/AbcExport/MayaNurbsSurfaceWriter.cpp b/maya/AbcExport/MayaNurbsSurfaceWriter.cpp
+index 313899d2..f9cb9399 100644
+--- a/maya/AbcExport/MayaNurbsSurfaceWriter.cpp
++++ b/maya/AbcExport/MayaNurbsSurfaceWriter.cpp
+@@ -56,7 +56,9 @@ MayaNurbsSurfaceWriter::MayaNurbsSurfaceWriter(MDagPath & iDag,
+     name = util::stripNamespaces(name, iArgs.stripNamespace);
+ 
+ 
+-    Alembic::AbcGeom::ONuPatch obj(iParent, name.asChar(), iTimeIndex);
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(nurbs, iArgs, md);
++    Alembic::AbcGeom::ONuPatch obj(iParent, name.asChar(), iTimeIndex, md);
+     mSchema = obj.getSchema();
+ 
+     Alembic::Abc::OCompoundProperty cp;
+diff --git a/maya/AbcExport/MayaPointPrimitiveWriter.cpp b/maya/AbcExport/MayaPointPrimitiveWriter.cpp
+index a6a3b252..6d08d828 100644
+--- a/maya/AbcExport/MayaPointPrimitiveWriter.cpp
++++ b/maya/AbcExport/MayaPointPrimitiveWriter.cpp
+@@ -48,8 +48,9 @@ MayaPointPrimitiveWriter::MayaPointPrimitiveWriter(
+ 
+     name = util::stripNamespaces(name, iArgs.stripNamespace);
+ 
+-    Alembic::AbcGeom::OPoints obj(iParent, name.asChar(),
+-        iTimeIndex);
++    Alembic::AbcCoreAbstract::MetaData md;
++    util::setMeta(particle, iArgs, md);
++    Alembic::AbcGeom::OPoints obj(iParent, name.asChar(), iTimeIndex, md);
+     mSchema = obj.getSchema();
+ 
+     Alembic::Abc::OCompoundProperty cp;
+diff --git a/maya/AbcExport/MayaTransformWriter.cpp b/maya/AbcExport/MayaTransformWriter.cpp
+index 3abfa529..b9db2323 100644
+--- a/maya/AbcExport/MayaTransformWriter.cpp
++++ b/maya/AbcExport/MayaTransformWriter.cpp
+@@ -512,8 +512,10 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
+ 
+         jointName = util::stripNamespaces(jointName, iArgs.stripNamespace);
+ 
+-        Alembic::AbcGeom::OXform obj(iParent, jointName.asChar(),
+-            iTimeIndex);
++        Alembic::AbcCoreAbstract::MetaData md;
++        util::setMeta(joint, iArgs, md);
++        Alembic::AbcGeom::OXform obj(
++                iParent, jointName.asChar(), iTimeIndex, md);
+         mSchema = obj.getSchema();
+ 
+         Alembic::Abc::OCompoundProperty cp;
+@@ -572,8 +574,10 @@ MayaTransformWriter::MayaTransformWriter(Alembic::AbcGeom::OObject & iParent,
+ 
+         transName = util::stripNamespaces(transName, iArgs.stripNamespace);
+ 
+-        Alembic::AbcGeom::OXform obj(iParent, transName.asChar(),
+-            iTimeIndex);
++        Alembic::AbcCoreAbstract::MetaData md;
++        util::setMeta(trans, iArgs, md);
++        Alembic::AbcGeom::OXform obj(
++                iParent, transName.asChar(), iTimeIndex, md);
+         mSchema = obj.getSchema();
+ 
+         Alembic::Abc::OCompoundProperty cp;
+@@ -729,8 +733,10 @@ MayaTransformWriter::MayaTransformWriter(MayaTransformWriter & iParent,
+ 
+         jointName = util::stripNamespaces(jointName, iArgs.stripNamespace);
+ 
+-        Alembic::AbcGeom::OXform obj(iParent.getObject(), jointName.asChar(),
+-            iTimeIndex);
++        Alembic::AbcCoreAbstract::MetaData md;
++        util::setMeta(joint, iArgs, md);
++        Alembic::AbcGeom::OXform obj(
++                iParent.getObject(), jointName.asChar(), iTimeIndex, md);
+         mSchema = obj.getSchema();
+ 
+         Alembic::Abc::OCompoundProperty cp;
+@@ -758,8 +764,10 @@ MayaTransformWriter::MayaTransformWriter(MayaTransformWriter & iParent,
+ 
+         transName = util::stripNamespaces(transName, iArgs.stripNamespace);
+ 
+-        Alembic::AbcGeom::OXform obj(iParent.getObject(), transName.asChar(),
+-            iTimeIndex);
++        Alembic::AbcCoreAbstract::MetaData md;
++        util::setMeta(trans, iArgs, md);
++        Alembic::AbcGeom::OXform obj(
++                iParent.getObject(), transName.asChar(), iTimeIndex, md);
+         mSchema = obj.getSchema();
+ 
+         Alembic::Abc::OCompoundProperty cp;
+diff --git a/maya/AbcExport/MayaUtility.cpp b/maya/AbcExport/MayaUtility.cpp
+index 614dc346..a6748063 100644
+--- a/maya/AbcExport/MayaUtility.cpp
++++ b/maya/AbcExport/MayaUtility.cpp
+@@ -485,6 +485,40 @@ MString util::stripNamespaces(const MString & iNodeName, unsigned int iDepth)
+     return iNodeName;
+ }
+ 
++void util::setMeta(
++        const MFnDependencyNode & iNode,
++        const JobArgs & iArgs,
++        Alembic::AbcCoreAbstract::MetaData & md)
++{
++    unsigned int attrCount = iNode.attributeCount();
++    unsigned int i;
++
++    for (i = 0; i < attrCount; i++)
++    {
++        MObject attr = iNode.attribute(i);
++        MFnAttribute mfnAttr(attr);
++        MPlug plug = iNode.findPlug(attr, true);
++
++        // if it is not readable, then bail without any more checking
++        if (!mfnAttr.isReadable() || plug.isNull())
++            continue;
++
++        MString propName = plug.partialName(0, 0, 0, 0, 0, 1);
++
++        std::string propStr = propName.asChar();
++
++        std::set< std::string >::const_iterator found =
++            iArgs.metadata.find(propStr);
++        if (found == iArgs.metadata.end())
++        {
++            // We don't need it if it's not in the list.
++            continue;
++        }
++
++        md.set( propStr, plug.asString().asChar() );
++    }
++}
++
+ MString util::getHelpText()
+ {
+     MString ret =
+@@ -631,6 +665,10 @@ MString util::getHelpText()
+ "When the translation has finished the string specified is evaluated as a\n"
+ "python command. See below for special processing rules.\n"
+ "\n"
++"-md / -metadata string\n"
++"A specific attribute to write out as metadata.\n"
++"This flag may occur more than once.\n"
++"\n"
+ "Special callback information:\n"
+ "On the callbacks, special tokens are replaced with other data, these tokens\n"
+ "and what they are replaced with are as follows:\n"
+diff --git a/maya/AbcExport/MayaUtility.h b/maya/AbcExport/MayaUtility.h
+index 25fcb6ea..e50e3f7e 100644
+--- a/maya/AbcExport/MayaUtility.h
++++ b/maya/AbcExport/MayaUtility.h
+@@ -41,6 +41,8 @@
+ #include <Alembic/Abc/OArrayProperty.h>
+ #include <Alembic/Abc/OScalarProperty.h>
+ 
++struct JobArgs;
++
+ namespace util
+ {
+ 
+@@ -136,6 +138,11 @@ MString stripNamespaces(const MString & iNodeName, unsigned int iDepth);
+ // returns the Help string for AbcExport
+ MString getHelpText();
+ 
++void setMeta(
++        const MFnDependencyNode & iNode,
++        const JobArgs & iArgs,
++        Alembic::AbcCoreAbstract::MetaData & md);
++
+ } // namespace util
+ 
+ struct PlugAndObjScalar
+@@ -216,6 +223,9 @@ struct JobArgs
+     std::vector< std::string > userPrefixFilters;
+     std::set< std::string > userAttribs;
+ 
++    // Metadata
++    std::set< std::string > metadata;
++
+     util::ShapeSet dagPaths;
+ };
+ 
+-- 
+2.12.1
+

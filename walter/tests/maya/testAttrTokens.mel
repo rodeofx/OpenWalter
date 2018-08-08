@@ -1,0 +1,119 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int testNumHydraShaders(string $path, int $nObjects)
+{
+    // Create a walter node.
+    string $node = wCreateStandin($path);
+
+    // This will generate Hydra shaders.
+    walterStandin -setCachedFramesDirty $node;
+
+    // We generate Hydra shaders in this folder.
+    string $objects[] = `walterStandin -da $node "/materials/viewport"`;
+
+    // Query the standin. There should be two objects.
+    if (size($objects) == $nObjects)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+proc int testNumHydraShadersFromMaya(string $path, int $nObjects)
+{
+    // Create a walter node.
+    string $node = wCreateStandin($path);
+
+    string $lamb = `shadingNode -asShader lambert`;
+    string $file = `shadingNode -asTexture file`;
+    // string $place2d = `shadingNode -asUtility place2dTexture`;
+
+    // Connect shaders.
+    // fileTexturePlacementConnectNoEcho($file, $place2d);
+    connectAttr -force ($file + ".outColor") ($lamb + ".color");
+    setAttr -type "string" ($file + ".fileTextureName") "<attr:assetName>.png";
+
+    // Add it to walterStandin.
+    connectAttr
+        -force
+        defaultRenderLayer.message
+        ($node + ".layersAssignation[0].layer");
+    connectAttr
+        -force
+        ($lamb + ".message")
+        ($node + ".layersAssignation[0].shaderConnections[0].shader");
+    setAttr
+        -type "string"
+        ($node + ".layersAssignation[0].shaderConnections[0].abcnode")
+        "/pCube1";
+
+    // Create walterOverride.
+    string $over = `createNode walterOverride`;
+    addAttr -ln "walter_assetName" -dt "string" $over;
+    setAttr -type "string" ($over + ".walter_assetName") "lennac";
+
+    // Add it to walterStandin.
+    connectAttr
+        -force
+        ($over + ".message")
+        ($node + ".layersAssignation[0].shaderConnections[1].attribute");
+    setAttr
+        -type "string"
+        ($node + ".layersAssignation[0].shaderConnections[1].abcnode")
+        "/pCube1/pCube3";
+
+    // This will generate Hydra shaders.
+    walterStandin -setCachedFramesDirty $node;
+
+    // We generate Hydra shaders in this folder.
+    string $objects[] = `walterStandin -da $node "/materials/viewport"`;
+
+    // Query the standin. There should be two objects.
+    if (size($objects) == $nObjects)
+    {
+        return 0;
+    }
+
+    return 1;
+}
+
+global proc int testAttrTokens()
+{
+    // Directory to the alembics.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/alembics/";
+
+    int $fails = 0;
+
+    // All the files.
+    string $cubes = $dir + "cubes.abc";
+    string $shader = $dir + "shader-lennaSurface1-with-assetName-in-tex.abc";
+    string $shaderAssign = $dir + "expression-lennaSurface1-to-pCube1.abc";
+    string $over1 = $dir + "override-walterOverride1-with-assetName-lennay.abc";
+    string $over2 = $dir + "override-walterOverride2-with-assetName-lennam.abc";
+    string $over1Assign =
+        $dir + "expression-walterOverride1-to-pCube1-pCube2.abc";
+    string $over2Assign =
+        $dir + "expression-walterOverride2-to-pCube1-pCube2-pCube4.abc";
+
+    string $shaded = $cubes + ":" + $shader + ":" + $shaderAssign;
+    string $lennay = $over1 + ":" + $over1Assign;
+    string $lennam = $over2 + ":" + $over2Assign;
+
+    // Test the number of the shaders generated for Hydra. The idea is, more
+    // different assetName attribute we have, more shaders we need to generate.
+    $fails += testNumHydraShaders($shaded, 1);
+    $fails += testNumHydraShaders($shaded + ":" + $lennay, 2);
+    $fails += testNumHydraShaders($shaded + ":" + $lennam, 2);
+    $fails += testNumHydraShaders($shaded + ":" + $lennay + ":" + $lennam, 3);
+
+    // Test the number of shaders henerated for Hydra with walterOverride from
+    // both Maya scene and Alembic.
+    $fails += testNumHydraShadersFromMaya($cubes, 2);
+    $fails += testNumHydraShadersFromMaya($cubes + ":" + $lennay, 3);
+    $fails += testNumHydraShadersFromMaya($cubes + ":" + $lennam, 3);
+    $fails += testNumHydraShadersFromMaya(
+            $cubes + ":" + $lennay + ":" + $lennam, 4);
+
+    return $fails;
+}

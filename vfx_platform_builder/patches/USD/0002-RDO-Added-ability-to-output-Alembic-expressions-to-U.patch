@@ -1,0 +1,182 @@
+From dbf63c0dbcb46341f1b8c5a7fb93d4f0d2d38a34 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 2 Jun 2017 10:55:45 -0400
+Subject: [PATCH] RDO: Added ability to output Alembic expressions to USD
+
+In Alembic expressions are compound properties of the root object. In USD there
+are no compounds, so we decided to create expressions as regular objects in the
+material scope. The type of the object is Expression. Since it's not possible to
+use special characters in the names, each object has an expression field with
+the actual expression. All the assignments are relationships with name
+"assign:<renderLayer>:<target>".
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 146 ++++++++++++++++++++++++++++++++
+ 1 file changed, 146 insertions(+)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 5f741884..c61b0800 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3899,6 +3899,22 @@ _ReadPrim(
+     return name;
+ }
+ 
++template<class T>
++T
++getChildProperty(const ICompoundProperty& parent, const std::string name)
++{
++    for (size_t j = 0, e = parent.getNumProperties(); j < e; ++j)
++    {
++        const auto& header = parent.getPropertyHeader(j);
++        if (header.getName() == name)
++        {
++            return T(parent, name);
++        }
++    }
++
++    return T();
++}
++
+ static
+ void
+ _ReadPrimChildren(
+@@ -3907,6 +3923,136 @@ _ReadPrimChildren(
+     const SdfPath& path,
+     _ReaderContext::Prim& prim)
+ {
++    if (object.valid() && !object.getParent().valid())
++    {
++        // Root.
++        static const TfToken rdoexpression("Expression");
++        static const char* expression = "expression";
++        static const char* expressions = ".expressions";
++        static const char* group = ".group";
++        static const char* layers = ".layers";
++        static const char* materialassign = ".material.assign";
++        static const char* materials = "materials";
++        static const char* name = ".name";
++
++        auto expProps =
++            getChildProperty<ICompoundProperty>(
++                    object.getProperties(), expressions);
++        if (expProps.valid())
++        {
++            const SdfPath parentPath = path.AppendChild(TfToken(materials));
++            _ReaderContext::Prim& matPrim = context.AddPrim(parentPath);
++            matPrim.typeName = UsdAbcPrimTypeNames->Scope;
++            std::set<std::string> usedExpressionNames;
++
++            for (size_t j = 0, e = expProps.getNumProperties(); j < e; ++j)
++            {
++                const auto& expHeader = expProps.getPropertyHeader(j);
++                std::string rawExp = expHeader.getName();
++                ICompoundProperty expProp(expProps, rawExp);
++                if (!expProp.valid())
++                {
++                    continue;
++                }
++
++                std::string childName =
++                    _CleanName(
++                            rawExp,
++                            "",
++                            usedExpressionNames,
++                            _AlembicFixName(),
++                            &SdfPath::IsValidIdentifier);
++
++                const SdfPath path = parentPath.AppendChild(TfToken(childName));
++                _ReaderContext::Prim& expPrim = context.AddPrim(path);
++                expPrim.typeName = rdoexpression;
++
++                _PrimReaderContext primContext(context, object, path);
++
++                // Save expression
++                primContext.AddProperty(
++                        TfToken(expression),
++                        SdfValueTypeNames->String,
++                        _CopySynthetic(rawExp));
++
++                // Save group
++                auto groupProp =
++                    getChildProperty<ICompoundProperty>(expProp, group);
++                if (groupProp.valid())
++                {
++                    auto groupName =
++                        getChildProperty<IStringProperty>(groupProp, name);
++
++                    if (groupName.valid())
++                    {
++                        // Save expression
++                        primContext.AddProperty(
++                                TfToken("group"),
++                                SdfValueTypeNames->String,
++                                _CopySynthetic(groupName.getValue()));
++                    }
++                }
++
++                // Save assignment
++                auto layersPr =
++                    getChildProperty<ICompoundProperty>(expProp, layers);
++                for (size_t i = 0, l = layersPr.getNumProperties(); i < l; ++i)
++                {
++                    // On this point the header contains a target and shading
++                    // type. ".defaultRenderLayer.attribute"
++                    const auto& layerHeader = layersPr.getPropertyHeader(i);
++                    // ".defaultRenderLayer.attribute"
++                    std::string rawLayer = layerHeader.getName();
++                    // Split it with "."
++                    std::vector<std::string> layerTarget;
++                    boost::split(layerTarget, rawLayer, boost::is_any_of("."));
++                    // We need to have only valid items. So filter it.
++                    std::vector<std::string> layerTargetFiltered;
++                    layerTargetFiltered.push_back("assign");
++                    std::copy_if(
++                            layerTarget.begin(),
++                            layerTarget.end(),
++                            std::back_inserter(layerTargetFiltered),
++                            [](const std::string& a) { return !a.empty(); });
++                    // Join everything. At this point we should have
++                    // "assign:defaultRenderLayer:attribute"
++                    std::string usdLayer =
++                        SdfPath::JoinIdentifier(layerTargetFiltered);
++
++                    // Get the material
++                    ICompoundProperty layerProp(layersPr, rawLayer);
++                    auto assign =
++                        getChildProperty<IStringProperty>(
++                                layerProp, materialassign);
++                    // It looks like "aiStandard1.out"
++                    std::string assignTarget = assign.getValue();
++
++                    // Split. First is the material name the second is the
++                    // output name.
++                    std::vector<std::string> material;
++                    boost::split(material, assignTarget, boost::is_any_of("."));
++                    // Create a full path to the material. In Alembic all the
++                    // materials are in the material group.
++                    SdfPath materialPath =
++                        parentPath.AppendChild(TfToken(material[0]));
++                    if (material.size()>1)
++                    {
++                        materialPath =
++                            materialPath.AppendProperty(TfToken(material[1]));
++                    }
++
++                    // Save it.
++                    primContext.AddRelationship(
++                            TfToken(usdLayer),
++                            materialPath);
++                }
++
++                usedExpressionNames.insert(childName);
++                matPrim.children.push_back(TfToken(childName));
++            }
++        }
++    }
++
+     // Collect children names.  By prepopulating usedNames we ensure that
+     // the child with the valid name gets its name even if a child with a
+     // lower index has a name that mangles to the valid name.
+-- 
+2.14.3
+

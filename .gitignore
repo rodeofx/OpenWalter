@@ -1,0 +1,8 @@
+build
+
+# Maya
+*.mayaSwatches
+
+# Houdini
+walter/houdini/otls/backup
+

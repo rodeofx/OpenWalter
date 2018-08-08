@@ -1,0 +1,60 @@
+From 5584d2bc8b44ec6a3fb911718e0e7149930e2c58 Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Fri, 29 Jun 2018 10:47:18 -0400
+Subject: [PATCH] RDO: Added virtual method ArResolver::Clear.
+
+It is used to clear the cache of the rdo_resolver plugin for example.
+---
+ pxr/usd/lib/ar/defaultResolver.cpp | 5 +++++
+ pxr/usd/lib/ar/defaultResolver.h   | 3 +++
+ pxr/usd/lib/ar/resolver.h          | 4 ++++
+ 3 files changed, 12 insertions(+)
+
+diff --git a/pxr/usd/lib/ar/defaultResolver.cpp b/pxr/usd/lib/ar/defaultResolver.cpp
+index 3989c72..8f32c0d 100644
+--- a/pxr/usd/lib/ar/defaultResolver.cpp
++++ b/pxr/usd/lib/ar/defaultResolver.cpp
+@@ -405,6 +405,11 @@ ArDefaultResolver::CanCreateNewLayerWithIdentifier(
+     return true;
+ }
+ 
++void
++ArDefaultResolver::Clear()
++{
++}
++
+ ArResolverContext 
+ ArDefaultResolver::CreateDefaultContext()
+ {
+diff --git a/pxr/usd/lib/ar/defaultResolver.h b/pxr/usd/lib/ar/defaultResolver.h
+index dad34be..163c662 100644
+--- a/pxr/usd/lib/ar/defaultResolver.h
++++ b/pxr/usd/lib/ar/defaultResolver.h
+@@ -137,6 +137,9 @@ public:
+         std::string* whyNot) override;
+ 
+     AR_API
++    virtual void Clear();
++
++    AR_API
+     virtual bool CanCreateNewLayerWithIdentifier(
+         const std::string& identifier, 
+         std::string* whyNot) override;
+diff --git a/pxr/usd/lib/ar/resolver.h b/pxr/usd/lib/ar/resolver.h
+index 1aae051..c68f576 100644
+--- a/pxr/usd/lib/ar/resolver.h
++++ b/pxr/usd/lib/ar/resolver.h
+@@ -250,6 +250,10 @@ public:
+         const std::string& identifier, 
+         std::string* whyNot) = 0;
+ 
++    /// Clear any cache from the resolver
++    AR_API
++    virtual void Clear() = 0;
++
+     /// @}
+ 
+ protected:
+-- 
+2.3.0
+

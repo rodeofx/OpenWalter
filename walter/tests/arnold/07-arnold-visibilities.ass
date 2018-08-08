@@ -1,0 +1,682 @@
+### exported: Mon Jan 15 17:24:08 2018
+### from:     Arnold 5.0.2.1 [0c7988c0] linux clang-5.0.0 oiio-1.7.17 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2017/11/17 14:06:00
+### host app: MtoA 2.1.0.1 f2a53534 (master) Maya 2016
+### user: lari
+### fps: 24.000000
+### render_layer: defaultRenderLayer
+### frame: 1.000000
+### scene: /mnt/users/lari/rdoenv/tmp/maya/unitTest_setup.mb
+
+
+
+options
+{
+ AA_samples 5
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 128
+ yres 128
+ texture_per_file_stats on
+ texture_automip off
+ texture_specular_blur 0
+ camera "perspShape"
+ GI_diffuse_depth 8
+ GI_specular_depth 8
+ GI_transmission_depth 8
+ GI_total_depth 2
+ GI_diffuse_samples 4
+ declare frame constant FLOAT
+ frame 1
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+ declare fps constant FLOAT
+ fps 24
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+ width 2
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+persp_camera
+{
+ name perspShape
+ matrix
+ 0.999506533 0 -0.0314107575 0
+ -0.00671198778 0.976902783 -0.21357891 0
+ 0.0306852572 0.21368435 0.976420701 0
+ 0.457050741 2.60332131 13.3345308 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 25.0000114
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+point_light
+{
+ name pointLightShape1
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -1 5 5 1
+ color 1 1 1
+ intensity 25
+ exposure 0
+ cast_shadows on
+ cast_volumetric_shadows on
+ shadow_density 1
+ shadow_color 0 0 0
+ samples 1
+ normalize on
+ diffuse 1
+ specular 1
+ sss 1
+ indirect 1
+ max_bounces 999
+ volume_samples 2
+ volume 1
+ aov "default"
+ radius 0
+}
+
+point_light
+{
+ name pointLightShape2
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 1 5 -5 1
+ color 1 1 1
+ intensity 40
+ exposure 0
+ cast_shadows on
+ cast_volumetric_shadows on
+ shadow_density 1
+ shadow_color 0 0 0
+ samples 1
+ normalize on
+ diffuse 1
+ specular 1
+ sss 1
+ indirect 1
+ max_bounces 999
+ volume_samples 2
+ volume 1
+ aov "default"
+ radius 0
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ filePaths "../resources/alembics/cubes.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer
+\"\"\"
+)
+
+def \"materials\"
+{
+    def Expression \"_pCube1_pCubeShape1\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/Caste_Shadow>
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1_pCubeShape1/aiStandardSurface1>
+        string expression = \"/pCube1/pCubeShape1\"
+    }
+
+    def Material \"Caste_Shadow\"
+    {
+        bool arnold:attribute:casts_shadows = 0
+    }
+
+    def Expression \"_pCube1_pCube2_pCube4_pCubeShape4\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/Primary_Visibility>
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1_pCube2_pCube4_pCubeShape4/aiStandardSurface3>
+        string expression = \"/pCube1/pCube2/pCube4/pCubeShape4\"
+    }
+
+    def Material \"Primary_Visibility\"
+    {
+        bool arnold:attribute:primary_visibility = 0
+    }
+
+    def Expression \"_pCube1_pCube2_pCubeShape2\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/Specular_Reflection>
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1_pCube2_pCubeShape2/aiStandardSurface4>
+        string expression = \"/pCube1/pCube2/pCubeShape2\"
+    }
+
+    def Material \"Specular_Reflection\"
+    {
+        bool arnold:attribute:visible_in_specular_reflection = 0
+    }
+
+    def Expression \"_pCube1_pCube3_pCubeShape3\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/Specular_Transmission>
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1_pCube3_pCubeShape3/aiStandardSurface5>
+        string expression = \"/pCube1/pCube3/pCubeShape3\"
+    }
+
+    def Material \"Specular_Transmission\"
+    {
+        bool arnold:attribute:visible_in_specular_transmission = 0
+    }
+
+    def Expression \"_pCube1_pCube3_pCube5_pCubeShape5\"
+    {
+        rel assign:defaultRenderLayer:attribute = </materials/Diffuse_Transmission>
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1_pCube3_pCube5_pCubeShape5/aiStandardSurface6>
+        string expression = \"/pCube1/pCube3/pCube5/pCubeShape5\"
+    }
+
+    def Material \"Diffuse_Transmission\"
+    {
+        bool arnold:attribute:visible_in_diffuse_transmission = 0
+    }
+}
+
+"
+
+ declare frame constant FLOAT
+ frame 1
+ declare fps constant FLOAT
+ fps 24
+}
+
+polymesh
+{
+ name pPlaneShape1
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 -0.639623582 0 1
+ shader "aiStandardSurface2"
+ opaque on
+ matte off
+ use_light_group off
+ id 141609554
+ nsides 100 1 UINT
+  4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+  4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+  4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4
+ vidxs 400 1 UINT
+  0 1 12 11 1 2 13 12 2 3 14 13 3 4 15 14 4 5 16 15 5 6 17 16 6 7 18 17 7 8 19 18 8
+  9 20 19 9 10 21 20 11 12 23 22 12 13 24 23 13 14 25 24 14 15 26 25 15 16 27 26 16
+  17 28 27 17 18 29 28 18 19 30 29 19 20 31 30 20 21 32 31 22 23 34 33 23 24 35 34
+  24 25 36 35 25 26 37 36 26 27 38 37 27 28 39 38 28 29 40 39 29 30 41 40 30 31 42
+  41 31 32 43 42 33 34 45 44 34 35 46 45 35 36 47 46 36 37 48 47 37 38 49 48 38 39
+  50 49 39 40 51 50 40 41 52 51 41 42 53 52 42 43 54 53 44 45 56 55 45 46 57 56 46
+  47 58 57 47 48 59 58 48 49 60 59 49 50 61 60 50 51 62 61 51 52 63 62 52 53 64 63
+  53 54 65 64 55 56 67 66 56 57 68 67 57 58 69 68 58 59 70 69 59 60 71 70 60 61 72
+  71 61 62 73 72 62 63 74 73 63 64 75 74 64 65 76 75 66 67 78 77 67 68 79 78 68 69
+  80 79 69 70 81 80 70 71 82 81 71 72 83 82 72 73 84 83 73 74 85 84 74 75 86 85 75
+  76 87 86 77 78 89 88 78 79 90 89 79 80 91 90 80 81 92 91 81 82 93 92 82 83 94 93
+  83 84 95 94 84 85 96 95 85 86 97 96 86 87 98 97 88 89 100 99 89 90 101 100 90 91
+  102 101 91 92 103 102 92 93 104 103 93 94 105 104 94 95 106 105 95 96 107 106 96
+  97 108 107 97 98 109 108 99 100 111 110 100 101 112 111 101 102 113 112 102 103 114
+  113 103 104 115 114 104 105 116 115 105 106 117 116 106 107 118 117 107 108 119 118
+  108 109 120 119
+ nidxs 400 1 UINT
+  0 1 2 3 1 4 5 2 4 6 7 5 6 8 9 7 8 10 11 9 10 12 13 11 12 14 15 13 14 16 17 15 16
+  18 19 17 18 20 21 19 3 2 22 23 2 5 24 22 5 7 25 24 7 9 26 25 9 11 27 26 11 13 28
+  27 13 15 29 28 15 17 30 29 17 19 31 30 19 21 32 31 23 22 33 34 22 24 35 33 24 25
+  36 35 25 26 37 36 26 27 38 37 27 28 39 38 28 29 40 39 29 30 41 40 30 31 42 41 31
+  32 43 42 34 33 44 45 33 35 46 44 35 36 47 46 36 37 48 47 37 38 49 48 38 39 50 49
+  39 40 51 50 40 41 52 51 41 42 53 52 42 43 54 53 45 44 55 56 44 46 57 55 46 47 58
+  57 47 48 59 58 48 49 60 59 49 50 61 60 50 51 62 61 51 52 63 62 52 53 64 63 53 54
+  65 64 56 55 66 67 55 57 68 66 57 58 69 68 58 59 70 69 59 60 71 70 60 61 72 71 61
+  62 73 72 62 63 74 73 63 64 75 74 64 65 76 75 67 66 77 78 66 68 79 77 68 69 80 79
+  69 70 81 80 70 71 82 81 71 72 83 82 72 73 84 83 73 74 85 84 74 75 86 85 75 76 87
+  86 78 77 88 89 77 79 90 88 79 80 91 90 80 81 92 91 81 82 93 92 82 83 94 93 83 84
+  95 94 84 85 96 95 85 86 97 96 86 87 98 97 89 88 99 100 88 90 101 99 90 91 102 101
+  91 92 103 102 92 93 104 103 93 94 105 104 94 95 106 105 95 96 107 106 96 97 108 107
+  97 98 109 108 100 99 110 111 99 101 112 110 101 102 113 112 102 103 114 113 103 104
+  115 114 104 105 116 115 105 106 117 116 106 107 118 117 107 108 119 118 108 109 120
+  119
+ uvidxs 400 1 UINT
+  0 1 12 11 1 2 13 12 2 3 14 13 3 4 15 14 4 5 16 15 5 6 17 16 6 7 18 17 7 8 19 18 8
+  9 20 19 9 10 21 20 11 12 23 22 12 13 24 23 13 14 25 24 14 15 26 25 15 16 27 26 16
+  17 28 27 17 18 29 28 18 19 30 29 19 20 31 30 20 21 32 31 22 23 34 33 23 24 35 34
+  24 25 36 35 25 26 37 36 26 27 38 37 27 28 39 38 28 29 40 39 29 30 41 40 30 31 42
+  41 31 32 43 42 33 34 45 44 34 35 46 45 35 36 47 46 36 37 48 47 37 38 49 48 38 39
+  50 49 39 40 51 50 40 41 52 51 41 42 53 52 42 43 54 53 44 45 56 55 45 46 57 56 46
+  47 58 57 47 48 59 58 48 49 60 59 49 50 61 60 50 51 62 61 51 52 63 62 52 53 64 63
+  53 54 65 64 55 56 67 66 56 57 68 67 57 58 69 68 58 59 70 69 59 60 71 70 60 61 72
+  71 61 62 73 72 62 63 74 73 63 64 75 74 64 65 76 75 66 67 78 77 67 68 79 78 68 69
+  80 79 69 70 81 80 70 71 82 81 71 72 83 82 72 73 84 83 73 74 85 84 74 75 86 85 75
+  76 87 86 77 78 89 88 78 79 90 89 79 80 91 90 80 81 92 91 81 82 93 92 82 83 94 93
+  83 84 95 94 84 85 96 95 85 86 97 96 86 87 98 97 88 89 100 99 89 90 101 100 90 91
+  102 101 91 92 103 102 92 93 104 103 93 94 105 104 94 95 106 105 95 96 107 106 96
+  97 108 107 97 98 109 108 99 100 111 110 100 101 112 111 101 102 113 112 102 103 114
+  113 103 104 115 114 104 105 116 115 105 106 117 116 106 107 118 117 107 108 119 118
+  108 109 120 119
+ vlist 121 1 VECTOR
+  -10 -2.22044605e-15 10 -8 -2.22044605e-15 10 -6 -2.22044605e-15 10 -4 -2.22044605e-15 10
+  -2 -2.22044605e-15 10 0 -2.22044605e-15 10 2 -2.22044605e-15 10 4 -2.22044605e-15 10
+  6 -2.22044605e-15 10 8 -2.22044605e-15 10 10 -2.22044605e-15 10 -10 -1.77635684e-15 8
+  -8 -1.77635684e-15 8 -6 -1.77635684e-15 8 -4 -1.77635684e-15 8 -2 -1.77635684e-15 8
+  0 -1.77635684e-15 8 2 -1.77635684e-15 8 4 -1.77635684e-15 8 6 -1.77635684e-15 8 8 -1.77635684e-15 8
+  10 -1.77635684e-15 8 -10 -1.33226763e-15 6 -8 -1.33226763e-15 6 -6 -1.33226763e-15 6
+  -4 -1.33226763e-15 6 -2 -1.33226763e-15 6 0 -1.33226763e-15 6 2 -1.33226763e-15 6
+  4 -1.33226763e-15 6 6 -1.33226763e-15 6 8 -1.33226763e-15 6 10 -1.33226763e-15 6
+  -10 -8.8817842e-16 4 -8 -8.8817842e-16 4 -6 -8.8817842e-16 4 -4 -8.8817842e-16 4
+  -2 -8.8817842e-16 4 0 -8.8817842e-16 4 2 -8.8817842e-16 4 4 -8.8817842e-16 4 6 -8.8817842e-16 4
+  8 -8.8817842e-16 4 10 -8.8817842e-16 4 -10 -4.4408921e-16 2 -8 -4.4408921e-16 2 -6 -4.4408921e-16 2
+  -4 -4.4408921e-16 2 -2 -4.4408921e-16 2 0 -4.4408921e-16 2 2 -4.4408921e-16 2 4 -4.4408921e-16 2
+  6 -4.4408921e-16 2 8 -4.4408921e-16 2 10 -4.4408921e-16 2 -10 0 0 -8 0 0 -6 0 0 -4 0 0
+  -2 0 0 0 0 0 2 0 0 4 0 0 6 0 0 8 0 0 10 0 0 -10 4.4408921e-16 -2 -8 4.4408921e-16 -2
+  -6 4.4408921e-16 -2 -4 4.4408921e-16 -2 -2 4.4408921e-16 -2 0 4.4408921e-16 -2 2 4.4408921e-16 -2
+  4 4.4408921e-16 -2 6 4.4408921e-16 -2 8 4.4408921e-16 -2 10 4.4408921e-16 -2 -10 8.8817842e-16 -4
+  -8 8.8817842e-16 -4 -6 8.8817842e-16 -4 -4 8.8817842e-16 -4 -2 8.8817842e-16 -4 0 8.8817842e-16 -4
+  2 8.8817842e-16 -4 4 8.8817842e-16 -4 6 8.8817842e-16 -4 8 8.8817842e-16 -4 10 8.8817842e-16 -4
+  -10 1.33226763e-15 -6 -8 1.33226763e-15 -6 -6 1.33226763e-15 -6 -4 1.33226763e-15 -6
+  -2 1.33226763e-15 -6 0 1.33226763e-15 -6 2 1.33226763e-15 -6 4 1.33226763e-15 -6
+  6 1.33226763e-15 -6 8 1.33226763e-15 -6 10 1.33226763e-15 -6 -10 1.77635684e-15 -8
+  -8 1.77635684e-15 -8 -6 1.77635684e-15 -8 -4 1.77635684e-15 -8 -2 1.77635684e-15 -8
+  0 1.77635684e-15 -8 2 1.77635684e-15 -8 4 1.77635684e-15 -8 6 1.77635684e-15 -8 8 1.77635684e-15 -8
+  10 1.77635684e-15 -8 -10 2.22044605e-15 -10 -8 2.22044605e-15 -10 -6 2.22044605e-15 -10
+  -4 2.22044605e-15 -10 -2 2.22044605e-15 -10 0 2.22044605e-15 -10 2 2.22044605e-15 -10
+  4 2.22044605e-15 -10 6 2.22044605e-15 -10 8 2.22044605e-15 -10 10 2.22044605e-15 -10
+ nlist 121 1 VECTOR
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16 0 1 2.22044605e-16
+  0 1 2.22044605e-16
+ uvlist 121 1 VECTOR2
+  0 0 0.100000001 0 0.200000003 0 0.300000012 0 0.400000006 0 0.5 0 0.600000024 0 0.699999988 0
+  0.800000012 0 0.900000036 0 1 0 0 0.100000001 0.100000001 0.100000001 0.200000003 0.100000001
+  0.300000012 0.100000001 0.400000006 0.100000001 0.5 0.100000001 0.600000024 0.100000001
+  0.699999988 0.100000001 0.800000012 0.100000001 0.900000036 0.100000001 1 0.100000001
+  0 0.200000003 0.100000001 0.200000003 0.200000003 0.200000003 0.300000012 0.200000003
+  0.400000006 0.200000003 0.5 0.200000003 0.600000024 0.200000003 0.699999988 0.200000003
+  0.800000012 0.200000003 0.900000036 0.200000003 1 0.200000003 0 0.300000012 0.100000001 0.300000012
+  0.200000003 0.300000012 0.300000012 0.300000012 0.400000006 0.300000012 0.5 0.300000012
+  0.600000024 0.300000012 0.699999988 0.300000012 0.800000012 0.300000012 0.900000036 0.300000012
+  1 0.300000012 0 0.400000006 0.100000001 0.400000006 0.200000003 0.400000006 0.300000012 0.400000006
+  0.400000006 0.400000006 0.5 0.400000006 0.600000024 0.400000006 0.699999988 0.400000006
+  0.800000012 0.400000006 0.900000036 0.400000006 1 0.400000006 0 0.5 0.100000001 0.5
+  0.200000003 0.5 0.300000012 0.5 0.400000006 0.5 0.5 0.5 0.600000024 0.5 0.699999988 0.5
+  0.800000012 0.5 0.900000036 0.5 1 0.5 0 0.600000024 0.100000001 0.600000024 0.200000003 0.600000024
+  0.300000012 0.600000024 0.400000006 0.600000024 0.5 0.600000024 0.600000024 0.600000024
+  0.699999988 0.600000024 0.800000012 0.600000024 0.900000036 0.600000024 1 0.600000024
+  0 0.699999988 0.100000001 0.699999988 0.200000003 0.699999988 0.300000012 0.699999988
+  0.400000006 0.699999988 0.5 0.699999988 0.600000024 0.699999988 0.699999988 0.699999988
+  0.800000012 0.699999988 0.900000036 0.699999988 1 0.699999988 0 0.800000012 0.100000001 0.800000012
+  0.200000003 0.800000012 0.300000012 0.800000012 0.400000006 0.800000012 0.5 0.800000012
+  0.600000024 0.800000012 0.699999988 0.800000012 0.800000012 0.800000012 0.900000036 0.800000012
+  1 0.800000012 0 0.900000036 0.100000001 0.900000036 0.200000003 0.900000036 0.300000012 0.900000036
+  0.400000006 0.900000036 0.5 0.900000036 0.600000024 0.900000036 0.699999988 0.900000036
+  0.800000012 0.900000036 0.900000036 0.900000036 1 0.900000036 0 1 0.100000001 1 0.200000003 1
+  0.300000012 1 0.400000006 1 0.5 1 0.600000024 1 0.699999988 1 0.800000012 1 0.900000036 1
+  1 1
+ smoothing on
+ step_size 0
+ volume_padding 0
+}
+
+persp_camera
+{
+ name cameraShape1
+ matrix
+ 0.955278337 -6.9388939e-18 -0.29570806 0
+ -0.114591479 0.921863139 -0.370185256 0
+ 0.27260235 0.387515575 0.880635917 0
+ 4.99459648 6.24606609 14.2732201 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 37.8492889
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+standard_surface
+{
+ name aiStandardSurface1
+ base 0.800000012
+ base_color 0.806666672 0.333072543 0
+ diffuse_roughness 0
+ specular 0.352564096
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0.800000012
+ emission_color 0.663100004 0.0485999994 0
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface3
+ base 0.800000012
+ base_color 0 1 0
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 1.5
+ emission_color 0 1 0
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface4
+ base 1
+ base_color 0 1 1
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface5
+ base 0.800000012
+ base_color 0 0 1
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface6
+ base 1
+ base_color 1 1 0
+ diffuse_roughness 0
+ specular 0
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+
+standard_surface
+{
+ name aiStandardSurface2
+ base 0.800000012
+ base_color 0.114 0.114 0.114
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ transmit_aovs off
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ subsurface_anisotropy 0
+ subsurface_type "diffusion"
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 0
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+

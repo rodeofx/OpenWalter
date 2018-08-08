@@ -1,0 +1,105 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int testSaveAndLoadMaterial(string $path)
+{
+    string $fileMaterials = "/tmp/test-materials.abc";
+    string $fileAssignments = "/tmp/test-assignments.abc";
+
+    // Create a walter node.
+    string $node = wCreateStandin($path);
+
+    string $lamb = `shadingNode -asShader lambert`;
+    string $file = `shadingNode -asTexture file`;
+
+    // Connect shaders.
+    connectAttr -force ($file + ".outColor") ($lamb + ".color");
+    setAttr -type "string" ($file + ".fileTextureName") "<attr:assetName>.png";
+
+    // Add it to walterStandin.
+    connectAttr
+        -force
+        defaultRenderLayer.message
+        ($node + ".layersAssignation[0].layer");
+    connectAttr
+        -force
+        ($lamb + ".message")
+        ($node + ".layersAssignation[0].shaderConnections[0].shader");
+    setAttr
+        -type "string"
+        ($node + ".layersAssignation[0].shaderConnections[0].abcnode")
+        "/pCube1";
+
+    // Remove the files we are going to test.
+    if (`filetest -f $fileMaterials`)
+    {
+        sysFile -delete $fileMaterials;
+    }
+    if (`filetest -f $fileAssignments`)
+    {
+        sysFile -delete $fileAssignments;
+    }
+
+    // We need to have walterMtoaConnection loaded to save materials.
+    if (!`pluginInfo -query -loaded walterMtoaConnection`)
+    {
+        loadPlugin walterMtoaConnection;
+
+        if (!`pluginInfo -query -loaded walterMtoaConnection`)
+        {
+            print("Test FAILED: can't load plugin walterMtoaConnection\n");
+            return 128;
+        }
+    }
+
+    // Save materials.
+    walterSaveShaders -node $node -file $fileMaterials;
+    if (!`filetest -f $fileMaterials`)
+    {
+        print("Test FAILED: file " + $fileMaterials + " doesn't exist\n");
+        return 64;
+    }
+
+    // Save assignments.
+    walterStandin -saveAttributes $node $fileAssignments;
+    if (!`filetest -f $fileAssignments`)
+    {
+        print("Test FAILED: file " + $fileAssignments + " doesn't exist\n");
+        return 32;
+    }
+
+    int $fails = 0;
+
+    // Create a walter node with generated materials and check the number of
+    // objects in it.
+    string $nodeMaterials = wCreateStandin($fileMaterials);
+    string $objects[] = `walterStandin -da $nodeMaterials "/materials"`;
+    // There should be /materials/lambert2
+    if (size($objects) != 1)
+    {
+        $fails += 1;
+    }
+
+    // Check assignments with the same way.
+    string $nodeAssignments = wCreateStandin($fileAssignments);
+    if (wGetNumberOfChildren($nodeAssignments, "/") != 1)
+    {
+        $fails += 1;
+    }
+
+    return $fails;
+}
+
+global proc int testSaveMaterials()
+{
+    // Directory to the alembics.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/alembics/";
+
+    int $fails = 0;
+
+    // All the files.
+    string $cubes = $dir + "cubes.abc";
+
+    $fails += testSaveAndLoadMaterial($cubes);
+
+    return $fails;
+}

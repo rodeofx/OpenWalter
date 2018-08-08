@@ -1,0 +1,102 @@
+### exported: Mon Feb 19 11:03:22 2018
+### from:     Arnold 5.0.2.3 [d2dbe434] linux clang-5.0.0 oiio-1.7.17 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2017/12/21 17:45:45
+### host app: MtoA 2.1.0.2 3ca62bd9 (master) Maya 2016
+### bounds: -2.5 -0.5 -3.5 2.5 3.5 3.5
+### user: victor
+### fps: 24.000000
+### render_layer: defaultRenderLayer
+### frame: 1.000000
+
+
+
+options
+{
+ AA_samples 2
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 128
+ yres 128
+ texture_per_file_stats on
+ texture_automip off
+ texture_specular_blur 0
+ camera "perspShape"
+ GI_diffuse_depth 1
+ GI_specular_depth 1
+ GI_transmission_depth 1
+ declare frame constant FLOAT
+ frame 1
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+ declare fps constant FLOAT
+ fps 24
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+ width 2
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+persp_camera
+{
+ name perspShape
+ matrix
+ -0.768283546 1.11022302e-16 -0.640109718 0
+ -0.421115071 0.753123164 0.50543797 0
+ 0.482081473 0.657879531 -0.578612149 0
+ 3.49536753 4.69910908 -3.70133805 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 10.0000048
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ filePaths "../resources/alembics/expression-TriplanarChecker-to-everything.abc:../resources/alembics/shader-TriplanarChecker.abc:../resources/alembics/cubes-hi.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+"
+ declare frame constant FLOAT
+ frame 1
+ declare fps constant FLOAT
+ fps 24
+}
+

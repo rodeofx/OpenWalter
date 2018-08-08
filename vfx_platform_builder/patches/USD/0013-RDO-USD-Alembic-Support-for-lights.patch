@@ -1,0 +1,169 @@
+From d8aeb18d0939ac3a4b29789c77adec867fb2ccf2 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Tue, 21 Nov 2017 10:47:54 -0500
+Subject: [PATCH] RDO: USD Alembic: Support for lights
+
+Lights are materials in Arnold, so it's possible to reuse some materials code.
+
+We output lights as "UsdLuxLight" and output all the chading nodes as children
+of lights.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 96 +++++++++++++++++++++++++--------
+ pxr/usd/plugin/usdAbc/alembicUtil.h     |  1 +
+ 2 files changed, 76 insertions(+), 21 deletions(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index ff890b43..259a7202 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -57,6 +57,7 @@
+ #include <Alembic/AbcGeom/GeometryScope.h>
+ #include <Alembic/AbcGeom/ICamera.h>
+ #include <Alembic/AbcGeom/ICurves.h>
++#include <Alembic/AbcGeom/ILight.h>
+ #include <Alembic/AbcGeom/IPoints.h>
+ #include <Alembic/AbcGeom/IPolyMesh.h>
+ #include <Alembic/AbcGeom/ISubD.h>
+@@ -3466,27 +3467,10 @@ _ReadCameraParameters(_PrimReaderContext* context)
+     context->Extract(Type::schema_type::info_type::defaultName());
+ }
+ 
+-static
+-void
+-_ReadMaterial(_PrimReaderContext* context)
++static void _ReadMaterialProperties(
++    Alembic::AbcMaterial::IMaterialSchema& schema,
++    _PrimReaderContext* context)
+ {
+-    typedef Alembic::AbcMaterial::IMaterial Type;
+-
+-    // Wrap the object.
+-    if (!Type::matches(context->GetObject().getHeader())) {
+-        // Not of type Type.
+-        return;
+-    }
+-
+-    // Add child properties under schema.
+-    context->SetSchema(Type::schema_type::info_type::defaultName());
+-
+-    Type object(context->GetObject(), kWrapExisting);
+-    Type::schema_type& schema = object.getSchema();
+-
+-    // Set prim type.
+-    context->GetPrim().typeName = UsdAbcPrimTypeNames->Material;
+-
+     // Output the material parameters.
+     std::vector<std::string> targetNames;
+     schema.getTargetNames(targetNames);
+@@ -3577,6 +3561,55 @@ _ReadMaterial(_PrimReaderContext* context)
+     }
+ }
+ 
++static
++void
++_ReadMaterial(_PrimReaderContext* context)
++{
++    typedef Alembic::AbcMaterial::IMaterial Type;
++
++    // Wrap the object.
++    if (!Type::matches(context->GetObject().getHeader())) {
++        // Not of type Type.
++        return;
++    }
++
++    // Add child properties under schema.
++    context->SetSchema(Type::schema_type::info_type::defaultName());
++
++    Type object(context->GetObject(), kWrapExisting);
++    Type::schema_type& schema = object.getSchema();
++
++    // Set prim type.
++    context->GetPrim().typeName = UsdAbcPrimTypeNames->Material;
++
++    _ReadMaterialProperties(schema, context);
++}
++
++static void _ReadLight(_PrimReaderContext* context)
++{
++    typedef Alembic::AbcGeom::ILight Type;
++
++    // Wrap the object.
++    if (!Type::matches(context->GetObject().getHeader()))
++    {
++        // Not of type Type.
++        return;
++    }
++
++    // Add child properties under schema.
++    context->SetSchema(Type::schema_type::info_type::defaultName());
++
++    Type object(context->GetObject(), kWrapExisting);
++    Type::schema_type& schema = object.getSchema();
++    Alembic::AbcMaterial::IMaterialSchema material(
++        schema.getPtr(), ".material");
++
++    // Set prim type.
++    context->GetPrim().typeName = UsdAbcPrimTypeNames->Light;
++
++    _ReadMaterialProperties(material, context);
++}
++
+ static
+ _ReaderContext::Ordering
+ _GetOrderingMetadata(
+@@ -4175,6 +4208,25 @@ _ReadPrimChildren(
+             }
+         }
+     }
++    else if (Alembic::AbcGeom::ILight::matches(object.getHeader()))
++    {
++        // The shading nodes of the material shaders are written as compounds in
++        // Alembic. We need to create children for them.
++        Alembic::AbcGeom::ILight light(object, kWrapExisting);
++        Alembic::AbcGeom::ILight::schema_type& schema = light.getSchema();
++        Alembic::AbcMaterial::IMaterialSchema material(
++            schema.getPtr(), ".material");
++
++        for (size_t i = 0, e = material.getNumNetworkNodes(); i < e; ++i) {
++            Alembic::AbcMaterial::IMaterialSchema::NetworkNode child =
++                material.getNetworkNode(i);
++            const std::string childName =
++                _ReadMaterialNetworkNode(context, object, child, path);
++            if (!childName.empty()) {
++                prim.children.push_back(TfToken(childName));
++            }
++        }
++    }
+ }
+ 
+ // ----------------------------------------------------------------------------
+@@ -4256,6 +4308,9 @@ _ReaderSchemaBuilder::_ReaderSchemaBuilder()
+     schema.AddType(Alembic::AbcMaterial::MaterialSchemaInfo::title())
+         .AppendReader(_ReadMaterial)
+         ;
++    schema.AddType(Alembic::AbcGeom::LightSchemaInfo::title())
++        .AppendReader(_ReadLight)
++        ;
+ 
+     // This handles overs with no type and any unknown prim type.
+     schema.AddFallbackType()
+@@ -4532,4 +4587,3 @@ UsdAbc_AlembicDataReader::ListTimeSamplesForPath(
+ }
+ 
+ PXR_NAMESPACE_CLOSE_SCOPE
+-
+diff --git a/pxr/usd/plugin/usdAbc/alembicUtil.h b/pxr/usd/plugin/usdAbc/alembicUtil.h
+index cd8592bc..1ca5d191 100644
+--- a/pxr/usd/plugin/usdAbc/alembicUtil.h
++++ b/pxr/usd/plugin/usdAbc/alembicUtil.h
+@@ -110,6 +110,7 @@ TF_DECLARE_PUBLIC_TOKENS(UsdAbc_UsdDataTypes,
+     (Xform) \
+     (Shader) \
+     (Material) \
++    (Light) \
+     /* end */
+ TF_DECLARE_PUBLIC_TOKENS(UsdAbcPrimTypeNames, USD_ABC_PRIM_TYPE_NAMES);
+ 
+-- 
+2.14.3
+

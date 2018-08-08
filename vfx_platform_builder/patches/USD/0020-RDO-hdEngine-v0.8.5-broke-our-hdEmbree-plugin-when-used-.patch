@@ -1,0 +1,42 @@
+From c8db669667c08c8140181980add826dedead00b0 Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Thu, 12 Jul 2018 15:46:27 -0400
+Subject: [PATCH] RDO: v0.8.5 broke our hdEmbree plugin when used inside
+ Maya. This is because it is checking if the OpenGL context is a strict Core
+ Profile mode before calling glBindVertexArray(0) to break the existing vertex
+ array object binding. This commit fix the issue.
+
+---
+ pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+ mode change 100644 => 100755 pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp
+
+diff --git a/pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp b/pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp
+old mode 100644
+new mode 100755
+index fd944fb..e37c930
+--- a/pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp
++++ b/pxr/usdImaging/lib/usdImagingGL/hdEngine.cpp
+@@ -701,7 +701,6 @@ UsdImagingGLHdEngine::Render(RenderParams params)
+ 
+     if (isCoreProfileContext) {
+ 
+-        glBindVertexArray(0);
+         // XXX: We should not delete the VAO on every draw call, but we 
+         // currently must because it is GL Context state and we do not control 
+         // the context.
+@@ -709,10 +708,10 @@ UsdImagingGLHdEngine::Render(RenderParams params)
+ 
+     } else {
+ 
++        glBindVertexArray(0);
+         glPopAttrib(); // GL_ENABLE_BIT | GL_POLYGON_BIT | GL_DEPTH_BUFFER_BIT
+ 
+     }
+-
+ }
+ 
+ /*virtual*/
+-- 
+2.3.0
+

@@ -1,0 +1,45 @@
+From 80a177d18e61aeb1ae9254a89ed2ca87791ffd08 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 29 Nov 2017 12:19:37 -0500
+Subject: [PATCH 08/10] RodeoFX: ability to change property name
+
+It allows to change expressions since they are the names of compound properties.
+---
+ bin/AbcConvert/AbcConvert.cpp | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index e08111db..d7ff313d 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -191,7 +191,7 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+         }
+         else if (header.isCompound())
+         {
+-            const std::string& name = header.getName();
++            std::string name = header.getName();
+             if (options.animlayer)
+             {
+                 // We need to convert this file to the animation layer. We just
+@@ -202,8 +202,16 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+                 }
+             }
+ 
+-            Alembic::Abc::OCompoundProperty outProp(iWrite,
+-                header.getName(), meta);
++            // Find and replace property names if necessary
++            std::map<std::string, std::string>::const_iterator found =
++                options.replaceNames.find(name);
++            if (found != options.replaceNames.end())
++            {
++                name = found->second;
++            }
++
++            Alembic::Abc::OCompoundProperty outProp(iWrite, name, meta);
++
+             Alembic::Abc::ICompoundProperty inProp(iRead, header.getName());
+             copyProps(inProp, outProp, options);
+         }
+-- 
+2.12.1
+

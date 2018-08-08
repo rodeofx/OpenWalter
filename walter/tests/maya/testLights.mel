@@ -1,0 +1,64 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int _testLight(string $dir, string $lightName) 
+{
+ 	string $abcName = $dir + $lightName + ".abc";
+	string $assName = $dir + $lightName + ".ass";
+
+ 	if($lightName == "directionalLight1")
+    	defaultDirectionalLight(1, 1,1,1, "0", 0,0,0, 0);
+
+	else if($lightName == "pointLight1")
+    	defaultPointLight(1, 1,1,1, 0, 0, 0,0,0, 1);
+
+	else if($lightName == "spotLight1")
+    	defaultSpotLight(1, 1,1,1, 0, 40, 0, 0, 0, 0,0,0, 1, 0);
+ 
+	else if($lightName == "areaLight1")
+    	defaultAreaLight(1, 1,1,1, 0, 0, 0,0,0, 1, 0);
+
+	else if($lightName == "aiAreaLight1")
+		python("import mtoa.utils as mutils;mutils.createLocator(\"aiAreaLight\", asLight=True)");
+
+	else if($lightName == "aiPhotometricLight1")
+		python("import mtoa.utils as mutils;mutils.createLocator(\"aiPhotometricLight\", asLight=True)");
+
+	else if($lightName == "aiPhotometricLight1")
+		python("import mtoa.utils as mutils;mutils.createLocator(\"aiPhotometricLight\", asLight=True)");
+
+	else if($lightName == "aiSkyDomeLight1")
+		python("import mtoa.utils as mutils;mutils.createLocator(\"aiSkyDomeLight\", asLight=True)");
+
+ 	string $walterCmd = "-root " + $lightName + " -file " + $abcName;
+    walterStandin -export $walterCmd;
+
+    string $node = wCreateStandin($abcName);
+    _exportSelectionToAssFile($assName);
+
+    int $res1 = _readAndFindInFile($assName, "intensity");
+    int $res2 = _readAndFindInFile($assName, "exposure");
+    int $res = 2 - ($res1 + $res2);
+    return $res; 
+}
+
+global proc int testLights()
+{	
+ 	string $dir = "/tmp/testLights/";
+
+	sysFile -makeDir $dir;
+
+	int $resDir = _testLight($dir , "directionalLight1");
+	int $resPoint = _testLight($dir, "pointLight1");
+	int $resSpot = 	_testLight($dir , "spotLight1");
+	int $resArea = 	_testLight($dir , "areaLight1");
+	int $resAiArea = _testLight($dir , "aiAreaLight1");
+	int $resAiPhoto = _testLight($dir , "aiPhotometricLight1");
+	int $resAiDome = _testLight($dir , "aiSkyDomeLight1");
+
+    int $res = $resDir + $resPoint + $resSpot + 
+    	$resArea + $resAiArea + $resAiPhoto + $resAiDome;
+
+    prDeleteFolder($dir);
+
+    return $res;
+}

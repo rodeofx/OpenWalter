@@ -1,0 +1,37 @@
+From b5e5c883426363e51843624285f8c165e198bec4 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 14 Jul 2017 10:01:45 -0400
+Subject: [PATCH] RDO: USD Alembic: add userData namespace
+
+We add userData metadata to Walter Overrides in Walter Standin to mark the
+parameter as Arnold user data because Katana needs such parameters in another
+group. The problem is it's not possible to use metadata with custom names in
+USD, so the only way to determine if it's standard parameter or user parameter
+is using some namespace.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index ac40792c..f6498786 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -2138,8 +2138,14 @@ _PrimReaderContext::AddOutOfSchemaProperty(
+                 _CleanName(rawName, " .", usedNames,
+                            _AlembicFixName(),
+                            &SdfPath::IsValidIdentifier);
++            const MetaData& meta = compound.getPropertyHeader(i).getMetaData();
++            std::string nameSpace = name;
++            if (meta.get("userData") == "yes")
++            {
++                nameSpace = SdfPath::JoinIdentifier(nameSpace, "userData");
++            }
+             const std::string namespacedName =
+-                SdfPath::JoinIdentifier(name, cleanName);
++                SdfPath::JoinIdentifier(nameSpace, cleanName);
+             const SdfPath childPath =
+                 GetPath().AppendProperty(TfToken(namespacedName));
+             AddOutOfSchemaProperty(
+-- 
+2.14.3
+

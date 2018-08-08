@@ -1,0 +1,221 @@
+From f170e779458359e0165bdb84e51d4dc14d0c7bc7 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 29 Nov 2017 16:47:03 -0500
+Subject: [PATCH 10/10] RodeoFX: ability to change the names of compounds
+
+We need it to convert expressions from old to new format.
+---
+ bin/AbcConvert/AbcConvert.cpp | 131 ++++++++++++++++++++++++++++--------------
+ 1 file changed, 89 insertions(+), 42 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index d46088dc..a222062b 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -49,6 +49,7 @@ enum ArgMode
+     kOutFile,
+     kReplaceName,
+     kReplaceString,
++    kReplaceCompound,
+ };
+ 
+ class ConversionOptions
+@@ -73,8 +74,60 @@ public:
+     bool                        animlayer;
+     std::map<std::string, std::string> replaceNames;
+     std::map<std::string, std::string> replaceStrings;
++    std::map<std::string, std::string> replaceCompounds;
+ };
+ 
++/**
++ * @brief Replace all occurrences of the search string in the input with the
++ * format string. The input sequence is modified in-place.
++ *
++ * @param ioInput An input string.
++ * @param iSearch A substring to be searched for.
++ * @param iFormat A substitute string.
++ */
++void replaceAll(
++    std::string& ioInput,
++    const std::string& iSearch,
++    const std::string& iFormat)
++{
++    size_t found = 0;
++
++    while (true)
++    {
++        found = ioInput.find(iSearch, found);
++
++        if (found == std::string::npos)
++        {
++            break;
++        }
++
++        ioInput.replace(found, iSearch.size(), iFormat);
++
++        found += iFormat.size();
++    }
++}
++
++/**
++ * @brief Replace all occurrences of the search string in the input with the
++ * format strings. The input sequence is modified in-place.
++ *
++ * @param ioInput An input string.
++ * @param iOccurrences All the occurrences substrings to be searched and
++ * replaced.
++ */
++void replaceAll(
++    std::string& ioInput,
++    const std::map<std::string, std::string>& iOccurrences)
++{
++    size_t found = 0;
++
++    std::map<std::string, std::string>::const_iterator it;
++    for (it = iOccurrences.begin(); it != iOccurrences.end(); it++)
++    {
++        replaceAll(ioInput, it->first, it->second);
++    }
++}
++
+ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+     Alembic::Abc::OCompoundProperty & iWrite,
+     const ConversionOptions& options)
+@@ -142,36 +195,12 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+                 {
+                     inProp.get(&sampStrVec.front(), sel);
+ 
+-                    std::map<std::string, std::string>::const_iterator replace;
+-                    for (replace = options.replaceStrings.begin();
+-                         replace != options.replaceStrings.end();
+-                         replace++)
++                    std::vector<std::string>::iterator current;
++                    for (current = sampStrVec.begin();
++                         current != sampStrVec.end();
++                         current++)
+                     {
+-                        std::vector<std::string>::iterator current;
+-
+-                        for (current = sampStrVec.begin();
+-                             current != sampStrVec.end();
+-                             current++)
+-                        {
+-                            size_t found = 0;
+-
+-                            while (true)
+-                            {
+-                                found = current->find(replace->first, found);
+-
+-                                if (found == std::string::npos)
+-                                {
+-                                    break;
+-                                }
+-
+-                                current->replace(
+-                                    found,
+-                                    replace->first.size(),
+-                                    replace->second);
+-
+-                                found += replace->second.size();
+-                            }
+-                        }
++                        replaceAll(*current, options.replaceStrings);
+                     }
+ 
+                     outProp.set(&sampStrVec.front());
+@@ -202,13 +231,7 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+                 }
+             }
+ 
+-            // Find and replace property names if necessary
+-            std::map<std::string, std::string>::const_iterator found =
+-                options.replaceNames.find(name);
+-            if (found != options.replaceNames.end())
+-            {
+-                name = found->second;
+-            }
++            replaceAll(name, options.replaceCompounds);
+ 
+             Alembic::Abc::OCompoundProperty outProp(iWrite, name, meta);
+ 
+@@ -248,6 +271,10 @@ void copyObject(Alembic::Abc::IObject & iIn,
+         {
+             shortName = found->second;
+         }
++        else
++        {
++            replaceAll(shortName, options.replaceNames);
++        }
+ 
+         Alembic::Abc::OObject childOut(iOut, shortName, meta);
+         copyObject(childIn, childOut, options, fullName);
+@@ -276,11 +303,11 @@ void displayHelp()
+         "properties.\n\n"
+         "  -animlayer                  Add 'replace' metadata to transforms "
+         "and meshes.\n\n"
+-        "  -replaceName OLDNAME NAME   Replace the name of the object or the "
+-        "compound\n"
+-        "                              property. Example:\n"
+-        "                              -replaceName /full/old/name newName\n\n"
+-        "  -replaceString PATTERN VAL  Replace parts of string properties.\n\n";
++        "  -replaceName OLDNAME NAME   Replace the name of the object. Example:"
++        "\n                              -replaceName /FULL/OLD/NAME REPL\n\n"
++        "  -replaceString PATTERN VAL  Replace parts of string properties.\n\n"
++        "  -replaceCompound PATRN VAL  Replace parts of compound property name."
++        "\n\n";
+     printf(rodeoHelp);
+ }
+ 
+@@ -290,6 +317,7 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+     ArgMode argMode = kOptions;
+     std::string replaceName;
+     std::string replaceString;
++    std::string replaceCompound;
+ 
+     for( int i = 1; i < iArgc; i++ )
+     {
+@@ -328,6 +356,10 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 {
+                     argMode = kReplaceString;
+                 }
++                else if(arg == "-replaceCompound")
++                {
++                    argMode = kReplaceCompound;
++                }
+                 else if(arg == "-in" )
+                 {
+                     argMode = kInFiles;
+@@ -412,6 +444,20 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                     argMode = kOptions;
+                 }
+             }
++
++            case kReplaceCompound:
++            {
++                if (replaceCompound.empty())
++                {
++                    replaceCompound = arg;
++                }
++                else
++                {
++                    oOptions.replaceCompounds[replaceCompound] = arg;
++                    replaceCompound.clear();
++                    argMode = kOptions;
++                }
++            }
+             break;
+         }
+ 
+@@ -474,7 +520,8 @@ int main(int argc, char *argv[])
+                 options.replaceProps ||
+                 options.animlayer ||
+                 !options.replaceNames.empty() ||
+-                !options.replaceStrings.empty();
++                !options.replaceStrings.empty() ||
++                !options.replaceCompounds.empty();
+             if (!archive.valid())
+             {
+                 printf("Error: Invalid Alembic file specified: %s\n",
+-- 
+2.12.1
+

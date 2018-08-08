@@ -1,0 +1,36 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int _testSubdivisionOverrides(string $dir, string $overrideName, string $strRef)
+{
+    string $geoPath = $dir + "triangle.abc";
+    string $attrPath = $dir + "triangle_" + $overrideName + "_override.abc";
+    string $assPath = $dir + "triangle_" + $overrideName + "_ass.abc";
+    string $nodePath = $geoPath + ":" + $attrPath + ":" + $assPath;
+ 
+    string $node = wCreateStandin($nodePath);
+    string $properties = `walterStandin -pa $node "/pSphere1/pSphereShape1"`;
+    
+    return 1 - (wFlattenString($properties) == wFlattenString($strRef));
+}
+
+global proc int testSubdivisionOverrides()
+{
+    // Directory to the alembics.
+    string $dir = dirname(wGetCurrentDir()) + "/resources/alembics/subdivisionOverrides/";
+ 
+    string $linear_ref = "{ \"prim\": \"/pSphere1/pSphereShape1\", \"properties\": [ { \"name\": \"displayColor\", \"type\": \"VtArray<GfVec3f>\", \"arraySize\": 0, \"value\": [] }, { \"name\": \"displayOpacity\", \"type\": \"VtArray<float>\", \"arraySize\": 0, \"value\": [] }], \"overrides\": [ { \"name\": \"subdiv_iterations\", \"type\": \"int\", \"arraySize\": -1, \"value\": 3 }, { \"name\": \"subdiv_type\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"catclark\" }, { \"name\": \"subdiv_uv_smoothing\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"linear\" }, { \"name\": \"displacement\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"surface\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"volume\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }] }";
+
+    string $smooth_ref = "{ \"prim\": \"/pSphere1/pSphereShape1\", \"properties\": [ { \"name\": \"displayColor\", \"type\": \"VtArray<GfVec3f>\", \"arraySize\": 0, \"value\": [] }, { \"name\": \"displayOpacity\", \"type\": \"VtArray<float>\", \"arraySize\": 0, \"value\": [] }], \"overrides\": [ { \"name\": \"subdiv_iterations\", \"type\": \"int\", \"arraySize\": -1, \"value\": 3 }, { \"name\": \"subdiv_type\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"catclark\" }, { \"name\": \"subdiv_uv_smoothing\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"smooth\" }, { \"name\": \"displacement\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"surface\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"volume\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }] }";
+
+    string $pin_corners_ref = "{ \"prim\": \"/pSphere1/pSphereShape1\", \"properties\": [ { \"name\": \"displayColor\", \"type\": \"VtArray<GfVec3f>\", \"arraySize\": 0, \"value\": [] }, { \"name\": \"displayOpacity\", \"type\": \"VtArray<float>\", \"arraySize\": 0, \"value\": [] }], \"overrides\": [ { \"name\": \"subdiv_iterations\", \"type\": \"int\", \"arraySize\": -1, \"value\": 3 }, { \"name\": \"subdiv_type\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"catclark\" }, { \"name\": \"subdiv_uv_smoothing\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"pin_corners\" }, { \"name\": \"displacement\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"surface\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"volume\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }] }";
+
+    string $pin_borders_ref = "{ \"prim\": \"/pSphere1/pSphereShape1\", \"properties\": [ { \"name\": \"displayColor\", \"type\": \"VtArray<GfVec3f>\", \"arraySize\": 0, \"value\": [] }, { \"name\": \"displayOpacity\", \"type\": \"VtArray<float>\", \"arraySize\": 0, \"value\": [] }], \"overrides\": [ { \"name\": \"subdiv_iterations\", \"type\": \"int\", \"arraySize\": -1, \"value\": 3 }, { \"name\": \"subdiv_type\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"catclark\" }, { \"name\": \"subdiv_uv_smoothing\", \"type\": \"string\", \"arraySize\": -1, \"value\": \"pin_borders\" }, { \"name\": \"displacement\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"surface\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }, { \"name\": \"volume\", \"type\": \"TfToken\", \"arraySize\": -1, \"value\": \"\" }] }";
+
+
+    int $test_1 = _testSubdivisionOverrides($dir, "linear", $linear_ref);
+    int $test_2 = _testSubdivisionOverrides($dir, "smooth", $smooth_ref);
+    int $test_3 = _testSubdivisionOverrides($dir, "pin_corners", $pin_corners_ref);
+    int $test_4 = _testSubdivisionOverrides($dir, "pin_borders", $pin_borders_ref);
+
+    return $test_1 + $test_2 + $test_3 + $test_4;
+}

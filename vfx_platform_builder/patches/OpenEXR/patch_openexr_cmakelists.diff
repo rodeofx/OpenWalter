@@ -1,0 +1,30 @@
+--- CMakeLists.txt	2017-01-16 10:17:10.865955205 -0500
++++ CMakeLists.txt	2017-01-16 10:14:49.000000000 -0500
+@@ -6,12 +6,12 @@
+   b44ExpLogTable.cpp
+ )
+ 
+ TARGET_LINK_LIBRARIES ( b44ExpLogTable
+   Half
+-  Iex${ILMBASE_LIBSUFFIX}
+   IlmThread${ILMBASE_LIBSUFFIX}
++  Iex${ILMBASE_LIBSUFFIX}
+   ${PTHREAD_LIB}
+ )
+ 
+ ADD_CUSTOM_COMMAND (
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/b44ExpLogTable.h
+@@ -23,12 +23,12 @@
+   dwaLookups.cpp
+ )
+ 
+ TARGET_LINK_LIBRARIES ( dwaLookups
+   Half
+-  Iex${ILMBASE_LIBSUFFIX}
+   IlmThread${ILMBASE_LIBSUFFIX}
++  Iex${ILMBASE_LIBSUFFIX}
+   ${PTHREAD_LIB}
+ )
+ 
+ ADD_CUSTOM_COMMAND (
+   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/dwaLookups.h

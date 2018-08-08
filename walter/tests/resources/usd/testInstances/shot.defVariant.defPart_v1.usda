@@ -1,0 +1,135 @@
+#usda 1.0
+(
+    defaultPrim = "layout"
+    endTimeCode = 0
+    startTimeCode = 0
+)
+
+def Scope "layout" (
+    instanceable = false
+    kind = "assembly"
+)
+{
+    def Xform "group_cone"
+    {
+        def "cone_1" (
+            add references = </_class_cone>
+        )
+        {
+        }
+
+        def "cone_2" (
+            add references = </_class_cone>
+        )
+        {
+        }
+
+        def "cone_3" (
+            add references = </_class_cone>
+        )
+        {
+        }
+    }
+
+    def Xform "group_sphere"
+    {
+        def "sphere_1" (
+            add references = </_class_sphere>
+        )
+        {
+        }
+
+        def "sphere_2" (
+            add references = </_class_sphere>
+        )
+        {
+        }
+    }
+}
+
+class "_class_cone" (
+    instanceable = true
+    kind = "component"
+    variants = {
+        string lod = "hi"
+    }
+    add variantSets = "lod"
+)
+{
+    variantSet "lod" = {
+        "hi" (
+            variants = {
+                string geometry = "default"
+            }
+            add variantSets = "geometry"
+        ) {
+            variantSet "geometry" = {
+                "default" (
+                    add references = @./cone.hi.defVariant.defPart_v1.abc@
+                ) {
+
+                }
+            }
+
+        }
+        "lo" (
+            variants = {
+                string geometry = "default"
+            }
+            add variantSets = "geometry"
+        ) {
+            variantSet "geometry" = {
+                "default" (
+                    add references = @./cone.lo.defVariant.defPart_v1.abc@
+                ) {
+
+                }
+            }
+
+        }
+    }
+}
+
+class "_class_sphere" (
+    instanceable = true
+    kind = "component"
+    variants = {
+        string lod = "hi"
+    }
+    add variantSets = "lod"
+)
+{
+    variantSet "lod" = {
+        "hi" (
+            variants = {
+                string geometry = "default"
+            }
+            add variantSets = "geometry"
+        ) {
+            variantSet "geometry" = {
+                "default" (
+                    add references = @./sphere.hi.defVariant.defPart_v1.abc@
+                ) {
+
+                }
+            }
+
+        }
+        "lo" (
+            variants = {
+                string geometry = "default"
+            }
+            add variantSets = "geometry"
+        ) {
+            variantSet "geometry" = {
+                "default" (
+                    add references = @./sphere.lo.defVariant.defPart_v1.abc@
+                ) {
+
+                }
+            }
+
+        }
+    }
+}
+

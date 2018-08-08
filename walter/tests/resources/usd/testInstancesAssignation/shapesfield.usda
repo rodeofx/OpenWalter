@@ -1,0 +1,40 @@
+#usda 1.0
+(
+    defaultPrim = "shapesfield"
+)
+
+def Xform "shapesfield" (
+    kind = "assembly"
+)
+{
+    def Xform "shapes_1" (
+        instanceable = true
+        add inherits = </_class_shapes>
+    )
+    {
+    }
+
+    def Xform "shapes_2" (
+        instanceable = true
+        add inherits = </_class_shapes>
+    )
+    {
+        double3 xformOp:translate = (1, 0, 3)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    def Xform "shapes_3" (
+        instanceable = true
+        add inherits = </_class_shapes>
+    )
+    {
+        double3 xformOp:translate = (-3, 0, 2)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+}
+
+class "_class_shapes" (
+    add references = @./Asset1/geometry.abc@
+)
+{
+}

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+: ${WALTER_ROOT:=./build/lib/walter}
+
+export HOUDINI_DSO_PATH="&"
+export HOUDINI_MENU_PATH="&"
+export HOUDINI_PYTHON_PANEL_PATH="&"
+export HOUDINI_PYTHON_PANEL_PATH="&"
+export HOUDINI_SCRIPT_PATH="&"
+export HOUDINI_SOHO_PATH="&"
+export HOUDINI_TOOLBAR_PATH="&"
+export HOUDINI_UI_ICON_PATH="&"
+export HOUDINI_UI_PATH="&"
+export HOUDINI_VEX_PATH="&"
+export HOUDINI_OUTLINEFONT_PATH="&"
+
+# HtoA
+export PATH=${HTOA_ROOT}/scripts/bin:/usr/local/bin:/bin:/usr/bin
+export PYTHONPATH=${HTOA_ROOT}/scripts/python
+export HOUDINI_PATH="${HTOA_ROOT}:&"
+
+# Walter
+export PYTHONPATH=${WALTER_ROOT}/houdini/scripts/python:${PYTHONPATH}
+export ARNOLD_PLUGIN_PATH=${WALTER_ROOT}/arnold
+export HOUDINI_PATH=${WALTER_ROOT}/houdini:${HOUDINI_PATH}
+export HOUDINI_OTLSCAN_PATH="${WALTER_ROOT}/houdini/otls:&"
+
+${HOUDINI_ROOT}/bin/houdinicore $@

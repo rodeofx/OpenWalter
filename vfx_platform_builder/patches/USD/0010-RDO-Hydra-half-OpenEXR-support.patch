@@ -1,0 +1,25 @@
+From 6dbd5a9c46b6d688055de3d6d79c9bc8a333071f Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Fri, 29 Jun 2018 11:54:57 -0400
+Subject: [PATCH] RDO: Hydra half OpenEXR support
+
+---
+ pxr/imaging/lib/glf/oiioImage.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/pxr/imaging/lib/glf/oiioImage.cpp b/pxr/imaging/lib/glf/oiioImage.cpp
+index 899810a..e0b61c6 100644
+--- a/pxr/imaging/lib/glf/oiioImage.cpp
++++ b/pxr/imaging/lib/glf/oiioImage.cpp
+@@ -134,6 +134,8 @@ _GetOIIOBaseType(GLenum type)
+         return TypeDesc::UINT;
+     case GL_FLOAT:
+         return TypeDesc::FLOAT;
++    case GL_HALF_FLOAT:
++        return TypeDesc::HALF;
+     default:
+         TF_CODING_ERROR("Unsupported type");
+         return TypeDesc::FLOAT;
+-- 
+2.3.0
+

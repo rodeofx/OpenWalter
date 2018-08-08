@@ -1,0 +1,35 @@
+#usda 1.0
+(
+    customLayerData = {
+        string modelCreatedBy = "Saul"
+    }
+    defaultPrim = "sphere"
+)
+
+def "sphere" (
+    assetInfo = {
+    }
+    kind = "component"
+    payload = @./.layers/sphere.payload.usda@</sphere>
+    variants = {
+        string Geometry = "hi"
+        string color = "blue"
+    }
+    prepend variantSets = ["color", "Geometry"]
+)
+{
+    variantSet "color" = {
+        "blue" {
+
+        }
+    }
+    variantSet "Geometry" = {
+        "hi" {
+
+        }
+        "lo" {
+
+        }
+    }
+}
+

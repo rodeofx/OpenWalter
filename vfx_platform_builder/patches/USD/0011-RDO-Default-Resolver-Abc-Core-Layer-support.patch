@@ -1,0 +1,153 @@
+From 0cefd401c770e98222d5f9380119c42d93a0861b Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 16 Aug 2017 10:30:55 -0400
+Subject: [PATCH] RDO: Default Resolver: Abc Core Layer support
+
+1) Abc Core Layer needs several paths but USD considers a path as a path to a
+single file and it fails when the path doesn't exist. To solve it, we added a
+custom resolver that accepts several paths separated with a semicolon symbol. It
+splits the line and resolves the files one by one.
+
+2) Since we patched vfx-platform-builder (e49267f9) to use IFactory, it accepts
+several paths separated with a semicolon. So we have AbcCoreLayer support.
+---
+ pxr/usd/lib/ar/defaultResolver.cpp | 109 +++++++++++++++++++++++++++++++++++++
+ 1 file changed, 109 insertions(+)
+
+diff --git a/pxr/usd/lib/ar/defaultResolver.cpp b/pxr/usd/lib/ar/defaultResolver.cpp
+index 0e72942e..d0d59d19 100644
+--- a/pxr/usd/lib/ar/defaultResolver.cpp
++++ b/pxr/usd/lib/ar/defaultResolver.cpp
+@@ -39,6 +39,48 @@
+ 
+ #include <tbb/concurrent_hash_map.h>
+ 
++#define ABC_CORE_LAYER_SEPARATOR ":"
++
++#include <boost/algorithm/string.hpp>
++
++inline void splitPath(
++        const std::string& path, std::vector<std::string>& archives)
++{
++    std::vector<std::string> parts;
++    boost::split(parts, path, boost::is_any_of(ABC_CORE_LAYER_SEPARATOR));
++
++    std::string drive;
++
++    for (const std::string& part : parts)
++    {
++        if (part.size() == 1)
++        {
++            // It's a drive. Just save it.
++            drive = part;
++        }
++        else
++        {
++            // Skip it if the part is empty.
++            if (!part.empty())
++            {
++                if (!drive.empty())
++                {
++                    // Recontruct the path.
++                    archives.push_back(drive + ":" + part);
++                }
++                else
++                {
++                    archives.push_back(part);
++                }
++            }
++
++            // TODO: do we need a path with one letter only? Right now it's
++            // filtered out.
++            drive.clear();
++        }
++    }
++}
++
+ PXR_NAMESPACE_OPEN_SCOPE
+ 
+ AR_DEFINE_RESOLVER(ArDefaultResolver, ArResolver);
+@@ -230,6 +272,37 @@ ArDefaultResolver::ResolveWithAssetInfo(
+         return path;
+     }
+ 
++    // Special case: Alembic
++    if (boost::iends_with(path, ".abc"))
++    {
++        // Probably it's a set of Alembic Core Layers. In this way we need to
++        // split it and resolve the layers one by one.
++        std::vector<std::string> archives;
++        splitPath(path, archives);
++
++        if (archives.size() > 1)
++        {
++            std::vector<std::string> resolved;
++            resolved.reserve(archives.size());
++
++            // Resolve each archive with the default resolver.
++            for (const std::string& archive : archives)
++            {
++                std::string result =
++                    ResolveWithAssetInfo(archive, assetInfo);
++
++                if (result.empty())
++                {
++                    continue;
++                }
++
++                resolved.push_back(result);
++            }
++
++            return boost::join(resolved, ABC_CORE_LAYER_SEPARATOR);
++        }
++    }
++
+     if (_CachePtr currentCache = _GetCurrentCache()) {
+         _Cache::_PathToResolvedPathMap::accessor accessor;
+         if (currentCache->_pathToResolvedPathMap.insert(
+@@ -267,6 +340,42 @@ ArDefaultResolver::GetModificationTimestamp(
+     const std::string& path,
+     const std::string& resolvedPath)
+ {
++    // Special case: Alembic
++    if (boost::iends_with(resolvedPath, ".abc"))
++    {
++        // Probably it's a set of Alembic Core Layers. In this way we need to
++        // split it, get the time of each layer and return the latest time.
++        std::vector<std::string> archives;
++        splitPath(resolvedPath, archives);
++
++        if (archives.size() > 1)
++        {
++            std::vector<double> times;
++            times.reserve(archives.size());
++
++            // Look at the time of the each archive.
++            for (const std::string& archive : archives)
++            {
++                double time;
++                if (!ArchGetModificationTime(archive.c_str(), &time))
++                {
++                    continue;
++                }
++
++                times.push_back(time);
++            }
++
++            if (times.empty())
++            {
++                return VtValue();
++            }
++
++            double maxTime = *std::max_element(times.begin(), times.end());
++
++            return VtValue(maxTime);
++        }
++    }
++
+     // Since the default resolver always resolves paths to local
+     // paths, we can just look at the mtime of the file indicated
+     // by resolvedPath.
+-- 
+2.14.3
+

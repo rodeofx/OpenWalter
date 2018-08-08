@@ -1,0 +1,45 @@
+From 1772ca854166e1d0a5b9de4e627c4bef35044edb Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 2 Feb 2018 16:40:12 -0500
+Subject: [PATCH] RDO: Support for Arnold components in shaders
+
+USD doesn't allow using dots in the names. However, Arnold needs dots to specify
+color/vector components. The only solution is using the namespace symbol ':'.
+Example: "uvcoords.x" -> "uvcoords:x".
+
+Since the new name is namespaced, UsdShadeConnectableAPI::GetInputs() will
+ignore it. To avoid it, we need to use the additional namespace "inputs".
+
+It's work for #RND-530
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 4d68097a..df95de8f 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3792,8 +3792,20 @@ _ReadMaterialNetworkNode(
+             continue;
+         }
+ 
++        // Mangle Arnold components. USD doesn't allow using dots in the names.
++        // However, Arnold needs dots to specify color/vector components. The
++        // only solution is using the namespace symbol ':'. Example:
++        // "uvcoords.x" -> "uvcoords:x".
++        int penultimate = inputName.length() - 2;
++        if (penultimate > 0 && inputName[penultimate] == '.')
++        {
++            inputName[penultimate] = ':';
++        }
+         // Mangle the Alembic names to USD names.
+         inputName = primContext.GetUsdName(inputName);
++        // The new shade API (USD 0.8) requires that all the inputs should be in
++        // the "inputs" namespace.
++        inputName = "inputs:" + inputName;
+         connectedNodeName =
+             _CleanName(
+                     connectedNodeName,
+-- 
+2.14.3
+

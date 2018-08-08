@@ -1,0 +1,5 @@
+add_subdirectory(common)
+add_subdirectory(walterStandin)
+add_subdirectory(walterMtoaConnection)
+add_subdirectory(AbcExport)
+add_subdirectory(mtoa)

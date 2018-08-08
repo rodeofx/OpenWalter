@@ -1,0 +1,34 @@
+From 331782596deaac0dd46dd29cef1ad6e8d6c23a62 Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Wed, 25 Apr 2018 17:42:25 -0400
+Subject: [PATCH] RDO: USD AlembicReader: Suppress warnings.
+
+Too many warnings were printed at render time in Katana. Mostly because
+of:
+
+- warnings from facesets exported from Houdini.
+- warnings from "unsupported float locator" on Maya exported shapes.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 23b052a..3bf1e80 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -2230,12 +2230,6 @@ _PrimReaderContext::AddOutOfSchemaProperty(
+             property.GetParent(), property.GetName(),
+             std::placeholders::_2, std::placeholders::_1);
+     }
+-    else {
+-        TF_WARN("No conversion for \"%s\" of type \"%s\" at <%s>",
+-                name.c_str(),
+-                alembicType.Stringify().c_str(),
+-                GetPath().GetText());
+-    }
+ }
+ 
+ _PrimReaderContext::Property&
+-- 
+2.3.0
+

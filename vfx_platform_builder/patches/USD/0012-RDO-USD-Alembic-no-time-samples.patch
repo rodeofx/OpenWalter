@@ -1,0 +1,146 @@
+From 00271a5d68ab493cf62b39b769b96adc51478c3b Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Mon, 23 Oct 2017 14:42:17 -0400
+Subject: [PATCH] RDO: USD Alembic: no time samples
+
+Don't produce time samples if Alembic doesn't have them.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 47 +++++++++++++++++++++++++++------
+ 1 file changed, 39 insertions(+), 8 deletions(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 58ea9857..ff890b43 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -1862,6 +1862,13 @@ public:
+                             const SdfValueTypeName& typeName,
+                             const T& converter);
+ 
++    /// Adds a regular property with no uniform, custom, etc flag.
++    template <class T>
++    void AddRegularProperty(
++        const TfToken& name,
++        const SdfValueTypeName& typeName,
++        const T& converter);
++
+     /// Adds a relationship named \p name allowing to target other prims,
+     /// attributes, or relationships.
+     void AddRelationship(
+@@ -2099,6 +2106,23 @@ _PrimReaderContext::AddUniformProperty(
+     }
+ }
+ 
++template <class T>
++void _PrimReaderContext::AddRegularProperty(
++    const TfToken& name,
++    const SdfValueTypeName& typeName,
++    const T& converter)
++{
++    if (converter(IsValidTag()))
++    {
++        Property& prop =
++            _AddProperty(name, typeName, converter, converter, false);
++        prop.converter = converter;
++        prop.uniform = false;
++        prop.timeSampled = false;
++        prop.metadata[SdfFieldKeys->Custom] = VtValue(false);
++    }
++}
++
+ void
+ _PrimReaderContext::AddRelationship(
+     const TfToken& name,
+@@ -2106,6 +2130,7 @@ _PrimReaderContext::AddRelationship(
+ {
+     Property& prop = _AddProperty(name);
+     prop.relationshipTarget = connection;
++    prop.uniform = true;
+ }
+ 
+ void
+@@ -2175,6 +2200,12 @@ _PrimReaderContext::AddOutOfSchemaProperty(
+             _AddProperty(TfToken(name), usdTypeName, header->getMetaData(), 
+                      sampleTimes, isOutOfSchema);
+ 
++        if (sampleTimes.size() <= 1)
++        {
++            prop.metadata[SdfFieldKeys->Custom] = VtValue(false);
++            prop.timeSampled = false;
++        }
++
+         prop.converter = std::bind(
+             _context.GetSchema().GetConversions().GetToUsdConverter(
+                 alembicType, prop.typeName),
+@@ -3145,13 +3176,13 @@ _ReadPolyMesh(_PrimReaderContext* context)
+ 
+     // Custom subdivisionScheme property.  Alembic doesn't have this since
+     // the Alembic schema is PolyMesh.  Usd needs "none" as the scheme.
+-    context->AddUniformProperty(
++    context->AddRegularProperty(
+         UsdGeomTokens->subdivisionScheme,
+         SdfValueTypeNames->Token,
+         _CopySynthetic(UsdGeomTokens->none));
+ 
+     // Force doubleSided to avoid the problems with mirrored models.
+-    context->AddUniformProperty(
++    context->AddRegularProperty(
+         TfToken("doubleSided"),
+         SdfValueTypeNames->Bool,
+         _CopySynthetic(true));
+@@ -3247,7 +3278,7 @@ _ReadSubD(_PrimReaderContext* context)
+             context->ExtractSchema("uv")));
+ 
+     // Force doubleSided to avoid the problems with mirrored models.
+-    context->AddUniformProperty(
++    context->AddRegularProperty(
+         TfToken("doubleSided"),
+         SdfValueTypeNames->Bool,
+         _CopySynthetic(true));
+@@ -3668,7 +3699,7 @@ _ReadMaterialNetworkNode(
+     std::string target = "<undefined>";
+     node.getTarget(target);
+     const std::string infoTarget = SdfPath::JoinIdentifier("info", "target");
+-    primContext.AddProperty(
++    primContext.AddRegularProperty(
+             TfToken(infoTarget),
+             SdfValueTypeNames->Token,
+             _CopySynthetic(TfToken(target)));
+@@ -3677,7 +3708,7 @@ _ReadMaterialNetworkNode(
+     std::string nodeType = "<undefined>";
+     node.getNodeType(nodeType);
+     const std::string infoType = SdfPath::JoinIdentifier("info", "type");
+-    primContext.AddProperty(
++    primContext.AddRegularProperty(
+             TfToken(infoType),
+             SdfValueTypeNames->Token,
+             _CopySynthetic(TfToken(nodeType)));
+@@ -3738,7 +3769,7 @@ _ReadMaterialNetworkNode(
+             SdfPath::JoinIdentifier("connectedSourceFor", inputName);
+ 
+         // Save it.
+-        primContext.AddProperty(
++        primContext.AddRegularProperty(
+             TfToken(inputName),
+             SdfValueTypeNames->Color3f,
+             _CopyPlaceholder());
+@@ -4021,7 +4052,7 @@ _ReadPrimChildren(
+                 _PrimReaderContext primContext(context, object, path);
+ 
+                 // Save expression
+-                primContext.AddProperty(
++                primContext.AddRegularProperty(
+                         TfToken(expression),
+                         SdfValueTypeNames->String,
+                         _CopySynthetic(rawExp));
+@@ -4037,7 +4068,7 @@ _ReadPrimChildren(
+                     if (groupName.valid())
+                     {
+                         // Save expression
+-                        primContext.AddProperty(
++                        primContext.AddRegularProperty(
+                                 TfToken("group"),
+                                 SdfValueTypeNames->String,
+                                 _CopySynthetic(groupName.getValue()));
+-- 
+2.14.3
+

@@ -1,0 +1,115 @@
+### exported: Wed Mar  7 15:05:53 2018
+### from:     Arnold 5.0.2.3 [d2dbe434] linux clang-5.0.0 oiio-1.7.17 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2017/12/21 17:45:45
+### host app: MtoA 2.1.0.2 3ca62bd9 (master) Maya 2016
+### frame: 1.000000
+### fps: 24.000000
+### render_layer: defaultRenderLayer
+### user: victor
+
+
+
+options
+{
+ AA_samples 2
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 128
+ yres 128
+ texture_per_file_stats on
+ texture_searchpath "/mnt/users/victor/maya/projects/default/sourceimages"
+ texture_automip off
+ texture_specular_blur 0
+ camera "perspShape"
+ color_manager "defaultColorMgtGlobals"
+ procedural_searchpath "/mnt/users/victor/maya/projects/default/"
+ GI_diffuse_depth 0
+ GI_specular_depth 0
+ GI_transmission_depth 8
+ declare frame constant FLOAT
+ frame 1
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+ declare fps constant FLOAT
+ fps 24
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+ width 2
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+color_manager_syncolor
+{
+ name defaultColorMgtGlobals
+ native_catalog_path "/softwareLocal/maya/linux/Maya2016SP4/maya2016-x64/synColor"
+ custom_catalog_path "/mnt/users/victor/maya/synColor/Shared/"
+ rendering_color_space "scene-linear Rec 709/sRGB"
+}
+
+persp_camera
+{
+ name perspShape
+ matrix
+ 0.503019929 -5.55111512e-17 -0.8642748 0
+ -0.863993585 0.025507791 -0.502856255 0
+ 0.0220457409 0.999674618 0.012830927 0
+ 0.0974925682 4.70445824 0.0957218409 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 35
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ filePaths "../resources/alembics/sphere-parent.abc:../resources/alembics/expression-sphere-parent-aiStandardSurface1-aiStandardSurface2.abc:../resources/alembics/shader-aiComposite-aiStandardSurface1-aiStandardSurface2.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ variantsLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+"
+ declare frame constant FLOAT
+ frame 1
+ declare fps constant FLOAT
+ fps 24
+}
+

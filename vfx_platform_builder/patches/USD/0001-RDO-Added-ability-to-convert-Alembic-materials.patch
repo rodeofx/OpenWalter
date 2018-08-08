@@ -1,0 +1,456 @@
+From 72f90486d2afa27365f5b59cbaded1edc3635eae Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 2 Jun 2017 09:54:07 -0400
+Subject: [PATCH] RDO: Added ability to convert Alembic materials.
+
+Alembic can contain complex shading networks, and it would be good to use them
+USD. There is a huge difference between shading networks in Alembic in USD.
+
+- In Alembic the shading network is a part of one single material object,
+  whereas in USD a shading node is a part of the scene hierarchy. We put the
+  shading nodes from Alembic as children of the material node.
+
+- In Alembic it's necessary to specify the target and the type of the shading
+  node, whereas in USD it's necessary to create a new schema for each shading
+  node type. Since it's not possible to generate the schemas dynamically, we put
+  the type and the target to the namespace "info" and output them as regular
+  attributes.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 327 +++++++++++++++++++++++++++++++-
+ pxr/usd/plugin/usdAbc/alembicUtil.h     |   2 +
+ 2 files changed, 319 insertions(+), 10 deletions(-)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index fd0c6104..5f741884 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -63,7 +63,8 @@
+ #include <Alembic/AbcGeom/IXform.h>
+ #include <Alembic/AbcGeom/SchemaInfoDeclarations.h>
+ #include <Alembic/AbcGeom/Visibility.h>
++#include <Alembic/AbcMaterial/IMaterial.h>
+ #include <memory>
+ #include <mutex>
+ 
+ PXR_NAMESPACE_OPEN_SCOPE
+@@ -646,6 +647,7 @@ public:
+         bool timeSampled;
+         bool uniform;
+         Converter converter;
++        SdfPath relationshipTarget;
+     };
+     typedef std::map<TfToken, Property> PropertyMap;
+ 
+@@ -1145,8 +1147,13 @@ _ReaderContext::GetSpecType(const SdfAbstractDataSpecId& id) const
+ {
+     if (const Prim* prim = _GetPrim(id)) {
+         if (id.IsProperty()) {
+-            if (_GetProperty(*prim, id)) {
+-                return SdfSpecTypeAttribute;
++            if (const Property* property = _GetProperty(*prim, id)) {
++                if (!property->relationshipTarget.IsEmpty()) {
++                    return SdfSpecTypeRelationship;
++                }
++                else {
++                    return SdfSpecTypeAttribute;
++                }
+             }
+         }
+         else if (prim == _pseudoRoot) {
+@@ -1234,16 +1241,25 @@ _ReaderContext::List(const SdfAbstractDataSpecId& id) const
+     if (const Prim* prim = _GetPrim(id)) {
+         if (id.IsProperty()) {
+             if (const Property* property = _GetProperty(*prim, id)) {
+-                result.push_back(SdfFieldKeys->TypeName);
+-                result.push_back(SdfFieldKeys->Custom);
+-                result.push_back(SdfFieldKeys->Variability);
+-                if (property->timeSampled) {
+-                    result.push_back(SdfFieldKeys->TimeSamples);
+-                }
+-                else if (!property->sampleTimes.IsEmpty()) {
+-                    result.push_back(SdfFieldKeys->Default);
++                if (property->relationshipTarget.IsEmpty()) {
++                    // It's an attribute. We need the attribute fiels.
++                    result.push_back(SdfFieldKeys->TypeName);
++
++                    if (property->timeSampled) {
++                        result.push_back(SdfFieldKeys->TimeSamples);
++                    }
++                    else if (!property->sampleTimes.IsEmpty()) {
++                        result.push_back(SdfFieldKeys->Default);
++                    }
++
++                } else {
++                    // It's an relationship. The main field is TargetPaths.
++                    result.push_back(SdfFieldKeys->TargetPaths);
+                 }
+ 
++                result.push_back(SdfFieldKeys->Variability);
++                result.push_back(SdfFieldKeys->Custom);
++
+                 // Add metadata.
+                 for (const auto& v : property->metadata) {
+                     result.push_back(v.first);
+@@ -1624,6 +1640,23 @@ _ReaderContext::_HasField(
+         return value.Set(property->uniform ? 
+                          SdfVariabilityUniform : SdfVariabilityVarying);
+     }
++    else if (fieldName == SdfFieldKeys->TargetPaths) {
++        // The relationship TargetPaths field.
++        if (!property->relationshipTarget.IsEmpty()) {
++            SdfPathVector items;
++            items.push_back(property->relationshipTarget);
++
++            SdfPathListOp paths;
++            paths.SetExplicitItems(items);
++            return value.Set(paths);
++        }
++    }
++    else if (fieldName == SdfFieldKeys->Variability) {
++        // The relationship Variability field.
++        if (!property->relationshipTarget.IsEmpty()) {
++            return value.Set(SdfVariabilityUniform);
++        }
++    }
+     
+     TRACE_SCOPE("UsdAbc_AlembicDataReader::_HasField:OtherMetadata");
+     MetadataMap::const_iterator j = property->metadata.find(fieldName);
+@@ -1829,6 +1862,12 @@ public:
+                             const SdfValueTypeName& typeName,
+                             const T& converter);
+ 
++    /// Adds a relationship named \p name allowing to target other prims,
++    /// attributes, or relationships.
++    void AddRelationship(
++            const TfToken& name,
++            const SdfPath& connection);
++
+     /// Add an out-of-schema property, which uses the default conversion
+     /// for whatever Alembic type the property is.  If \p property is a
+     /// compound property then all of its descendants are added as
+@@ -2060,6 +2099,15 @@ _PrimReaderContext::AddUniformProperty(
+     }
+ }
+ 
++void
++_PrimReaderContext::AddRelationship(
++    const TfToken& name,
++    const SdfPath& connection)
++{
++    Property& prop = _AddProperty(name);
++    prop.relationshipTarget = connection;
++}
++
+ void
+ _PrimReaderContext::AddOutOfSchemaProperty(
+     const std::string& name,
+@@ -2308,6 +2356,33 @@ _CopyGenericValue(const shared_ptr<TypedArraySample<AlembicTraits> >& src)
+     return VtValue(result);
+ }
+ 
++/// A placeholder. It does nothing.
++struct _CopyPlaceholder {
++    MetaData metadata;
++    _CopyPlaceholder() { }
++
++    bool operator()(_IsValidTag) const
++    {
++        return true;
++    }
++
++    const MetaData& operator()(_MetaDataTag) const
++    {
++        return metadata;
++    }
++
++    _AlembicTimeSamples operator()(_SampleTimesTag) const
++    {
++        return _AlembicTimeSamples();
++    }
++
++    bool operator()(const UsdAbc_AlembicDataAny& dst,
++                    const ISampleSelector& iss) const
++    {
++        return true;
++    }
++};
++
+ /// Return a constant (default) value.
+ struct _CopySynthetic {
+     VtValue value;
+@@ -3342,6 +3417,88 @@ _ReadCameraParameters(_PrimReaderContext* context)
+     context->Extract(Type::schema_type::info_type::defaultName());
+ }
+ 
++static
++void
++_ReadMaterial(_PrimReaderContext* context)
++{
++    typedef Alembic::AbcMaterial::IMaterial Type;
++
++    // Wrap the object.
++    if (!Type::matches(context->GetObject().getHeader())) {
++        // Not of type Type.
++        return;
++    }
++    Type object(context->GetObject(), kWrapExisting);
++    Type::schema_type& schema = object.getSchema();
++
++    // Set prim type.
++    context->GetPrim().typeName = UsdAbcPrimTypeNames->Material;
++
++    // We don't care the used names at this point because all the names are
++    // unique as child properties of ICompound. But we need to pass something to
++    // _ClenName, so just create an empty set.
++    std::set<std::string> usedNames;
++
++    std::vector<std::string> targets;
++    schema.getNetworkTerminalTargetNames(targets);
++
++    for (const auto& target : targets) {
++        std::vector<std::string> types;
++        schema.getNetworkTerminalShaderTypesForTarget(target, types);
++
++        for (const auto& type : types) {
++            std::string nodeName;
++            std::string outputName;
++
++            if (!schema.getNetworkTerminal(target, type, nodeName, outputName)){
++                continue;
++            }
++
++            // Mangle the node name.
++            nodeName =
++                _CleanName(
++                        nodeName,
++                        " _",
++                        usedNames,
++                        _AlembicFixName(),
++                        &SdfPath::IsValidIdentifier);
++            // Generate the full path.
++            SdfPath sourcePath =
++                context->GetPath().AppendChild(TfToken(nodeName));
++
++            // Mangle the property name if necessary.
++            if (!outputName.empty())
++            {
++                outputName = context->GetUsdName(outputName);
++                sourcePath = sourcePath.AppendProperty(TfToken(outputName));
++            }
++
++            // "connectedSourceFor:arnold:surface"
++            const std::string targetType =
++                SdfPath::JoinIdentifier(target, type);
++
++            // It's a convention of ConnectableAPI to use "connectedSourceFor"
++            // prefix for specifying the connected source. For more information
++            // see ConnectableAPI::ConnectToSource().
++            const std::string namespacedTargetTarget =
++                SdfPath::JoinIdentifier("connectedSourceFor", targetType);
++
++            // Save it.
++            // USD requires an empty attribute to determine the type of the
++            // connection. But there is no such informtion in Alembic. We assume
++            // it's a connection of a color type.
++            context->AddProperty(
++                    TfToken(targetType),
++                    SdfValueTypeNames->Color3f,
++                    _CopyPlaceholder());
++
++            context->AddRelationship(
++                    TfToken(namespacedTargetTarget),
++                    sourcePath);
++        }
++    }
++}
++
+ static
+ _ReaderContext::Ordering
+ _GetOrderingMetadata(
+@@ -3423,6 +3580,130 @@ _GetSchemaProperty(const IObject& object)
+                              ErrorHandler::kQuietNoopPolicy);
+ }
+ 
++static
++std::string
++_ReadMaterialNetworkNode(
++    _ReaderContext& context,
++    const IObject& object,
++    Alembic::AbcMaterial::IMaterialSchema::NetworkNode& node,
++    const SdfPath& parentPath)
++{
++    // We don't care the used names at this point because all the names are
++    // unique as child properties of ICompound. But we need to pass something to
++    // _ClenName, so just create an empty set.
++    std::set<std::string> usedNames;
++
++    // Node name.
++    const std::string name =
++        _CleanName(
++                node.getName(),
++                " _",
++                usedNames,
++                _AlembicFixName(),
++                &SdfPath::IsValidIdentifier);
++
++    // Full path
++    const SdfPath path = parentPath.AppendChild(TfToken(name));
++
++    _ReaderContext::Prim& prim = context.AddPrim(path);
++    prim.typeName = UsdAbcPrimTypeNames->Shader;
++
++    // Form the context. Since we don't have a separate Alembic object for this
++    // shading network node, we need to use the material object for that.
++    _PrimReaderContext primContext(context, object, path);
++    const ICompoundProperty compound = node.getParameters();
++
++    // Save the target and type of the node. USD doesn't have a standard schema
++    // to save them because it's necessary to create a schema for all the known
++    // types. Since we can't generate the types dynamically and we don't know
++    // what types we can face with, we just put it in the "info" namespace.
++    // Usually the target is the name of the renderer. ri, arnold, etc.
++    std::string target = "<undefined>";
++    node.getTarget(target);
++    const std::string infoTarget = SdfPath::JoinIdentifier("info", "target");
++    primContext.AddProperty(
++            TfToken(infoTarget),
++            SdfValueTypeNames->Token,
++            _CopySynthetic(TfToken(target)));
++
++    // The shading node type. standard, MayaFile, etc.
++    std::string nodeType = "<undefined>";
++    node.getNodeType(nodeType);
++    const std::string infoType = SdfPath::JoinIdentifier("info", "type");
++    primContext.AddProperty(
++            TfToken(infoType),
++            SdfValueTypeNames->Token,
++            _CopySynthetic(TfToken(nodeType)));
++
++    // Iterate the parameters.
++    for (size_t i = 0, n = compound.getNumProperties(); i < n; ++i) {
++        const std::string rawName = compound.getPropertyHeader(i).getName();
++        const std::string cleanName = primContext.GetUsdName(rawName);
++        const SdfPath childPath = path.AppendProperty(TfToken(cleanName));
++
++        // Create property.
++        primContext.AddOutOfSchemaProperty(
++                cleanName,
++                AlembicProperty(childPath, rawName, compound));
++    }
++
++    // Iterate connections.
++    for (size_t i = 0, c = node.getNumConnections(); i < c; ++i) {
++        std::string inputName;
++        std::string connectedNodeName;
++        std::string connectedOutputName;
++
++        if (!node.getConnection(
++                    i, inputName, connectedNodeName, connectedOutputName)) {
++            continue;
++        }
++
++        // Mangle the Alembic names to USD names.
++        inputName = primContext.GetUsdName(inputName);
++        connectedNodeName =
++            _CleanName(
++                    connectedNodeName,
++                    " _",
++                    usedNames,
++                    _AlembicFixName(),
++                    &SdfPath::IsValidIdentifier);
++
++        // Generate full paths.
++        SdfPath sourcePath = parentPath.AppendChild(TfToken(connectedNodeName));
++
++        if (!connectedOutputName.empty()) {
++            // Mangle the Alembic names to USD names only if there is something
++            // to mangle.
++            connectedOutputName = primContext.GetUsdName(connectedOutputName);
++            sourcePath =
++                sourcePath.AppendProperty(TfToken(connectedOutputName));
++        }
++        else {
++            // In Alembic the property is an optional because it's possible to
++            // connect a node itself.
++            sourcePath = sourcePath.AppendProperty(TfToken("out"));
++        }
++
++        // It's a convention of ConnectableAPI to use "connectedSourceFor"
++        // prefix for specifying the connected source. For more information see
++        // ConnectableAPI::ConnectToSource().
++        const std::string namespacedName =
++            SdfPath::JoinIdentifier("connectedSourceFor", inputName);
++
++        // Save it.
++        primContext.AddProperty(
++            TfToken(inputName),
++            SdfValueTypeNames->Color3f,
++            _CopyPlaceholder());
++
++        primContext.AddRelationship(
++                TfToken(namespacedName),
++                sourcePath);
++    }
++
++    return name;
++}
++
+ static
+ std::string
+ _ReadPrim(
+@@ -3643,6 +3924,29 @@ _ReadPrimChildren(
+             prim.children.push_back(TfToken(childName));
+         }
+     }
++
++    // Iterate the shading network nodes if possible. Materials contain shading
++    // nodes but not as a part of the scene graph because all the shading nodes
++    // are compounds of the materials, so it's not possible to iterate them with
++    // the regular way.
++    if (Alembic::AbcMaterial::IMaterial::matches(object.getHeader()))
++    {
++        prim.typeName = UsdAbcPrimTypeNames->Material;
++
++        // The shading nodes of the material is written as compounds in Alembic.
++        Alembic::AbcMaterial::IMaterial material(object, kWrapExisting);
++        Alembic::AbcMaterial::IMaterialSchema& schema = material.getSchema();
++
++        for (size_t i = 0, e = schema.getNumNetworkNodes(); i < e; ++i) {
++            Alembic::AbcMaterial::IMaterialSchema::NetworkNode child =
++                schema.getNetworkNode(i);
++            const std::string childName =
++                _ReadMaterialNetworkNode(context, object, child, path);
++            if (!childName.empty()) {
++                prim.children.push_back(TfToken(childName));
++            }
++        }
++    }
+ }
+ 
+ // ----------------------------------------------------------------------------
+@@ -3721,6 +4025,9 @@ _ReaderSchemaBuilder::_ReaderSchemaBuilder()
+         .AppendReader(_ReadUserProperties)
+         .AppendReader(_ReadOther)
+         ;
++    schema.AddType(Alembic::AbcMaterial::MaterialSchemaInfo::title())
++        .AppendReader(_ReadMaterial)
++        ;
+ 
+     // This handles overs with no type and any unknown prim type.
+     schema.AddFallbackType()
+diff --git a/pxr/usd/plugin/usdAbc/alembicUtil.h b/pxr/usd/plugin/usdAbc/alembicUtil.h
+index c3991535..cd8592bc 100644
+--- a/pxr/usd/plugin/usdAbc/alembicUtil.h
++++ b/pxr/usd/plugin/usdAbc/alembicUtil.h
+@@ -108,6 +108,8 @@ TF_DECLARE_PUBLIC_TOKENS(UsdAbc_UsdDataTypes,
+     (PseudoRoot) \
+     (Scope) \
+     (Xform) \
++    (Shader) \
++    (Material) \
+     /* end */
+ TF_DECLARE_PUBLIC_TOKENS(UsdAbcPrimTypeNames, USD_ABC_PRIM_TYPE_NAMES);
+ 
+-- 
+2.14.3
+

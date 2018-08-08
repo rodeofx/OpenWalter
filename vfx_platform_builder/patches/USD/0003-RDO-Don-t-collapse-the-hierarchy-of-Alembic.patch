@@ -1,0 +1,29 @@
+From d6d726ea077796acbe499d3b42db12376341feba Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Fri, 16 Jun 2017 15:59:23 -0400
+Subject: [PATCH] RDO: Don't collapse the hierarchy of Alembic
+
+At RodeoFX we think that if the user doesn't want to see shapes, he should
+export the model without shapes. We should never modify the hierarchy.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index c61b0800..986aebf3 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3725,6 +3725,10 @@ _ReadPrim(
+     // Handle non-instances.
+     _ReaderContext::Prim* instance = nullptr;
+     if (!context.IsInstance(object)) {
++        // Don't combine. At RodeoFX we think that if the user doesn't want to
++        // see shapes, he should export the model without shapes. We should
++        // never modify the hierarchy.
++        if (0)
+         // Combine geom with parent if parent is a transform.  There are
+         // several cases where we want to bail out and, rather than use a
+         // huge if statement or deep if nesting, we'll use do/while and
+-- 
+2.14.3
+

@@ -1,0 +1,31 @@
+From 0c84b1e50a2e740d064cd9bb497ee3384d94eabc Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Tue, 25 Apr 2017 16:25:02 -0400
+Subject: [PATCH 05/10] AbcGeom: ability to add replace metadata to UVs
+
+It matches the behavior of XForm. If the object is marked to write out some
+properties only, we need to add "replace" flag to have the ability to override
+the UVs of another object when layering.
+---
+ lib/Alembic/AbcGeom/OPolyMesh.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/lib/Alembic/AbcGeom/OPolyMesh.cpp b/lib/Alembic/AbcGeom/OPolyMesh.cpp
+index e28040ab..2e6ba8b2 100644
+--- a/lib/Alembic/AbcGeom/OPolyMesh.cpp
++++ b/lib/Alembic/AbcGeom/OPolyMesh.cpp
+@@ -247,6 +247,11 @@ void OPolyMeshSchema::createUVsProperty( const Sample &iSamp )
+     AbcA::MetaData mdata;
+     SetSourceName( mdata, m_uvSourceName );
+ 
++    if (m_selectiveExport)
++    {
++        mdata.set( "replace", "1" );
++    }
++
+     if ( iSamp.getUVs().getIndices() )
+     {
+         empty = OV2fGeomParam::Sample( Abc::V2fArraySample( emptyVals ),
+-- 
+2.12.1
+

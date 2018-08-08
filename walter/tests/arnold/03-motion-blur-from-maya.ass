@@ -1,0 +1,533 @@
+### exported: Wed Dec 13 13:54:39 2017
+### from:     Arnold 5.0.1.4 [acf16ee8] linux clang-4.0.0 oiio-1.7.15 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2017/09/19 10:57:16
+### host app: MtoA 2.0.2.2 ec15fcad (master) Maya 2016
+
+
+
+options
+{
+ AA_samples 6
+ AA_seed 2
+ abort_on_error off
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 128
+ yres 128
+ texture_per_file_stats on
+ texture_searchpath "/rdo/shows/brt/_asset/bumblebee/cg/maya/sourceimages"
+ texture_automip off
+ texture_specular_blur 0
+ camera "perspShape"
+ reference_time 0.5
+ procedural_searchpath "/rdo/shows/brt/_asset/bumblebee/cg/maya/"
+ GI_diffuse_depth 1
+ GI_specular_depth 1
+ GI_transmission_depth 1
+ declare frame constant FLOAT
+ frame 2
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+ declare fps constant FLOAT
+ fps 24
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+ width 2
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ compression "zip"
+ half_precision off
+ tiled on
+ color_space ""
+ preserve_layer_name off
+ autocrop off
+ append off
+}
+
+persp_camera
+{
+ name perspShape
+ matrix 1 3 MATRIX
+
+ 0.846193194 0 -0.532876253 0
+ -0.350568384 0.753123164 -0.556693137 0
+ 0.401321471 0.657879531 0.637287676 0
+ 26.5121059 44.8957901 48.3221664 1
+  
+ 0.846193194 0 -0.532876253 0
+ -0.350568384 0.753123164 -0.556693137 0
+ 0.401321471 0.657879531 0.637287676 0
+ 26.5121059 44.8957901 48.3221664 1
+  
+ 0.846193194 0 -0.532876253 0
+ -0.350568384 0.753123164 -0.556693137 0
+ 0.401321471 0.657879531 0.637287676 0
+ 26.5121059 44.8957901 48.3221664 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start -0.5
+ shutter_end 0.5
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start -0.5
+ motion_end 0.5
+ exposure 0
+ fov 1 3 FLOAT
+10.0000048 10.0000048 10.0000048
+ focus_distance 1
+ aperture_size 0
+ aperture_blades 0
+ aperture_rotation 0
+ aperture_blade_curvature 0
+ aperture_aspect_ratio 1
+ uv_remap 0 0 0 0
+ radial_distortion 0
+}
+
+polymesh
+{
+ name pCubeShape1
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix 1 3 MATRIX
+
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ motion_start -0.5
+ motion_end 0.5
+ id 1171623953
+ nsides 6 1 UINT
+4 4 4 4 4 4
+ vidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 1 0 1 7 5 3 6 0 2 4
+ nidxs 24 1 UINT
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ uvidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 9 8 1 10 11 3 12 0 2 13
+ vlist 8 3 VECTOR
+  -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5
+  0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5
+  -0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5
+  -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5
+ nlist 24 3 VECTOR
+  0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0
+  0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1
+  0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0
+  0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1 0 0 1 0 0 1
+  0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0
+  1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0
+ uvlist 14 1 VECTOR2
+  0.375 0 0.625 0 0.375 0.25 0.625 0.25 0.375 0.5 0.625 0.5 0.375 0.75 0.625 0.75 0.375 1
+  0.625 1 0.875 0 0.875 0.25 0.125 0 0.125 0.25
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+polymesh
+{
+ name pCubeShape2
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix 1 3 MATRIX
+
+ 0.970031261 -0.242980167 0 0
+ 0.242980167 0.970031261 0 0
+ 0 0 1 0
+ 1 1 0 1 
+ 0.707106769 -0.707106829 0 0
+ 0.707106829 0.707106769 0 0
+ 0 0 1 0
+ 1 1 0 1
+  
+ 0.242980242 -0.970031261 0 0
+ 0.970031261 0.242980242 0 0
+ 0 0 1 0
+ 1 1 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ motion_start -0.5
+ motion_end 0.5
+ id 2205628138
+ nsides 6 1 UINT
+4 4 4 4 4 4
+ vidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 1 0 1 7 5 3 6 0 2 4
+ nidxs 24 1 UINT
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ uvidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 9 8 1 10 11 3 12 0 2 13
+ vlist 8 3 VECTOR
+  -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5
+  0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5
+  -0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5
+  -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5
+ nlist 24 3 VECTOR
+  0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0
+  0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1
+  0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0
+  0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1 0 0 1 0 0 1
+  0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0
+  1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0
+ uvlist 14 1 VECTOR2
+  0.375 0 0.625 0 0.375 0.25 0.625 0.25 0.375 0.5 0.625 0.5 0.375 0.75 0.625 0.75 0.375 1
+  0.625 1 0.875 0 0.875 0.25 0.125 0 0.125 0.25
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+polymesh
+{
+ name pCubeShape4
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix 1 3 MATRIX
+
+ 0.970031261 -0.242980167 0 0
+ 0.242980167 0.970031261 0 0
+ 0 0 1 0
+ 2.2130115 1.72705114 0 1
+  
+ 0.707106769 -0.707106829 0 0
+ 0.707106829 0.707106769 0 0
+ 0 0 1 0
+ 2.41421366 0.99999994 0 1
+  
+ 0.242980242 -0.970031261 0 0
+ 0.970031261 0.242980242 0 0
+ 0 0 1 0
+ 2.2130115 0.27294901 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ motion_start -0.5
+ motion_end 0.5
+ id 3306265779
+ nsides 6 1 UINT
+4 4 4 4 4 4
+ vidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 1 0 1 7 5 3 6 0 2 4
+ nidxs 24 1 UINT
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ uvidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 9 8 1 10 11 3 12 0 2 13
+ vlist 8 3 VECTOR
+  -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5
+  0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5
+  -0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5
+  -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5
+ nlist 24 3 VECTOR
+  0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0
+  0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1
+  0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0
+  0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1 0 0 1 0 0 1
+  0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0
+  1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0
+ uvlist 14 1 VECTOR2
+  0.375 0 0.625 0 0.375 0.25 0.625 0.25 0.375 0.5 0.625 0.5 0.375 0.75 0.625 0.75 0.375 1
+  0.625 1 0.875 0 0.875 0.25 0.125 0 0.125 0.25
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+polymesh
+{
+ name pCubeShape3
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix 1 3 MATRIX
+
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -1 1 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -1 1 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -1 1 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ motion_start -0.5
+ motion_end 0.5
+ id 2580769736
+ nsides 6 1 UINT
+4 4 4 4 4 4
+ vidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 1 0 1 7 5 3 6 0 2 4
+ nidxs 24 1 UINT
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ uvidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 9 8 1 10 11 3 12 0 2 13
+ vlist 8 3 VECTOR
+  -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5
+  0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 -0.5
+  -0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 -0.5 0.5 0.5 0.5 0.5 0.5
+  -0.5 0.5 -0.5 0.5 0.5 -0.5 -0.5 -0.5 -0.5 0.5 -0.5 -0.5
+ nlist 24 3 VECTOR
+  0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0
+  0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1
+  0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0
+  0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 1 0 0 1 0 0 1 0 0 1
+  0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0 0 -1 0 0 -1 0 0 -1 0 1 0 0
+  1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0
+ uvlist 14 1 VECTOR2
+  0.375 0 0.625 0 0.375 0.25 0.625 0.25 0.375 0.5 0.625 0.5 0.375 0.75 0.625 0.75 0.375 1
+  0.625 1 0.875 0 0.875 0.25 0.125 0 0.125 0.25
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+polymesh
+{
+ name pCubeShape5
+ visibility 255
+ sidedness 255
+ receive_shadows on
+ self_shadows on
+ matrix 1 3 MATRIX
+
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -2 2 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -2 2 0 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ -2 2 0 1
+ shader "aiStandardSurface1SG"
+ opaque on
+ matte off
+ motion_start -0.5
+ motion_end 0.5
+ id 3538235763
+ nsides 6 1 UINT
+4 4 4 4 4 4
+ vidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 1 0 1 7 5 3 6 0 2 4
+ nidxs 24 1 UINT
+  0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+ uvidxs 24 1 UINT
+  0 1 3 2 2 3 5 4 4 5 7 6 6 7 9 8 1 10 11 3 12 0 2 13
+ vlist 8 3 VECTOR
+  -0.734375 -0.5 0.5 0.734375 -0.5 0.5 -0.734375 0.5 0.5 0.734375 0.5 0.5 -0.734375 0.5 -0.5
+  0.734375 0.5 -0.5 -0.734375 -0.5 -0.5 0.734375 -0.5 -0.5 -1.25 -0.5 0.5 1.25 -0.5 0.5
+  -1.25 0.5 0.5 1.25 0.5 0.5 -1.25 0.5 -0.5 1.25 0.5 -0.5 -1.25 -0.5 -0.5 1.25 -0.5 -0.5
+  -1.765625 -0.5 0.5 1.765625 -0.5 0.5 -1.765625 0.5 0.5 1.765625 0.5 0.5 -1.765625 0.5 -0.5
+  1.765625 0.5 -0.5 -1.765625 -0.5 -0.5 1.765625 -0.5 -0.5
+ nlist 24 3 VECTOR
+  0 0 1 0 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0 1 0 0 1 0 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 -1 0
+  0 -1 0 0 -1 0 0 -1 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 0 0 0.99999994
+  0 0 0.99999994 0 0 0.99999994 0 0 0.99999994 0 0.99999994 0 0 0.99999994 0 0 0.99999994 0
+  0 0.99999994 0 0 0 -0.99999994 0 0 -0.99999994 0 0 -0.99999994 0 0 -0.99999994 0 -0.99999994 0
+  0 -0.99999994 0 0 -0.99999994 0 0 -0.99999994 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0
+  -1 0 0 -1 0 0 0 0 0.999999881 0 0 0.999999881 0 0 0.999999881 0 0 0.999999881 0 0.999999881 0
+  0 0.999999881 0 0 0.999999881 0 0 0.999999881 0 0 0 -0.999999881 0 0 -0.999999881
+  0 0 -0.999999881 0 0 -0.999999881 0 -0.999999881 0 0 -0.999999881 0 0 -0.999999881 0
+  0 -0.999999881 0 1 0 0 1 0 0 1 0 0 1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0
+ uvlist 14 1 VECTOR2
+  0.375 0 0.625 0 0.375 0.25 0.625 0.25 0.375 0.5 0.625 0.5 0.375 0.75 0.625 0.75 0.375 1
+  0.625 1 0.875 0 0.875 0.25 0.125 0 0.125 0.25
+ smoothing on
+ step_size 0
+ volume_padding 0
+ declare mtoa_shading_groups constant ARRAY NODE
+ mtoa_shading_groups "aiStandardSurface1SG"
+}
+
+walter
+{
+ name walterStandinShape1
+ visibility 255
+ matrix 1 3 MATRIX
+
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 5 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 5 1 
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 5 1
+ motion_start -0.5
+ motion_end 0.5
+ filePaths "../resources/alembics/cubes-animated.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+def \"materials\"
+{
+    def Expression \"_pCube1\"
+    {
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1/aiStandardSurface1>
+        string expression = \"/pCube1\"
+    }
+}
+
+"
+ declare frame constant ARRAY FLOAT
+ frame 1 3 FLOAT
+1.5 2 2.5
+ declare fps constant FLOAT
+ fps 24
+}
+
+walter
+{
+ name walterStandinShape2
+ visibility 255
+ matrix 1 3 MATRIX
+
+ 0.935905933 0 0.352250069 0
+ 0 1 0 0
+ -0.352250069 0 0.935905933 0
+ 0 0 10 1 
+ 1 0 -3.5110034e-08 0
+ 0 1 0 0
+ 3.5110034e-08 0 1 0
+ 0 0 10 1
+  
+ 0.935905933 0 -0.35225001 0
+ 0 1 0 0
+ 0.35225001 0 0.935905933 0
+ 0 0 10 1
+ motion_start -0.5
+ motion_end 0.5
+ filePaths "../resources/alembics/cubes-animated.abc"
+ objectPath "/"
+ sessionLayer "#usda 1.0
+
+"
+ mayaStateLayer "#usda 1.0
+(
+    doc = \"\"\"Generated from Composed Stage of root layer 
+\"\"\"
+)
+
+def \"materials\"
+{
+    def Expression \"_pCube1\"
+    {
+        rel assign:defaultRenderLayer:shader = </materials/_pCube1/aiStandardSurface1>
+        string expression = \"/pCube1\"
+    }
+}
+
+"
+ declare frame constant ARRAY FLOAT
+ frame 1 3 FLOAT
+1.5 2 2.5
+ declare fps constant FLOAT
+ fps 24
+}
+
+MayaShadingEngine
+{
+ name aiStandardSurface1SG
+ beauty aiStandardSurface1
+ enable_matte off
+ matte_color 0 0 0 0
+}
+
+standard_surface
+{
+ name aiStandardSurface1
+ base 0
+ base_color 1 1 1
+ diffuse_roughness 0
+ specular 1
+ specular_color 1 1 1
+ specular_roughness 0.100000001
+ specular_IOR 1.51999998
+ specular_anisotropy 0
+ specular_rotation 0
+ metalness 0
+ transmission 0
+ transmission_color 1 1 1
+ transmission_depth 0
+ transmission_scatter 0 0 0
+ transmission_scatter_anisotropy 0
+ transmission_dispersion 0
+ transmission_extra_roughness 0
+ subsurface 0
+ subsurface_color 1 1 1
+ subsurface_radius 1 1 1
+ subsurface_scale 1
+ thin_walled off
+ tangent 0 0 0
+ coat 0
+ coat_color 1 1 1
+ coat_roughness 0.100000001
+ coat_IOR 1.5
+ coat_normal 0 0 0
+ thin_film_thickness 0
+ thin_film_IOR 1.5
+ emission 1
+ emission_color 1 1 1
+ opacity 1 1 1
+ caustics off
+ internal_reflections on
+ exit_to_background off
+ indirect_diffuse 1
+ indirect_specular 1
+}
+

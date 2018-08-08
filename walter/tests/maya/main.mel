@@ -1,0 +1,183 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+// Exits Maya with specified error code.
+global proc wForceExit(int $code)
+{
+    python("import os; os._exit(" + $code + ")");
+}
+
+// Returns the directory where this file is located.
+global proc string wGetCurrentDir()
+{
+    // Get the directory of the current file
+    string $procInfo = `whatIs wForceExit`;
+    string $tokens[];
+    tokenize $procInfo " " $tokens;
+    string $currentFile = $tokens[4];
+    return dirname($currentFile);
+}
+
+// Recursively scans the standin and returns the total number of children items.
+global proc int wGetNumberOfChildren(string $standin, string $path)
+{
+    string $objects[] = `walterStandin -da $standin $path`;
+
+    int $n = 0;
+    for ($object in $objects)
+    {
+        $n += 1 + wGetNumberOfChildren($standin, $object);
+    }
+
+    return $n;
+}
+
+global proc string wCreateStandin(string $path)
+{
+    // Create a walter node.
+    string $node = `createNode walterStandin`;
+    // Connect it to time.
+    connectAttr -f time1.outTime($node + ".time");
+    // Set the filename.
+    string $plug = $node + ".cacheFileName";
+    setAttr $plug -type "string" $path;
+
+    // Wait everything is loaded.
+    walterStandin -joinAll;
+
+    // Wait onLoaded is finished
+    walterStandin -join $node;
+
+    return $node;
+}
+
+global proc string wFlattenString(string $str)
+{
+    string $flatten = substituteAllString($str, " ", "");
+    $flatten = substituteAllString($flatten, "\r\n", "");
+    $flatten = substituteAllString($flatten, "\n", "");
+    $flatten = substituteAllString($flatten, "\r", ""); 
+
+    return $flatten;
+}
+
+// deletes given folder
+// usage: prDeleteFolder( "C:/temp/folderToDelete/" );
+// note: do not forget "/" at the end of folder-string
+global proc prDeleteFolder( string $folderPath )
+{
+    // search for files in given folder
+    string $subFiles[] = `getFileList -folder $folderPath`;
+    // delete $eachFile or call prDeleteFolder if $eachFile is a folder
+    for( $eachFile in $subFiles )
+    {
+        if( `filetest -d ($folderPath+$eachFile)` )
+            prDeleteFolder( $folderPath+$eachFile+"/" );
+        else
+            sysFile -delete ($folderPath+$eachFile);
+    }
+    // delete folder (it should be empty now)
+    sysFile -removeEmptyDir $folderPath;
+}
+
+global proc int findInString(string $word, string $str)
+{
+    int $i = 0;
+    int $j = 0;
+    for($i = 1; $i <= (size($str)-1); $i++)
+    {
+        for($j = $i; $j <= size($str); $j++)
+        {
+            if (substring($str, $i, $j) == $word)
+                return 1;
+        }
+    }
+    return 0;
+}
+
+global proc int _readAndFindInFile(string $fileName, string $strToFind) 
+{
+    $fileId = `fopen $fileName "r"`;
+    string $nextLine = `fgetline $fileId`;
+    while (size($nextLine) > 0) 
+    {
+        string $line = strip($nextLine);
+        int $res = findInString($strToFind, $line);
+        if($res == 1)
+        {
+            fclose $fileId;
+            return 1;
+        }
+        $nextLine = `fgetline $fileId`;
+    }
+    fclose $fileId;
+    return 0;
+
+}
+
+global proc _exportSelectionToAssFile(string $fileName) 
+{
+    file -force -options "-expandProcedurals;-shadowLinks 1;-mask 2303;-lightLinks 1;-boundingBox" -typ "ASS Export" -pr -es $fileName;
+
+    arnoldExportAss -f $fileName -s -expandProcedurals -shadowLinks 1 -mask 2303 -lightLinks 1 -boundingBox-cam perspShape;
+}
+
+
+string $currentDir = wGetCurrentDir();
+string $allFiles[] = `getFileList -folder $currentDir`;
+
+loadPlugin walterStandin;
+if (!`pluginInfo -query -loaded walterStandin`)
+{
+    print("Tests FAILED: can't load plugin\n");
+    wForceExit(100);
+}
+
+loadPlugin mtoa;
+if (!`pluginInfo -query -loaded mtoa`)
+{
+    print("Tests FAILED: can't load plugin mtoa\n");
+    wForceExit(128);
+}
+
+loadPlugin walterMtoaConnection;
+if (!`pluginInfo -query -loaded walterMtoaConnection`)
+{
+    print("Tests FAILED: can't load plugin walterMtoaConnection\n");
+    wForceExit(128);
+}
+
+int $fails = 0;
+
+for ($file in $allFiles)
+{
+   if (!startsWith($file, "test"))
+   {
+       // We only need tests.
+       continue;
+   }
+
+   // New scene.
+   file -f -new;
+
+   // Get the file and the procedure with test.
+   string $fullName = $currentDir + "/" + $file;
+   string $procedure = `substring $file 1 (size($file) - 4)`;
+
+   print("Testing " + $procedure + "...\n");
+
+   // Running test.
+   eval("source \"" + $fullName + "\"");
+   int $err = `eval $procedure`;
+
+   if ($err != 0)
+   {
+       $fails += $err;
+       print("FAILED: " + $err + ": " + $procedure + ".\n");
+   }
+   else
+   {
+       print("PASSED: " + $procedure + ".\n");
+   }
+}
+
+wForceExit($fails);

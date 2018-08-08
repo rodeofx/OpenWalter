@@ -1,0 +1,89 @@
+From ab41691747413c7f7ee34242a8c4dbd02e37c757 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 5 Jul 2017 11:32:58 -0400
+Subject: [PATCH 06/10] RodeoFX modification of AbcConvert
+
+Added a new flag "animlayer" that allows to convert any Alembic file to Walter
+animation layer with adding the replace matadata to the xform and geometry
+compounds.
+---
+ bin/AbcConvert/AbcConvert.cpp | 27 +++++++++++++++++++++++++--
+ 1 file changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index 5a4af0e9..148242c9 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -56,8 +56,11 @@ public:
+ 
+     ConversionOptions()
+     {
+-        toType = IFactoryNS::kUnknown;
++        toType = IFactoryNS::kOgawa;
+         force = false;
++        replaceObjs = false;
++        replaceProps = false;
++        animlayer = false;
+     }
+ 
+     std::vector<std::string>    inFiles;
+@@ -66,6 +69,7 @@ public:
+     bool                        force;
+     bool                        replaceObjs;
+     bool                        replaceProps;
++    bool                        animlayer;
+     std::map<std::string, std::string> replaceNames;
+ };
+ 
+@@ -151,6 +155,17 @@ void copyProps(Alembic::Abc::ICompoundProperty & iRead,
+         }
+         else if (header.isCompound())
+         {
++            const std::string& name = header.getName();
++            if (options.animlayer)
++            {
++                // We need to convert this file to the animation layer. We just
++                // need to add the replace flag to the xforms and geometries.
++                if (name == ".xform" || name == ".geom")
++                {
++                    Alembic::AbcCoreLayer::SetReplace(meta, true);
++                }
++            }
++
+             Alembic::Abc::OCompoundProperty outProp(iWrite,
+                 header.getName(), meta);
+             Alembic::Abc::ICompoundProperty inProp(iRead, header.getName());
+@@ -212,6 +227,7 @@ void displayHelp()
+     printf ("It's possible to use options -replaceObjs and -replaceProps\n");
+     printf ("to add a Layer metadata to objects or properties\n\n");
+     printf ("Change an object name: -replaceName /full/old/name newName\n\n");
++    printf ("-animlayer adds the replace flag to transforms and meshes.\n\n");
+ }
+ 
+ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDoConversion )
+@@ -257,6 +273,10 @@ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDo
+                 {
+                     argMode = kInFiles;
+                 }
++                else if(arg == "-animlayer")
++                {
++                    oOptions.animlayer = true;
++                }
+                 else if( (arg == "-help") || (arg == "--help") )
+                 {
+                     displayHelp();
+@@ -376,7 +396,10 @@ int main(int argc, char *argv[])
+         {
+             archive = factory.getArchive(*options.inFiles.begin(), coreType);
+             bool force =
+-                options.force || options.replaceObjs || options.replaceProps;
++                options.force ||
++                options.replaceObjs ||
++                options.replaceProps ||
++                options.animlayer;
+             if (!archive.valid())
+             {
+                 printf("Error: Invalid Alembic file specified: %s\n",
+-- 
+2.12.1
+

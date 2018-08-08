@@ -1,0 +1,43 @@
+From e04e4c436c090e4db3a1a2c836b15069192bcc10 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Thu, 14 Sep 2017 08:19:33 -0400
+Subject: [PATCH] RDO: produce doubleSided property in Alembics
+
+It helps avoiding problems with mirrored models.
+---
+ pxr/usd/plugin/usdAbc/alembicReader.cpp | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index f6498786..c9a67209 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -3149,6 +3149,12 @@ _ReadPolyMesh(_PrimReaderContext* context)
+         UsdGeomTokens->subdivisionScheme,
+         SdfValueTypeNames->Token,
+         _CopySynthetic(UsdGeomTokens->none));
++
++    // Force doubleSided to avoid the problems with mirrored models.
++    context->AddUniformProperty(
++        TfToken("doubleSided"),
++        SdfValueTypeNames->Bool,
++        _CopySynthetic(true));
+ }
+ 
+ static
+@@ -3239,6 +3245,12 @@ _ReadSubD(_PrimReaderContext* context)
+         SdfValueTypeNames->Float2Array,
+         _CopyGeneric<IV2fGeomParam, GfVec2f>(
+             context->ExtractSchema("uv")));
++
++    // Force doubleSided to avoid the problems with mirrored models.
++    context->AddUniformProperty(
++        TfToken("doubleSided"),
++        SdfValueTypeNames->Bool,
++        _CopySynthetic(true));
+ }
+ 
+ static
+-- 
+2.14.3
+

@@ -1,0 +1,29 @@
+// Copyright 2017 Rodeo FX.  All rights reserved.
+
+proc int _testPurpose(string $dir, string $usdFile) 
+{
+    string $nodePath = $dir + $usdFile;
+ 	string $node = wCreateStandin($nodePath);
+
+    string $purpose = `walterStandin -gpp $node "/cube_lo"`;
+
+    $purpose = `walterStandin -spp $node "/cube_lo" "render"`;
+    if($purpose != "render")
+        return 1;
+
+    $purpose = `walterStandin -spp $node "/cube_lo" "proxy"`;
+    if($purpose != "proxy")
+        return 1;
+
+    $purpose = `walterStandin -spp $node "/cube_lo" "default"`;
+    if($purpose != "default")
+        return 1;
+
+    return 0;
+}
+
+global proc int testPurpose()
+{	
+    string $dir = dirname(wGetCurrentDir()) + "/resources/usd/variants/";
+	return _testPurpose($dir, "cubes/.layers/cube_lo.geo.usda");
+}

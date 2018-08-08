@@ -1,0 +1,44 @@
+From 29d7967dd1a909d90d7c7283d984d8c6fddd19f5 Mon Sep 17 00:00:00 2001
+From: Victor Yudin <victor@rodeofx.com>
+Date: Wed, 29 Nov 2017 12:31:21 -0500
+Subject: [PATCH 09/10] RodeoFX: better help string
+
+---
+ bin/AbcConvert/AbcConvert.cpp | 21 +++++++++++++++------
+ 1 file changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/bin/AbcConvert/AbcConvert.cpp b/bin/AbcConvert/AbcConvert.cpp
+index d7ff313d..d46088dc 100644
+--- a/bin/AbcConvert/AbcConvert.cpp
++++ b/bin/AbcConvert/AbcConvert.cpp
+@@ -267,12 +267,21 @@ void displayHelp()
+     printf ("OPTION has to be one of these:\n\n");
+     printf ("  -toHDF   Convert to HDF.\n");
+     printf ("  -toOgawa Convert to Ogawa.\n");
+-    printf ("\nRodeoFX modifications:\n\n");
+-    printf ("It's possible to use options -replaceObjs and -replaceProps\n");
+-    printf ("to add a Layer metadata to objects or properties\n\n");
+-    printf ("Change an object name: -replaceName /full/old/name newName\n\n");
+-    printf ("-animlayer adds the replace flag to transforms and meshes.\n\n");
+-    printf ("-replaceString allows to replace parts of string properties.\n\n");
++
++    const char* rodeoHelp =
++        "\nRodeoFX modifications:\n\n"
++        "Options:\n\n"
++        "  -replaceObjs                Add 'replace' metadata to objects.\n\n"
++        "  -replaceProps               Add 'replace' metadata to compound "
++        "properties.\n\n"
++        "  -animlayer                  Add 'replace' metadata to transforms "
++        "and meshes.\n\n"
++        "  -replaceName OLDNAME NAME   Replace the name of the object or the "
++        "compound\n"
++        "                              property. Example:\n"
++        "                              -replaceName /full/old/name newName\n\n"
++        "  -replaceString PATTERN VAL  Replace parts of string properties.\n\n";
++    printf(rodeoHelp);
+ }
+ 
+ bool parseArgs( int iArgc, char *iArgv[], ConversionOptions &oOptions, bool &oDoConversion )
+-- 
+2.12.1
+

@@ -1,0 +1,13 @@
+#usda 1.0
+(
+	defaultPrim = "sphere_hi"
+)
+ 
+def Xform "sphere_hi" (
+    kind = "component"
+)
+{
+	def Sphere "geo"
+	{
+	}
+}

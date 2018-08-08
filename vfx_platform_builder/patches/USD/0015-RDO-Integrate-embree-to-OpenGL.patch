@@ -1,0 +1,831 @@
+From f3859e4a6d270b261ef10d1ae93de65ce65e3cb8 Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Fri, 29 Jun 2018 12:28:02 -0400
+Subject: [PATCH] RDO: Integrate embree to OpenGL
+
+It was not possible to integrate Hydra-Embree into the OpenGL routine
+because it outputted pixels to the current framebuffer and there was
+no alpha and depth information.
+With this commit, Hydra-Embree outputs depth and alpha, and it can
+be composed with the native OpenGL context.
+---
+ pxr/imaging/plugin/hdEmbree/config.cpp     |   8 +-
+ pxr/imaging/plugin/hdEmbree/renderPass.cpp | 521 ++++++++++++++++++++++++++---
+ pxr/imaging/plugin/hdEmbree/renderPass.h   |  93 ++++-
+ 3 files changed, 565 insertions(+), 57 deletions(-)
+
+diff --git a/pxr/imaging/plugin/hdEmbree/config.cpp b/pxr/imaging/plugin/hdEmbree/config.cpp
+index aa0e58f..f206826 100644
+--- a/pxr/imaging/plugin/hdEmbree/config.cpp
++++ b/pxr/imaging/plugin/hdEmbree/config.cpp
+@@ -39,13 +39,13 @@ TF_INSTANTIATE_SINGLETON(HdEmbreeConfig);
+ TF_DEFINE_ENV_SETTING(HDEMBREE_SAMPLES_PER_FRAME, 1,
+         "Raytraced samples per pixel per frame (must be >= 1)");
+ 
+-TF_DEFINE_ENV_SETTING(HDEMBREE_SAMPLES_TO_CONVERGENCE, 100,
++TF_DEFINE_ENV_SETTING(HDEMBREE_SAMPLES_TO_CONVERGENCE, 4,
+         "Samples per pixel before we stop rendering (must be >= 1)");
+ 
+-TF_DEFINE_ENV_SETTING(HDEMBREE_TILE_SIZE, 8,
++TF_DEFINE_ENV_SETTING(HDEMBREE_TILE_SIZE, 64,
+         "Squared size of threading work units (must be >= 1)");
+ 
+-TF_DEFINE_ENV_SETTING(HDEMBREE_AMBIENT_OCCLUSION_SAMPLES, 16,
++TF_DEFINE_ENV_SETTING(HDEMBREE_AMBIENT_OCCLUSION_SAMPLES, 0,
+         "Ambient occlusion samples per camera ray (must be >= 0; a value of 0 disables ambient occlusion)");
+ 
+ TF_DEFINE_ENV_SETTING(HDEMBREE_SUBDIVISION_CACHE, 128*1024*1024,
+@@ -57,7 +57,7 @@ TF_DEFINE_ENV_SETTING(HDEMBREE_FIX_RANDOM_SEED, 0,
+ TF_DEFINE_ENV_SETTING(HDEMBREE_USE_FACE_COLORS, 1,
+         "Should HdEmbree use face colors while rendering?");
+ 
+-TF_DEFINE_ENV_SETTING(HDEMBREE_CAMERA_LIGHT_INTENSITY, 300,
++TF_DEFINE_ENV_SETTING(HDEMBREE_CAMERA_LIGHT_INTENSITY, 100,
+         "Intensity of the camera light, specified as a percentage of <1,1,1>.");
+ 
+ TF_DEFINE_ENV_SETTING(HDEMBREE_PRINT_CONFIGURATION, 0,
+diff --git a/pxr/imaging/plugin/hdEmbree/renderPass.cpp b/pxr/imaging/plugin/hdEmbree/renderPass.cpp
+index f5d5e56..9725521 100644
+--- a/pxr/imaging/plugin/hdEmbree/renderPass.cpp
++++ b/pxr/imaging/plugin/hdEmbree/renderPass.cpp
+@@ -40,6 +40,172 @@
+ 
+ PXR_NAMESPACE_OPEN_SCOPE
+ 
++#define PIXELLENGTH (4+3+1)
++
++static const char* sBeautyVertexSrc =
++    "#version 420\n"
++    "layout(location = 0) in vec3 P;"
++    "layout(location = 1) in vec2 st;"
++    "out vec2 uv;"
++    "void main()"
++    "{"
++    "  uv = st;"
++    "  gl_Position = vec4(P, 1.0);"
++    "}";
++
++// Mixing the depth of the raytracer and OpenGL is quite tricky because OpenGL
++// remaps it. It's possible to map the depth that we can get from the raytracer.
++// This way is described here https://stackoverflow.com/questions/6652253, and
++// it can be written like this:
++//
++// float A = projMatrix[2][2];
++// float B = projMatrix[3][2];
++//
++// // With A and B it's possible to find the near and the far clipping ranges.
++// // http://www.wolframalpha.com/?i=-(x%2By)%2F(x-y)%3DA,-2xy%2F(x-y)%3DB
++// float n = B/(A-1);
++// float f = B/(A+1);
++//
++// // https://stackoverflow.com/questions/6652253
++// float depthSample(float linearDepth, float A, float B)
++// {
++//     float nonLinearDepth = (-A * linearDepth + B) / linearDepth;
++//     nonLinearDepth = (nonLinearDepth + 1.0f) * 0.5f;
++//     return nonLinearDepth;
++// }
++//
++// It works, but in the raytracer, the depth is the distance from the current
++// point to the camera point. In OpenGL, the depth is the distance from the
++// current point to the camera plane. So this way doesn't perfectly match.
++//
++// Another way is to transform the position to the OpenGL NDC space and extract
++// the depth component. It will be the same depth that OpenGL uses. OpenGL makes
++// the vertices to go through the series of transformations. The stages are
++// generally:
++// - model space
++// - world space
++// - camera space
++// - clip space
++// - NDC space
++// Having world space positions, view and projection matrices we can do the same
++// here in the fragment shader.
++static const char* sBeautyFragmentSrc =
++    "#version 420\n"
++    "uniform mat4 viewMatrix;"
++    "uniform mat4 projMatrix;"
++    "in vec2 uv;"
++    "layout (binding = 0) uniform sampler2D colorTexture;"
++    "layout (binding = 1) uniform sampler2D positionTexture;"
++    "void main()"
++    "{"
++    "  vec4 Cs = texture(colorTexture, uv);"
++    // Get the world space position and .
++    "  vec4 P_world = vec4(texture(positionTexture, uv).xyz, 1.0);"
++    "  vec4 P_cam = viewMatrix * P_world;"
++    "  vec4 P_clip = projMatrix * P_cam;"
++    // OpenGl does the perspective division. It divides this vector by its w
++    // component. This operation is not done in shaders (except special cases
++    // like shadowmapping) but in hardware and you can't control it.
++    "  vec4 P_ndc = P_clip / P_clip.w;"
++    "  if (Cs.w == 0)"
++    "  {"
++    "    gl_FragDepth = 1.0;"
++    "  }"
++    "  else"
++    "  {"
++    //   Depth is in the range [-1, 1], we need to convert it to [0, 1].
++    "    gl_FragDepth = 0.5 * P_ndc.z + 0.5;"
++    "  }"
++    "  gl_FragColor = Cs;"
++    "}";
++
++std::shared_ptr<GLSLProgram> HdEmbreeRenderPass::sBeautyShader;
++
++void printCompileErrors(GLuint iShaderID)
++{
++    GLint maxLength = 0;
++    glGetShaderiv(iShaderID, GL_INFO_LOG_LENGTH, &maxLength);
++
++    // The maxLength includes the NULL character
++    std::vector<GLchar> errorLog(maxLength);
++    glGetShaderInfoLog(iShaderID, maxLength, &maxLength, &errorLog[0]);
++
++    printf(
++        "hdEmbree ERROR: Shader %i is not compiled:\n{\n%s\n}\n",
++        iShaderID,
++        &errorLog[0]);
++}
++
++GLSLProgram::GLSLProgram(
++    const char* iVertexSrc,
++    const char* iFragmentSrc)
++{
++    // Copy the shader strings into GL shaders, and compile them. Then
++    // create an executable shader and attach both of the compiled shaders,
++    // link this, which matches the outputs of the vertex shader to the
++    // inputs of the fragment shader, etc. Add it is then ready to use.
++    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
++    glShaderSource(vs, 1, &iVertexSrc, NULL);
++    glCompileShader(vs);
++
++    GLint success = GL_FALSE;
++    glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
++    if (success == GL_FALSE)
++    {
++        printCompileErrors(vs);
++    }
++
++    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
++    glShaderSource(fs, 1, &iFragmentSrc, NULL);
++    glCompileShader(fs);
++
++    success = GL_FALSE;
++    glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
++    if (success == GL_FALSE)
++    {
++        printCompileErrors(vs);
++    }
++
++    mShaderProgram = glCreateProgram();
++    glAttachShader(mShaderProgram, fs);
++    glAttachShader(mShaderProgram, vs);
++    glLinkProgram(mShaderProgram);
++
++    // check if link was successful
++    int params = -1;
++    glGetProgramiv(mShaderProgram, GL_LINK_STATUS, &params);
++    if (GL_TRUE != params)
++    {
++        printf(
++            "hdEmbree ERROR: could not link shader program GL index %u\n",
++            mShaderProgram);
++    }
++
++    // Release attached shaders. We don't need them anymore.
++    glDeleteShader(fs);
++    glDeleteShader(vs);
++}
++
++void GLSLProgram::use() const
++{
++    assert(mShaderProgram);
++    glUseProgram(mShaderProgram);
++}
++
++GLuint GLSLProgram::uniformLocation(const char* name) const
++{
++    // TODO: cache it
++    return glGetUniformLocation(getID(), name);
++}
++
++void GLSLProgram::setUniformValue(GLuint iLoc, const GfMatrix4d& iValue) const
++{
++    GfMatrix4f floatMatrix(iValue);
++
++    // glUniformMatrix4dv(iLoc, 1, GL_FALSE, data);
++    glProgramUniformMatrix4fv(getID(), iLoc, 1, GL_FALSE, floatMatrix.GetArray());
++}
++
+ HdEmbreeRenderPass::HdEmbreeRenderPass(HdRenderIndex *index,
+                                        HdRprimCollection const &collection,
+                                        RTCScene scene,
+@@ -48,16 +214,61 @@ HdEmbreeRenderPass::HdEmbreeRenderPass(HdRenderIndex *index,
+     , _width(0)
+     , _height(0)
+     , _scene(scene)
++    , _viewMatrix(1.0f) // == identity
+     , _inverseViewMatrix(1.0f) // == identity
++    , _projMatrix(1.0f) // == identity
+     , _inverseProjMatrix(1.0f) // == identity
+-    , _clearColor(0.0707f, 0.0707f, 0.0707f)
++    ,_clearColor(0.0f, 0.0f, 0.0f, 0.0f)
+     , _renderParam(renderParam)
+     , _sceneVersion(0)
++    , _texturesInitialized(false)
++    , _samplesRendered(0)
+ {
++    if (!sBeautyShader)
++    {
++        sBeautyShader =
++            std::make_shared<GLSLProgram>(sBeautyVertexSrc, sBeautyFragmentSrc);
++    }
++
++    _viewLocation = sBeautyShader->uniformLocation("viewMatrix");
++    _projLocation = sBeautyShader->uniformLocation("projMatrix");
++
++    // Geometry to use. These are 4 xyz points to make a quad.
++    static const GLfloat points[] = {
++        -1.f, -1.f, 0.f, 1.f, -1.f, 0.f, 1.f, 1.f, 0.f, -1., 1., 0.};
++    // These are 4 UVs.
++    static const GLfloat uvs[] = {0.f, 0.f, 1.f, 0.f, 1.f, 1.f, 0.f, 1.f};
++
++    // Create a vertex buffer object. It stores an array of data on the
++    // graphics adapter's memory. The vertex points in our case.
++    glGenBuffers(1, &_pointBuffer);
++    glBindBuffer(GL_ARRAY_BUFFER, _pointBuffer);
++    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
++
++    // The same for UVs.
++    glGenBuffers(1, &_UVBuffer);
++    glBindBuffer(GL_ARRAY_BUFFER, _UVBuffer);
++    glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW);
++
++    // The vertex array object is a descriptor that defines which data from
++    // vertex buffer objects should be used as input variables to vertex
++    // shaders.
++    glGenVertexArrays(1, &_vertexArray);
++    glBindVertexArray(_vertexArray);
+ }
+ 
+ HdEmbreeRenderPass::~HdEmbreeRenderPass()
+ {
++    glDeleteBuffers(1, &_pointBuffer);
++    glDeleteBuffers(1, &_UVBuffer);
++
++    if (_texturesInitialized)
++    {
++        glDeleteBuffers(1, &_pboColor);
++        glDeleteBuffers(1, &_pboPosition);
++        glDeleteTextures(1, &_textureColor);
++        glDeleteTextures(1, &_texturePosition);
++    }
+ }
+ 
+ bool
+@@ -72,6 +283,13 @@ HdEmbreeRenderPass::IsConverged() const
+ }
+ 
+ void
++HdEmbreeRenderPass::_MarkCollectionDirty()
++{
++    // If the drawable collection changes, we should reset the sample buffer.
++    _pendingResetImage = true;
++}
++
++void
+ HdEmbreeRenderPass::_Execute(HdRenderPassStateSharedPtr const& renderPassState,
+                              TfTokenVector const &renderTags)
+ {
+@@ -79,20 +297,23 @@ HdEmbreeRenderPass::_Execute(HdRenderPassStateSharedPtr const& renderPassState,
+     // XXX: Add clip planes support.
+ 
+     // Track whether the sample buffer is still valid.
+-    bool resetImage = false;
++    _pendingResetImage = false;
+     int sceneVersion = _renderParam->GetSceneVersion();
+     if (_sceneVersion != sceneVersion) {
+         _sceneVersion = sceneVersion;
+-        resetImage = true;
++        _pendingResetImage = true;
+     }
+ 
++    _viewMatrix = renderPassState->GetWorldToViewMatrix();
++    _projMatrix = renderPassState->GetProjectionMatrix();
++
+     // If the camera has changed, reset the sample buffer.
+-    GfMatrix4d invView = renderPassState->GetWorldToViewMatrix().GetInverse();
+-    GfMatrix4d invProj = renderPassState->GetProjectionMatrix().GetInverse();
++    GfMatrix4d invView = _viewMatrix.GetInverse();
++    GfMatrix4d invProj = _projMatrix.GetInverse();
+     if (_inverseViewMatrix != invView || _inverseProjMatrix != invProj) {
+         _inverseViewMatrix = invView;
+         _inverseProjMatrix = invProj;
+-        resetImage = true;
++        _pendingResetImage = true;
+     }
+ 
+     // If the viewport has changed, resize and reset the sample buffer.
+@@ -100,14 +321,83 @@ HdEmbreeRenderPass::_Execute(HdRenderPassStateSharedPtr const& renderPassState,
+     if (_width != vp[2] || _height != vp[3]) {
+         _width = vp[2];
+         _height = vp[3];
+-        _sampleBuffer.resize(_width*_height*4);
+-        _colorBuffer.resize(_width*_height*4);
+-        resetImage = true;
++        _sampleBuffer.resize(_width*_height*PIXELLENGTH);
++        _pendingResetImage = true;
++
++        // Reallocate the OpenGL textures.
++        if (_texturesInitialized)
++        {
++            // We are here because the resolution is changed and the textures
++            // was initialized. We need to kill the old textures and create new
++            // with the new resolution.
++            glDeleteBuffers(1, &_pboColor);
++            glDeleteBuffers(1, &_pboPosition);
++            glDeleteTextures(1, &_textureColor);
++            glDeleteTextures(1, &_texturePosition);
++        }
++        else
++        {
++            _texturesInitialized = true;
++        }
++
++        glGenBuffers(1, &_pboColor);
++        glGenBuffers(1, &_pboPosition);
++        glGenTextures(1, &_textureColor);
++        glGenTextures(1, &_texturePosition);
++
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pboColor);
++        glBufferData(
++            GL_PIXEL_UNPACK_BUFFER,
++            _width * _height * 4 * sizeof(uint8_t),
++            nullptr,
++            GL_STREAM_DRAW);
++
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pboPosition);
++        glBufferData(
++            GL_PIXEL_UNPACK_BUFFER,
++            _width * _height * 3 * sizeof(float),
++            nullptr,
++            GL_STREAM_DRAW);
++
++        // It is good idea to release PBOs with ID 0 after use. Once bound with
++        // 0, all pixel operations are back to normal ways.
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
++
++        // Allocate a byte texture with 4 components.
++        glBindTexture(GL_TEXTURE_2D, _textureColor);
++        glTexImage2D(
++            GL_TEXTURE_2D,
++            0,
++            GL_RGBA,
++            _width,
++            _height,
++            0,
++            GL_RGBA,
++            GL_UNSIGNED_BYTE,
++            nullptr);
++        glGenerateMipmap(GL_TEXTURE_2D);
++
++        // Allocate float texture with 3 components. We need float for positions
++        // to have the best precision and avoid clamping.
++        glBindTexture(GL_TEXTURE_2D, _texturePosition);
++        glTexImage2D(
++            GL_TEXTURE_2D,
++            0,
++            GL_RGB32F,
++            _width,
++            _height,
++            0,
++            GL_RGB,
++            GL_FLOAT,
++            nullptr);
++        glGenerateMipmap(GL_TEXTURE_2D);
+     }
+ 
+     // Reset the sample buffer if it's been requested.
+-    if (resetImage) {
+-        memset(&_sampleBuffer[0], 0, _width*_height*4*sizeof(float));
++    if (_pendingResetImage) {
++        memset(&_sampleBuffer[0], 0, _width*_height*PIXELLENGTH*sizeof(float));
++        _pendingResetImage = false;
++        _samplesRendered = 0;
+     }
+     
+     // Render the image. Each call to _Render() adds a sample per pixel (with
+@@ -116,23 +406,141 @@ HdEmbreeRenderPass::_Execute(HdRenderPassStateSharedPtr const& renderPassState,
+     // rendering), to produce a more accurate and less noisy image.
+     unsigned int samplesPerFrame =
+         HdEmbreeConfig::GetInstance().samplesPerFrame;
+-    for (unsigned int i = 0; i < samplesPerFrame; ++i) {
+-        _Render();
++    bool isConverged = IsConverged();
++
++    if (!isConverged)
++    {
++        for (unsigned int i = 0; i < samplesPerFrame; ++i)
++        {
++            _Render();
++            _samplesRendered++;
++        }
+     }
+ 
+-    // Resolve the image buffer: find the average color per pixel by
+-    // dividing the summed color by the number of samples;
+-    // and convert the image into a GL-compatible format.
+-    for (unsigned int i = 0; i < _width * _height; ++i) {
+-        float r = 1.0f/_sampleBuffer[i*4+3];
+-        _colorBuffer[i*4+0] = (uint8_t)(255.0f*_sampleBuffer[i*4+0]*r);
+-        _colorBuffer[i*4+1] = (uint8_t)(255.0f*_sampleBuffer[i*4+1]*r);
+-        _colorBuffer[i*4+2] = (uint8_t)(255.0f*_sampleBuffer[i*4+2]*r);
+-        _colorBuffer[i*4+3] = 255;
++    sBeautyShader->use();
++    sBeautyShader->setUniformValue(_viewLocation, _viewMatrix);
++    sBeautyShader->setUniformValue(_projLocation, _projMatrix);
++
++    glBindVertexArray(_vertexArray);
++
++    // Normally we only should do it on init, but Houdini resets buffers.
++    glBindBuffer(GL_ARRAY_BUFFER, _pointBuffer);
++    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
++    glBindBuffer(GL_ARRAY_BUFFER, _UVBuffer);
++    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
++    glEnableVertexAttribArray(0);
++    glEnableVertexAttribArray(1);
++
++    // Put the color buffer to the color texture.
++    glActiveTexture(GL_TEXTURE0);
++    glBindTexture(GL_TEXTURE_2D, _textureColor);
++    if (!isConverged)
++    {
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pboColor);
++
++        uint8_t* colorBuffer =
++            (uint8_t*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
++        if (colorBuffer)
++        {
++            // Resolve the image buffer: find the average color per pixel by
++            // dividing the summed color by the number of samples; and convert
++            // the image into a GL-compatible format.
++            for (unsigned int i = 0; i < _width * _height; ++i)
++            {
++                float samples = _sampleBuffer[i * PIXELLENGTH + 7];
++
++                if (fabsf(samples) < 1e-5f)
++                {
++                    // No samples.
++                    colorBuffer[i * 4 + 0] = 0;
++                    colorBuffer[i * 4 + 1] = 0;
++                    colorBuffer[i * 4 + 2] = 0;
++                    colorBuffer[i * 4 + 3] = 0;
++                }
++                else
++                {
++                    float r = 1.0f / _sampleBuffer[i * PIXELLENGTH + 7];
++
++                    colorBuffer[i * 4 + 0] = (uint8_t)(
++                        255.0f * _sampleBuffer[i * PIXELLENGTH + 0] * r);
++                    colorBuffer[i * 4 + 1] = (uint8_t)(
++                        255.0f * _sampleBuffer[i * PIXELLENGTH + 1] * r);
++                    colorBuffer[i * 4 + 2] = (uint8_t)(
++                        255.0f * _sampleBuffer[i * PIXELLENGTH + 2] * r);
++                    colorBuffer[i * 4 + 3] = (uint8_t)(
++                        255.0f * _sampleBuffer[i * PIXELLENGTH + 3] * r);
++                }
++            }
++
++            // update data directly on the mapped buffer
++            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
++        }
++
++        // Copy data from PBO to the texture.
++        glTexSubImage2D(
++            GL_TEXTURE_2D,
++            0,
++            0,
++            0,
++            _width,
++            _height,
++            GL_RGBA,
++            GL_UNSIGNED_BYTE,
++            nullptr);
++    }
++
++    // Put the position buffer to the position texture.
++    glActiveTexture(GL_TEXTURE1);
++    glBindTexture(GL_TEXTURE_2D, _texturePosition);
++    if (!isConverged)
++    {
++        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _pboPosition);
++
++        float* positionBuffer =
++            (float*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
++        if (positionBuffer)
++        {
++            // Resolve the position buffer: find the average position per pixel
++            // by dividing the summed position by the number of samples.
++            for (unsigned int i = 0; i < _width * _height; ++i)
++            {
++                float samples = _sampleBuffer[i * PIXELLENGTH + 7];
++
++                if (fabsf(samples) < 1e-5f)
++                {
++                    // No samples.
++                    positionBuffer[i * 3 + 0] = 0.0f;
++                    positionBuffer[i * 3 + 1] = 0.0f;
++                    positionBuffer[i * 3 + 2] = 0.0f;
++                }
++                else
++                {
++                    float r = 1.0f / _sampleBuffer[i * PIXELLENGTH + 7];
++
++                    positionBuffer[i * 3 + 0] =
++                        _sampleBuffer[i * PIXELLENGTH + 4] * r;
++                    positionBuffer[i * 3 + 1] =
++                        _sampleBuffer[i * PIXELLENGTH + 5] * r;
++                    positionBuffer[i * 3 + 2] =
++                        _sampleBuffer[i * PIXELLENGTH + 6] * r;
++                }
++            }
++
++            // update data directly on the mapped buffer
++            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
++        }
++
++        // Copy data from PBO to the texture.
++        glTexSubImage2D(
++            GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGB, GL_FLOAT, nullptr);
+     }
+ 
+-    // Blit!
+-    glDrawPixels(_width, _height, GL_RGBA, GL_UNSIGNED_BYTE, &_colorBuffer[0]);
++    // It is good idea to release PBOs with ID 0 after use. Once bound with 0,
++    // all pixel operations are back to normal ways.
++    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
++
++    // Draw points 0-4 from the currently bound VAO with current in-use shader.
++    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+ }
+ 
+ void
+@@ -212,15 +620,28 @@ HdEmbreeRenderPass::_RenderTiles(size_t tileStart, size_t tileEnd)
+                 origin = _inverseViewMatrix.Transform(origin);
+                 dir = _inverseViewMatrix.TransformDir(dir).GetNormalized();
+ 
+-                // Trace the ray to get pixel color.
+-                GfVec3f color = _TraceRay(origin, dir);
++                GfVec3f color;
++                float opacity;
++                GfVec3f position;
++                if (!_TraceRay(origin, dir, color, opacity, position))
++                {
++                    continue;
++                }
+ 
+                 // Add the pixel sample to the sample buffer.
+-                int idx = y*_width+x;
+-                _sampleBuffer[idx*4+0] += color[0];
+-                _sampleBuffer[idx*4+1] += color[1];
+-                _sampleBuffer[idx*4+2] += color[2];
+-                _sampleBuffer[idx*4+3] += 1.0f;
++                int idx = y * _width + x;
++                // Color
++                _sampleBuffer[idx * PIXELLENGTH + 0] += color[0];
++                _sampleBuffer[idx * PIXELLENGTH + 1] += color[1];
++                _sampleBuffer[idx * PIXELLENGTH + 2] += color[2];
++                // Alpha
++                _sampleBuffer[idx * PIXELLENGTH + 3] += opacity;
++                // Position
++                _sampleBuffer[idx * PIXELLENGTH + 4] += position[0];
++                _sampleBuffer[idx * PIXELLENGTH + 5] += position[1];
++                _sampleBuffer[idx * PIXELLENGTH + 6] += position[2];
++                // Number of samples
++                _sampleBuffer[idx * PIXELLENGTH + 7] += 1.0f;
+             }
+         }
+     }
+@@ -262,8 +683,12 @@ _RandomDirection(T& random_engine)
+ }
+ 
+ 
+-GfVec3f
+-HdEmbreeRenderPass::_TraceRay(GfVec3f const &origin, GfVec3f const &dir)
++bool HdEmbreeRenderPass::_TraceRay(
++    GfVec3f const& origin,
++    GfVec3f const& dir,
++    GfVec3f& oColor,
++    float& oOpacity,
++    GfVec3f& oPosition)
+ {
+     // Intersect the camera ray.
+     RTCRay ray;
+@@ -272,7 +697,7 @@ HdEmbreeRenderPass::_TraceRay(GfVec3f const &origin, GfVec3f const &dir)
+ 
+     if (ray.geomID == RTC_INVALID_GEOMETRY_ID) {
+         // Ray miss gets the clear color.
+-        return _clearColor;
++        return false;
+     } else {
+         
+         // Get the instance and prototype context structures for the hit prim.
+@@ -285,9 +710,10 @@ HdEmbreeRenderPass::_TraceRay(GfVec3f const &origin, GfVec3f const &dir)
+                 rtcGetUserData(instanceContext->rootScene, ray.geomID));
+ 
+         // Compute the worldspace location of the ray hit.
+-        GfVec3f hitPos = GfVec3f(ray.org[0] + ray.tfar * ray.dir[0],
+-                                 ray.org[1] + ray.tfar * ray.dir[1],
+-                                 ray.org[2] + ray.tfar * ray.dir[2]);
++        oPosition = GfVec3f(
++            ray.org[0] + ray.tfar * ray.dir[0],
++            ray.org[1] + ray.tfar * ray.dir[1],
++            ray.org[2] + ray.tfar * ray.dir[2]);
+ 
+         // If a normal primvar is present (e.g. from smooth shading), use that
+         // for shading; otherwise use the flat face normal.
+@@ -322,18 +748,21 @@ HdEmbreeRenderPass::_TraceRay(GfVec3f const &origin, GfVec3f const &dir)
+ 
+         // Lighting gets modulated by an ambient occlusion term.
+         float aoLightIntensity =
+-            (1.0f - _ComputeAmbientOcclusion(hitPos, normal));
+-            
+-        // Return color.xyz * diffuseLight * aoLightIntensity.
++            (1.0f - _ComputeAmbientOcclusion(oPosition, normal));
++
++        oOpacity = 1.0;
++
++        // Return color.xyz * diffuseLight * aoLightIntensity * opacity.
+         // XXX: Transparency?
+-        GfVec3f finalColor = GfVec3f(color[0], color[1], color[2]) *
+-            diffuseLight * aoLightIntensity;
++        oColor = GfVec3f(color[0], color[1], color[2]) * diffuseLight *
++            aoLightIntensity * oOpacity;
+ 
+         // Clamp colors to [0,1].
+-        finalColor[0] = std::max(0.0f, std::min(1.0f, finalColor[0]));
+-        finalColor[1] = std::max(0.0f, std::min(1.0f, finalColor[1]));
+-        finalColor[2] = std::max(0.0f, std::min(1.0f, finalColor[2]));
+-        return finalColor;
++        oColor[0] = std::max(0.0f, std::min(1.0f, oColor[0]));
++        oColor[1] = std::max(0.0f, std::min(1.0f, oColor[1]));
++        oColor[2] = std::max(0.0f, std::min(1.0f, oColor[2]));
++
++        return true;
+     }
+ }
+ 
+diff --git a/pxr/imaging/plugin/hdEmbree/renderPass.h b/pxr/imaging/plugin/hdEmbree/renderPass.h
+index bf7d01a..0b6d866 100644
+--- a/pxr/imaging/plugin/hdEmbree/renderPass.h
++++ b/pxr/imaging/plugin/hdEmbree/renderPass.h
+@@ -35,6 +35,53 @@
+ 
+ PXR_NAMESPACE_OPEN_SCOPE
+ 
++/** @brief A handle for a single OpenGL shader. */
++class GLSLProgram
++{
++public:
++    /**
++     * @brief Initialize GLSL shader and save the ID.
++     *
++     * @param iVertexSrc the source of the vertex shader.
++     * @param iFragmentSrc the source of the fragment shader.
++     */
++    GLSLProgram(const char* iVertexSrc, const char* iFragmentSrc);
++
++    /** @brief Installs the shader program object as part of current rendering
++     * state. */
++    void use() const;
++
++    /**
++     * @brief Returns the ID of the shader program object.
++     *
++     * @return ID of the shader program object.
++     */
++    GLuint getID() const { return mShaderProgram; }
++
++    /**
++     * @brief Returns the location of the uniform variable 'name' within this
++     * shader program's parameter list.
++     *
++     * @param name The uniform variable.
++     *
++     * @return The location of the uniform variable 'name'.
++     */
++    GLuint uniformLocation(const char* name) const;
++
++    /**
++     * @brief Sets the uniform variable at 'location' in the current context to
++     * a 4x4 matrix 'value'.
++     *
++     * @param location The uniform variable.
++     * @param value The uniform value.
++     */
++    void setUniformValue(GLuint location, const GfMatrix4d& value) const;
++
++private:
++    GLuint mShaderProgram;
++};
++
++
+ /// \class HdEmbreeRenderPass
+ ///
+ /// HdRenderPass represents a single render iteration, rendering a view of the
+@@ -77,7 +124,7 @@ protected:
+                           TfTokenVector const &renderTags) override;
+ 
+     /// Update internal tracking to reflect a dirty collection.
+-    virtual void _MarkCollectionDirty() override {}
++    virtual void _MarkCollectionDirty() override;
+ 
+ private:
+ 
+@@ -99,7 +146,12 @@ private:
+ 
+     // Cast a ray into the scene and if it hits an object, return the
+     // computed color; otherwise return _clearColor.
+-    GfVec3f _TraceRay(GfVec3f const& origin, GfVec3f const& dir);
++    bool _TraceRay(
++        GfVec3f const& origin,
++        GfVec3f const& dir,
++        GfVec3f& oColor,
++        float& oOpacity,
++        GfVec3f& oPosition);
+ 
+     // Compute the ambient occlusion term at a given point by firing rays
+     // from "position" in the hemisphere centered on "normal"; the occlusion
+@@ -110,16 +162,16 @@ private:
+     float _ComputeAmbientOcclusion(GfVec3f const& position,
+                                    GfVec3f const& normal);
+ 
++    // The sample buffer is cleared in Execute(), so this flag records whether
++    // ResetImage() has been called since the last Execute().
++    bool _pendingResetImage;
++
+     // The output buffer for the raytracing algorithm. If pixel is
+     // &_sampleBuffer[y*_width+x], then pixel[0-2] represent accumulated R,G,B
+     // values, over a number of render passes stored in pixel[3]; the average
+     // color value is then pixel[0-2] / pixel[3].
+     std::vector<float> _sampleBuffer;
+ 
+-    // The resolved output buffer, in GL_RGBA. This is an intermediate between
+-    // _sampleBuffer and the GL framebuffer.
+-    std::vector<uint8_t> _colorBuffer;
+-
+     // The width of the viewport we're rendering into.
+     unsigned int _width;
+     // The height of the viewport we're rendering into.
+@@ -128,19 +180,46 @@ private:
+     // Our handle to the embree scene.
+     RTCScene _scene;
+ 
++    // The view matrix: world space to camera space.
++    GfMatrix4d _viewMatrix;
+     // The inverse view matrix: camera space to world space.
+     GfMatrix4d _inverseViewMatrix;
++    // The projection matrix: camera space to NDC space.
++    GfMatrix4d _projMatrix;
+     // The inverse projection matrix: NDC space to camera space.
+     GfMatrix4d _inverseProjMatrix;
+ 
+     // The color of a ray miss.
+-    GfVec3f _clearColor;
++    GfVec4f _clearColor;
+ 
+     // A handle to the render param.
+     HdEmbreeRenderParam *_renderParam;
+ 
+     // The version of the scene that _sampleBuffer was rendered with.
+     int _sceneVersion;
++
++    // OpenGL gometry buffers.
++    GLuint _vertexArray;
++    GLuint _pointBuffer;
++    GLuint _UVBuffer;
++
++    // OpenGL texures.
++    bool _texturesInitialized;
++    GLuint _pboColor;
++    GLuint _pboPosition;
++    GLuint _textureColor;
++    GLuint _texturePosition;
++
++    // The shaders. They are static because we don't need to produce a shader
++    // per object.
++    static std::shared_ptr<GLSLProgram> sBeautyShader;
++
++    // The locations of uniform values in the GLSL shader.
++    GLuint _viewLocation;
++    GLuint _projLocation;
++
++    // Number of samples rendered
++    int _samplesRendered;
+ };
+ 
+ PXR_NAMESPACE_CLOSE_SCOPE
+-- 
+2.3.0
+

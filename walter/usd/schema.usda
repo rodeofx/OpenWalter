@@ -1,0 +1,65 @@
+#usda 1.0
+(
+    "This file describes the USD Shader schemata for code generation."
+    subLayers = [
+        @/tmp/build/USD/pxr/usd/lib/usd/schema.usda@,
+        @/tmp/build/USD/pxr/usd/lib/usdGeom/schema.usda@
+    ]
+)
+
+# To generate the schema it's possible to use following command:
+# usdGenSchema schema.usda schemas -t /tmp/build/USD/pxr/usd/lib/usd/codegenTemplates
+
+over "GLOBAL" (
+    customData = {
+        string libraryName = "walterUsdExtras"
+        string libraryPath = "./"
+        string libraryPrefix = "Walter"
+    }
+) {
+}
+
+class "Expression" (
+    doc = "Reading and querying layers definitions."
+    inherits = </Typed>
+) {
+    string expression (
+        doc = "The expression."
+    )
+
+    string group (
+        doc = "The name of the group the expression belongs to."
+    )
+}
+
+class Volume "Volume" (
+    inherits = </Gprim>
+    doc = "Defines a primive volume centered at the origin."
+) {
+    float volumePadding = 0 (
+            doc = """Enlarge the volume by Padding. This is useful when
+            displacing a volume with a noise for example.""" )
+    float stepSize = 0 (
+            doc = "Sets the size for sampling inside the volume." )
+    string filename (
+            doc = "The location of the VDB file." )
+    uchar[] filedata (
+            doc = "The volume data." )
+    float stepScale = 1 (
+            doc = """A scaling factor applied to the step size, mostly useful
+            when the Volume Step is set to Automatic, to modulate the automatic
+            value.""" )
+    bool compress = true (
+            doc = "Compress grids to reduce memory usage." )
+    string[] grids (
+            doc = """A list of OpenVDB grids to read and make available as
+            channels in the volume shading context.""" )
+    float velocityScale = 1 (
+            doc = """A scale factor for the velocity field. A value of 0
+            disables motion blur.""" )
+    float velocityFps = 24 (
+            doc = "FPS for the velocity field." )
+    float velocityOutlierThreshold = 0.001 (
+            doc = """Controls filtering of noisy velocities resulting in the
+            faster rendering of motion blur from physics simulations.""" )
+}
