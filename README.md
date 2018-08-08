@@ -3,6 +3,21 @@ Open Walter
 
 Walter is an open source suite of plugins using USD for various DCCs and renderer.
 
+It's main goal is to stay as much as possible in the *USD stage* loaded through a DCC to increase the ineractivity
+and limit the import/export time. 
+The DCC comunicate with the USD Stage to access or modify specific *USD prim* (scene object) or properties. 
+Modifications are stored in specific *session layers* (like transform, variant or visibility layers).
+The Pixar Hydra plugin is used to display such modified stage in DCC like Houdini or Maya.
+
+Walter provide a portable lookdev workflow, where artists can assign Arnold shaders directly on the USD prims
+of the loaded stage, from within Maya. Those lookdev edits can then be exported as Alembic layers to be loaded
+in Houdini or Katana.
+
+Walter let you interact with prims transforms (for layout or animation) directly from Maya.
+Walter also extend the Embree raytracer plugin shipped with Hydra by belnding its result with native DCC objects.
+Finally Walter extend USD itself by providing additional schemas (like WalterVolume or Expression),
+file format plugin (like Arnold Scene Sources support) and resolver (like Alembic 1.7 CoreLayer support).
+
 
 Supported Platforms
 -------------------
