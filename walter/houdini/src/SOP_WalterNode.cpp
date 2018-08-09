@@ -139,7 +139,7 @@ void SOP_WalterNode::install(OP_OperatorTable* table)
         0,  // Local variables
         OP_FLAG_GENERATOR);  // Flag it as generator
 
-    op->setIconName("walterwhite.png");
+    op->setIconName("Walter_round_logo_gold.png");
     table->addOperator(op);
 }
 
