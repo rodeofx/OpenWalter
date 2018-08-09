@@ -214,5 +214,5 @@ Run ```make help``` for more info on the various targets available.
 Contributing
 ------------
 
-The open source version of Walter is its early days and we did not yet create any forum or documentation pages.
-More info to come!
+Since the open source version of Walter is in its early days, we did not yet created any forum or documentation pages.
+Stay tune, more info to come!
