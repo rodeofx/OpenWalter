@@ -1,22 +1,30 @@
-Open Walter
+![Open Walter](https://www.rodeofx.com/uploads/images/tech/Walter_logo_mini-01.png)
+
 ===========================
 
-Walter is an open source suite of plugins using USD for various DCCs and renderer.
+Walter is suite of plugins using USD for various DCCs and renderer.
 
-It's main goal is to stay as much as possible in the *USD stage* loaded through a DCC to increase the ineractivity
-and limit the import/export time. 
-The DCC comunicate with the USD Stage to access or modify specific *USD prim* (scene object) or properties. 
-Modifications are stored in specific *session layers* (like transform, variant or visibility layers).
-The Pixar Hydra plugin is used to display such modified stage in DCC like Houdini or Maya.
+It's main goal is to stay as much as possible in the [*USD Stage*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Stage) 
+loaded through a DCC in order to increase the ineractivity and limit the import/export time.
 
-Walter provide a portable lookdev workflow, where artists can assign Arnold shaders directly on the USD prims
-of the loaded stage, from within Maya. Those lookdev edits can then be exported as Alembic layers to be loaded
+The DCC comunicate with the *USD Stage* to access or modify specific [*USD prim*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Prim)
+or properties. Modifications are stored in specific [*session layers*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-SessionLayer) 
+like for example transform, variant or visibility layers.
+
+The [*Hydra Renderer*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-HydraRenderer) is used to display the stage in DCC like Houdini or Maya.
+
+Walter provide a portable lookdev workflow. From Maya, artists can assign Arnold shaders directly on the *USD prims*
+of the loaded stage. Those *lookdev edits* can then be exported as Alembic layers to be loaded
 in Houdini or Katana.
 
-Walter let you interact with prims transforms (for layout or animation) directly from Maya.
-Walter also extend the Embree raytracer plugin shipped with Hydra by belnding its result with native DCC objects.
-Finally Walter extend USD itself by providing additional schemas (like WalterVolume or Expression),
-file format plugin (like Arnold Scene Sources support) and resolver (like Alembic 1.7 CoreLayer support).
+Walter let you interact with prims transforms directly from Maya. It is *connecting* Maya locator(s) to the expose prim(s), in order
+to push any static or animated transforms to the *USD stage*. This is the way to exchange layout and rigid animations between DCCs using Walter.
+
+Walter include a modified version of the Embree raytracer for Hydra. It is able to blend any rendered prims with native Maya or Houdini objects displayed in the viewport.
+This raytracer is dedicated to fast display. On scenes with millions of polygons, it will be much faster that the default Hydra renderer plugin (called Stream).
+You can mix Walter nodes using Embree and Streem in the same scene. For example, the main character could be displayed using *Stream* and the environment using *Embree*.
+
+Finally Walter extend USD itself by providing additional schemas (like WalterVolume or Expression), file format plugin (Arnold Scene Sources) and resolver (Alembic 1.7 CoreLayer allowing to load more than one *main file* in the stage).
 
 
 Supported Platforms
@@ -44,6 +52,15 @@ Walter is also a plugin for USD itself as it is including additional schemas, as
 
 Finally, the walterViewer application is a standalone viewer that can load Walter layers outside of any DCCs or renderer.
 It is mostly used for development purpose, as it let you load layers without launching a DCC.
+
+
+Trying Walter
+------------
+
+Compiled versions for Centos7 and can be downloaded from (https://github.com/rodeofx/OpenWalter/releases).
+You will need to add the plugins to your application environment.
+Take a look at the Houdini, Katana, Kick and Maya wrappers in (https://github.com/rodeofx/OpenWalter/tree/dev/walter/utils)
+to see how to get a proper configuration to load Walter plugins.
 
 
 Building Walter
@@ -80,13 +97,11 @@ For example to build only the Houdini plugin:
 
 ##### Arnold Procedural
 
-*walter* node:
-
 Render a list of USD or Alembic files. 
-Walter **materials** and **assignations** can be loaded directly, including assignations using Walter Expression.
+**Materials** and **assignations** can be loaded directly, including assignations using **expressions**.
 Session layers like transforms, variants, purposes, etc... can be passed as parameters too.
 
-You must set the Arnold install path in your environment.
+You must set the Arnold root path in your environment.
 
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
@@ -95,16 +110,15 @@ You must set the Arnold install path in your environment.
 
 ##### Houdini Plugin
 
-*Walter SOP* node: 
-
+* *Walter SOP* node: 
 It is using an **Hydra** display to visualise a stack of USD/Alembic layers in the viewport as **Packed Walter** primitives.
 You can unpack them using standard Houdini Unpack node.
 
-*Walter Procedural OBJ* node:
+* *Walter Procedural OBJ* node:
 Create a Walter procedural node in Arnold (via HtoA) to render USD/Alembic layers.
-It is supporting layers comming from Walter for Maya (like materials, assignations, overrides or transforms).
+It is supporting layers coming from Walter for Maya (like materials, assignations, overrides or transforms).
 
-You must set the Houdini and HtoA install paths in your environment.
+You must set the Houdini and HtoA root paths in your environment.
 
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
@@ -114,12 +128,11 @@ You must set the Houdini and HtoA install paths in your environment.
 
 ##### Katana Plugin
 
-*Walter_In* node:
-
-Create a Katana scene graph from a stack of USD/Alembic layers.
+* *Walter_In* node:
+Create a Katana scene graph from a stack of USD/Alembic/Arnold Scene Sources layers.
 It is supporting materials, assignations, overrides and transforms layers comming from Walter for Maya.
 
-You must set the Maya and MtoA install paths in your environment.
+You must set the Maya and MtoA root paths in your environment.
 
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
@@ -128,13 +141,27 @@ You must set the Maya and MtoA install paths in your environment.
 
 ##### Maya Plugin
 
-*Walter Standin* node:
+* *Walter Standin* node:
 
-It is using an **Hydra** display to visualise a stack of USD/Alembic layers in the viewport as one Maya shape node.
-You can select USD prims from the viewport or from the Walter tree widget. 
-You can modify the loaded USD stage, like adding materials, assignations or attributes. You can animate USD prims
-by exposing their transforms to Maya as locator objects. You can select any variants available in the composed stage.
-Finally all those edits can be saved on disk in specific layers.
+From the WalterStandin Attribute Editor you can:
+* open the Walter Tree Widget
+* select any variants available in the stage.
+* select the purpose to use in the viewport (proxy or render)
+* switch betweeing bounding box and full representatin (disable in the open source version for the moment)
+* choose the Hydra Renderer plugin
+
+You can select *USD prims* directly from the viewport like a standard Maya object or from the Walter Tree Widget (aka the *Walter outliner*). 
+You can drag and drop materials from the Hypershader directly on any prims in the Walter Tree Widget and override Arnold attributes.
+Shader drag and drop can be done on Walter Expression items in the Tree Widget (using regular expression to assign shaders to prims).
+
+By righ clicking on a prim in the Walter Tree Widget you can:
+* show or hide prims
+* expose prims transforms as Maya locators
+* override prim purpose.
+
+
+Finally edits can be saved on disk in specific layers.
+
 
 *Walter Translator* for MtoA:
 
@@ -182,3 +209,10 @@ If you run ```make clean && make``` it will re-build only Walter (and so it will
 ##### Build Options
 
 Run ```make help``` for more info on the various targets available.
+
+
+Contributing
+------------
+
+The open source version of Walter is its early days and we did not yet create any forum or documentation pages.
+More info to come!
