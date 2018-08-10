@@ -1,13 +1,11 @@
 ![Open Walter](https://www.rodeofx.com/uploads/images/tech/Walter_logo_mini-01.png)
 
-===========================
-
 Walter is suite of plugins using USD for various DCCs and renderer.
 
 It's main goal is to stay as much as possible in the [*USD Stage*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Stage) 
 loaded through a DCC in order to increase the ineractivity and limit the import/export time.
 
-The DCC comunicate with the *USD Stage* to access or modify specific [*USD prim*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Prim)
+The DCC communicate with the *USD Stage* to access or modify specific [*USD prim*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Prim)
 or properties. Modifications are stored in specific [*session layers*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-SessionLayer) 
 like for example transform, variant or visibility layers.
 
@@ -111,7 +109,7 @@ You must set the Arnold root path in your environment.
 ##### Houdini Plugin
 
 * *Walter SOP* node: 
-It is using an **Hydra** display to visualise a stack of USD/Alembic layers in the viewport as **Packed Walter** primitives.
+It is using an **Hydra** display to visualize a stack of USD/Alembic layers in the viewport as **Packed Walter** primitives.
 You can unpack them using standard Houdini Unpack node.
 
 * *Walter Procedural OBJ* node:
@@ -130,7 +128,7 @@ You must set the Houdini and HtoA root paths in your environment.
 
 * *Walter_In* node:
 Create a Katana scene graph from a stack of USD/Alembic/Arnold Scene Sources layers.
-It is supporting materials, assignations, overrides and transforms layers comming from Walter for Maya.
+It is supporting materials, assignations, overrides and transforms layers coming from Walter for Maya.
 
 You must set the Maya and MtoA root paths in your environment.
 
