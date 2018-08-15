@@ -3,7 +3,7 @@
 Walter is suite of plugins using USD for various DCCs and renderer.
 
 It's main goal is to stay as much as possible in the [*USD Stage*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Stage) 
-loaded through a DCC in order to increase the ineractivity and limit the import/export time.
+loaded through a DCC in order to increase the interactivity and limit the import/export time.
 
 The DCC communicate with the *USD Stage* to access or modify specific [*USD prim*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Prim)
 or properties. Modifications are stored in specific [*session layers*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-SessionLayer) 
@@ -19,8 +19,8 @@ Walter let you interact with prims transforms directly from Maya. It is *connect
 to push any static or animated transforms to the *USD stage*. This is the way to exchange layout and rigid animations between DCCs using Walter.
 
 Walter include a modified version of the Embree raytracer for Hydra. It is able to blend any rendered prims with native Maya or Houdini objects displayed in the viewport.
-This raytracer is dedicated to fast display. On scenes with millions of polygons, it will be much faster that the default Hydra renderer plugin (called Stream).
-You can mix Walter nodes using Embree and Streem in the same scene. For example, the main character could be displayed using *Stream* and the environment using *Embree*.
+This raytracer is dedicated to fast display. On scenes with millions of polygons, it will be much faster that the default Hydra renderer plugin (called *Stream*).
+You can mix Walter nodes using *Embree* and *Stream* in the same scene. For example, the main character could be displayed using *Stream* and the environment using *Embree*.
 
 Finally Walter extend USD itself by providing additional schemas (like WalterVolume or Expression), file format plugin (Arnold Scene Sources) and resolver (Alembic 1.7 CoreLayer allowing to load more than one *main file* in the stage).
 
@@ -55,7 +55,7 @@ It is mostly used for development purpose, as it let you load layers without lau
 Trying Walter
 ------------
 
-Compiled versions for Centos7 and can be downloaded from (https://github.com/rodeofx/OpenWalter/releases).
+Compiled versions for Centos7 can be downloaded from (https://github.com/rodeofx/OpenWalter/releases).
 You will need to add the plugins to your application environment.
 Take a look at the Houdini, Katana, Kick and Maya wrappers in (https://github.com/rodeofx/OpenWalter/tree/dev/walter/utils)
 to see how to get a proper configuration to load Walter plugins.
@@ -145,7 +145,7 @@ From the WalterStandin Attribute Editor you can:
 * open the Walter Tree Widget
 * select any variants available in the stage.
 * select the purpose to use in the viewport (proxy or render)
-* switch betweeing bounding box and full representatin (disable in the open source version for the moment)
+* switch between bounding box and full representatin (disabled in the open source version for the moment)
 * choose the Hydra Renderer plugin
 
 You can select *USD prims* directly from the viewport like a standard Maya object or from the Walter Tree Widget (aka the *Walter outliner*). 
@@ -158,7 +158,7 @@ By righ clicking on a prim in the Walter Tree Widget you can:
 * override prim purpose.
 
 
-Finally edits can be saved on disk in specific layers.
+Finally edits can be saved on disk as specific layers.
 
 
 *Walter Translator* for MtoA:
