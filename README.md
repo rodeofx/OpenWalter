@@ -28,6 +28,8 @@ Finally Walter extend USD itself by providing additional schemas (like WalterVol
 Supported Platforms
 -------------------
 
+[![Join the chat at https://gitter.im/OpenWalter/Lobby](https://badges.gitter.im/OpenWalter/Lobby.svg)](https://gitter.im/OpenWalter/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Open Walter is currently supported on Linux platforms and has been built
 and tested on CentOS 7.
 
