@@ -109,12 +109,8 @@ void readArrayProp(
     SampleTimes sampleTimes;
     iArgs.getRelevantSampleTimes(ts, iProp.prop.getNumSamples(), sampleTimes);
 
-//    printf("Read array property: %s has Ids: %s\n", iProp.name.c_str(), iIdsProperty ? "yes" : "no");
-
     if (iIdsProperty && iProp.name != "geometry.poly.startIndex" && sampleTimes.size() > 1)
     {
-//        printf("Attempting to read property with ID correspondence: %s\n", iProp.name.c_str());
-
         // Motion blur with varying topology, we correlate array elements between
         // motion samples by ID so we keep as much motion data as possible
 
@@ -128,8 +124,6 @@ void readArrayProp(
         bool foundCorrespondence = idSampleTimes.size() == sampleTimes.size();
         if (foundCorrespondence)
         {
-//            printf("Sample times correspond with IDs: %s\n", iProp.name.c_str());
-
             ArrayProp iIdProp;
             iIdProp.name = iIdsProperty->getName();
             iIdProp.prop = *iIdsProperty;
@@ -145,7 +139,6 @@ void readArrayProp(
                 double idSampleTime = *idStIter;
                 if (idSampleTime != sampleTime)
                 {
-//                    printf("Sample time does not correspond with IDs: %s: %f vs %f\n", iProp.name.c_str(), sampleTime, idSampleTime);
                     foundCorrespondence = false;
                     break;
                 }
@@ -157,7 +150,6 @@ void readArrayProp(
                 const size_t numIdPodValues = dims.numPoints();
                 if (numVals != numIdPodValues)
                 {
-//                    printf("Array size does not correspond with IDs: %s: %zu vs %zu\n", iProp.name.c_str(), numVals, numIdPodValues);
                     foundCorrespondence = false;
                     break;
                 }
@@ -301,7 +293,6 @@ void readArrayProp(
         else
         {
             // IDs not usable? Re-try without IDs.
-//            printf("Could not generate correspondence via IDs: %s\n", iProp.name.c_str());
             readArrayProp<attrT, builderT, podT>(iProp, iArgs, oGb, NULL);
         }
     }

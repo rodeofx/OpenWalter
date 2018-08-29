@@ -22,28 +22,78 @@ void RendererIndex::insertPrim(
     it->second.insert(objectPath);
 }
 
-bool RendererIndex::isProcessed(const SdfPath& path)const
+bool RendererIndex::isProcessed(const SdfPath& path) const
 {
     FastMutexLock lock(mCachedObjectSetLock);
     return mCachedObjectSet.find(path) != mCachedObjectSet.end();
 }
 
-int RendererIndex::getNumNodes(const SdfPath& path) const
+int RendererIndex::getNumNodes(const SdfPath& path)
 {
-    ObjectMap::const_accessor it;
-    if (!mHierarchyMap.find(it, path))
+    auto it = mNumNodes.find(path);
+    if (it != mNumNodes.end())
     {
-        // Nothing is found.
-        return 0;
+        return it->second;
     }
+    else
+    {
+        ObjectMap::const_accessor it;
+        if (!mHierarchyMap.find(it, path))
+        {
+            // Nothing is found.
+            return 0;
+        }
 
-    return it->second.size();
+        int numNodes = it->second.size();
+        mNumNodes.emplace(path, numNodes);
+        return numNodes;
+    }
+}
+
+void RendererIndex::insertNumNodes(const SdfPath& path, int numNodes)
+{
+    mNumNodes.emplace(path, numNodes);
 }
 
 bool RendererIndex::isChildrenKnown(const SdfPath& path) const
 {
     ObjectMap::const_accessor it;
     return mHierarchyMap.find(it, path);
+}
+
+bool RendererIndex::isParentKnown(
+    const SdfPath& root,
+    const SdfPath& path) const
+{
+    ObjectMap::const_accessor it;
+    if (!mHierarchyMap.find(it, root))
+    {
+        return false;
+    }
+
+    for (SdfPath potentialParent: it->second)
+    {
+        if (path.HasPrefix(potentialParent))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool RendererIndex::isAssignmentDone() const
+{
+    return !mAssignments.empty();
+}
+
+bool RendererIndex::hasGlobalMaterials() const
+{
+    SdfPath root("/");
+    SdfPath materials("/materials");
+
+    ObjectMap::const_accessor it;
+    return mHierarchyMap.find(it, root) || mHierarchyMap.find(it, materials);
 }
 
 const SdfPath* RendererIndex::getPath(
@@ -110,6 +160,7 @@ void RendererIndex::insertExpression(
         {
             // "shader"
             const std::string& targetName = t.first;
+
             // Filling mAssignments.
             auto emplaceResult = currentLayer[targetName].emplace(
                 std::piecewise_construct,

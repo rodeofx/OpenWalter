@@ -1,0 +1,113 @@
+### exported: Wed Aug 22 17:06:43 2018
+### from:     Arnold 5.1.1.1 [3849b993] linux clang-5.0.0 oiio-1.7.17 osl-1.9.0 vdb-4.0.0 clm-1.0.3.513 rlm-12.2.2 2018/06/26 20:42:28
+### host app: MtoA 3.0.1.1 443e943e (master) Maya 2018
+
+
+
+options
+{
+ AA_samples 3
+ AA_samples_max 8
+ outputs "RGBA RGBA defaultArnoldFilter@gaussian_filter defaultArnoldDriver@driver_exr.RGBA"
+ xres 960
+ yres 540
+ texture_per_file_stats on
+ texture_searchpath "/mnt/users/lucille/maya/projects/default/sourceimages"
+ texture_automip off
+ camera "perspShape"
+ color_manager "defaultColorMgtGlobals"
+ frame 1
+ procedural_searchpath "/mnt/users/lucille/maya/projects/default/"
+ GI_diffuse_depth 1
+ GI_specular_depth 1
+ GI_transmission_depth 8
+ declare render_layer constant STRING
+ render_layer "defaultRenderLayer"
+}
+
+gaussian_filter
+{
+ name defaultArnoldFilter@gaussian_filter
+}
+
+driver_exr
+{
+ name defaultArnoldDriver@driver_exr.RGBA
+ filename "/mnt/users/lucille/maya/projects/default/images/testPointInstancer.exr"
+ color_space ""
+}
+
+color_manager_syncolor
+{
+ name defaultColorMgtGlobals
+ native_catalog_path "/softwareLocal/maya/linux/Maya2018.3/maya2018-x64/synColor"
+ custom_catalog_path "/mnt/users/lucille/maya/synColor/Shared/"
+ rendering_color_space "scene-linear Rec 709/sRGB"
+}
+
+persp_camera
+{
+ name perspShape
+ matrix
+ 0.7313537 0 0.681998372 0
+ 0.362799615 0.846765995 -0.389054954 0
+ -0.577493012 0.531965494 0.619285464 0
+ -40.2901878 30.886097 44.1497612 1
+ near_clip 0.100000001
+ far_clip 10000
+ screen_window_min -1 -1
+ screen_window_max 1 1
+ shutter_start 0
+ shutter_end 0
+ shutter_type "box"
+ rolling_shutter "off"
+ rolling_shutter_duration 0
+ motion_start 0
+ motion_end 0
+ exposure 0
+ fov 54.4322243
+ declare maya_full_name constant STRING
+ maya_full_name "|persp|perspShape"
+}
+
+skydome_light
+{
+ name aiSkyDomeLightShape1
+ matrix
+ 1 0 0 0
+ 0 1 0 0
+ 0 0 1 0
+ 0 0 0 1
+ exposure 0
+ cast_shadows on
+ cast_volumetric_shadows on
+ shadow_density 1
+ shadow_color 0 0 0
+ samples 1
+ normalize on
+ camera 1
+ transmission 1
+ diffuse 1
+ specular 1
+ sss 1
+ indirect 1
+ max_bounces 999
+ volume_samples 2
+ volume 1
+ aov "default"
+ resolution 1000
+ format "latlong"
+ portal_mode "interior_only"
+ aov_indirect off
+ declare maya_full_name constant STRING
+ maya_full_name "|aiSkyDomeLight1|aiSkyDomeLightShape1"
+}
+
+walter
+{
+ name /root/world/geo/asset/torusField/torusInstancer
+ id 1
+ filePaths "../resources/usd/testPointInstancer/pointInstancer.usda:../resources/usd/testPointInstancer/torus_assignment.abc:../resources/usd/testPointInstancer/torus_materials.abc:../resources/usd/testPointInstancer/torusSliced_assignment.abc:../resources/usd/testPointInstancer/torusSliced_materials.abc"
+ objectPath "/torusField/torusInstancer"
+}
+

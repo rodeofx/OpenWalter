@@ -130,6 +130,18 @@ int RendererEngine::getNumNodes(
     const UsdPrim prim = mStage->GetPrimAtPath(path);
     if (prim)
     {
+        // If the given path is not the root path or a children of /materials
+        // and if global materials are not already found we need to force
+        // the check of materials location, which will produce one more
+        // procedural node set to the '/materials' location.
+        int numNodes = 0;
+        if (path != SdfPath("/") &&
+            !boost::starts_with(path.GetString(), "/materials") &&
+            !mIndex.hasGlobalMaterials())
+        {
+            numNodes = 1;
+        }
+
         if (prim.IsA<UsdGeomPointInstancer>())
         {
             UsdGeomPointInstancer instancer(prim);
@@ -144,13 +156,15 @@ int RendererEngine::getNumNodes(
             VtVec3fArray positions;
             positionsAttr.Get(&positions, static_cast<double>(averageTime));
 
-            return static_cast<int>(positions.size());
+            int pointInstancerNumNodes = static_cast<int>(positions.size());
+            mIndex.insertNumNodes(prim.GetPath(), pointInstancerNumNodes);
+            return numNodes + pointInstancerNumNodes;
         }
 
         prepare(prim);
         // 2x because we need to output a reference and an inctance for each
         // object.
-        return 2 * mIndex.getNumNodes(path);
+        return numNodes + 2 * mIndex.getNumNodes(path);
     }
     return 0;
 }
@@ -161,22 +175,46 @@ void* RendererEngine::render(
     const std::vector<float>& times,
     const void* userData)
 {
+    // If the locations '/' or '/materials' are not in the hierarchy map,
+    // create a walter procedural for /materials. This happend when the first
+    // "objectPath" given to the procedural was a children of '/'.
+    //
+    // If '/materials' need to be scanned we force it to be the first
+    // thing done.
+    if (!mIndex.hasGlobalMaterials() && id == 0)
+    {
+        SdfPath materialPath("/materials");
+        UsdPrim materialPrim = mStage->GetPrimAtPath(materialPath);
+        if (materialPrim)
+        {
+            return mPlugin.output(materialPrim, times, userData);
+        }
+    }
+
     const UsdPrim parentPrim = mStage->GetPrimAtPath(path);
     if (parentPrim.IsA<UsdGeomPointInstancer>())
     {
+        int realID = id % mIndex.getNumNodes(path);
+
         return mPlugin.outputBBoxFromPoint(
-            parentPrim, id, times, userData, mIndex);
+            parentPrim, realID, times, userData, mIndex);
     }
 
-    // TODO: Can be slow.
     int numNodes = mIndex.getNumNodes(path);
+
     // It's impossible that numNodes is 0 at this point because render() is
     // called from arnoldProceduralGetNode. And arnoldProceduralGetNode is
     // called after arnoldProceduralNumNodes. If the number of nodes is 0,
     // render() should never be called.
     assert(numNodes > 0);
 
-    // Since we output a reference and an inctance for each object, the real id
+    // This is to ensure the id we get is independant of whether material
+    // were forced to be scanned or not. In any other case than point instancer
+    // the number of nodes returned to arnold was multiply by 2, that explain
+    // the manipulation bellow.
+    id = id % (numNodes * 2);
+
+    // Since we output a reference and an instance for each object, the real id
     // is id % numNodes. With this we can use variants if variant is 0, we need
     // to output a reference object. Otherwise we need to output an instance. We
     // use following terminology: a reference is an invisible object that

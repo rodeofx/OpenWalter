@@ -529,7 +529,7 @@ RendererAttribute usdAttributeToArnold(
     else if (type == SdfValueTypeNames->Matrix4d)
     {
         return attributeToArnold<GfMatrix4d>(attr, attributeName, time);
-    }    
+    }
 
     return RendererAttribute(nullptr);
 }
@@ -604,7 +604,7 @@ bool vtToArnold(
     {
         return false;
     }
-
+ 
     TfToken arnoldName = name;
     bool needDeclare = true;
 
@@ -675,15 +675,13 @@ bool vtToArnold(
     else if (std::is_same<T, GfVec3f>::value)
     {
         TfToken role = typeName.GetRole();
-        if (role == SdfValueRoleNames->Point)
-        {
-            declaration += RDO_STR_TYPE_VECTOR;
-            arnoldAPIType = RDO_AI_TYPE_VECTOR;
-        }
-        else if (role == SdfValueRoleNames->Color)
-        {
+        if (role == SdfValueRoleNames->Color) {
             declaration += "RGB";
             arnoldAPIType = AI_TYPE_RGB;
+        }
+        else {
+            declaration += RDO_STR_TYPE_VECTOR;
+            arnoldAPIType = RDO_AI_TYPE_VECTOR;
         }
 
 #if AI_VERSION_ARCH_NUM == 4
@@ -705,7 +703,7 @@ bool vtToArnold(
     {
         declaration += "INT";
         arnoldAPIType = AI_TYPE_INT;
-    }    
+    }
     else
     {
         // Not supported.
@@ -718,49 +716,89 @@ bool vtToArnold(
         AiNodeDeclare(node, arnoldName.GetText(), declaration.c_str());
     }
 
-    const VtArray<T>& rawVal = vtValue.Get<VtArray<T>>();
-    AiNodeSetArray(
-        node,
-        arnoldName.GetText(),
-        AiArrayConvert(rawVal.size(), 1, arnoldAPIType, rawVal.data()));
-
-    if (interpolation == UsdGeomTokens->faceVarying)
+    // Constant USD attributs are provided as an array of one element.
+    if(interpolation == UsdGeomTokens->constant) 
     {
-        const std::string indexName = name.GetString() + "idxs";
-        std::vector<unsigned int> indexes;
-
-        if (vtIndices.empty())
+        if(std::is_same<T, GfVec3f>::value) 
         {
-            // Arnold doesn't have facevarying iterpolation. It has indexed
-            // instead. So it means it's necessary to generate indexes for this
-            // type.
-            // TODO: Try to generate indexes only once and use it for several
-            // primvars.
+            auto vector = vtValue.Get<VtArray<GfVec3f>>()[0];
+            TfToken role = typeName.GetRole();
 
-            indexes.resize(rawVal.size());
-            // Fill it with 0, 1, ..., 99.
-            std::iota(std::begin(indexes), std::end(indexes), 0);
-        }
-        else
-        {
-            // We need to use indexes and we can't use vtIndices because we need
-            // unsigned int. Converting int to unsigned int.
-            indexes.resize(vtIndices.size());
-            std::copy(vtIndices.begin(), vtIndices.end(), indexes.begin());
+            if (role == SdfValueRoleNames->Color)
+            {
+              AiNodeSetRGB(node, arnoldName.GetText(), vector[0], vector[1],
+                           vector[2]);
+            }
+
+            else 
+            {
+              AiNodeSetVec(node, arnoldName.GetText(), vector[0], vector[1],
+                           vector[2]);
+            }
         }
 
-        // Reverse indexes.
-        if (numVertsArray)
+        else if(std::is_same<T, GfVec2f>::value) 
         {
-            reverseFaceAttribute(indexes, *numVertsArray);
+            auto vector = vtValue.Get<VtArray<GfVec2f>>()[0];
+            AiNodeSetVec2(node, arnoldName.GetText(), vector[0], vector[1]);
         }
 
-        AiNodeSetArray(
-            node,
-            indexName.c_str(),
-            AiArrayConvert(indexes.size(), 1, AI_TYPE_UINT, indexes.data()));
+        else if(std::is_same<T, float>::value) 
+        {
+            AiNodeSetFlt(node, arnoldName.GetText(), vtValue.Get<VtArray<float>>()[0]);
+        }
+
+        else if(std::is_same<T, int>::value) 
+        {
+            AiNodeSetInt(node, arnoldName.GetText(), vtValue.Get<VtArray<int>>()[0]);
+        }
     }
 
+    else 
+    {
+        const VtArray<T>& rawVal = vtValue.Get<VtArray<T>>();
+        AiNodeSetArray(
+            node,
+            arnoldName.GetText(),
+            AiArrayConvert(rawVal.size(), 1, arnoldAPIType, rawVal.data()));
+
+        if (interpolation == UsdGeomTokens->faceVarying)
+        {
+            const std::string indexName = name.GetString() + "idxs";
+            std::vector<unsigned int> indexes;
+
+            if (vtIndices.empty())
+            {
+                // Arnold doesn't have facevarying iterpolation. It has indexed
+                // instead. So it means it's necessary to generate indexes for this
+                // type.
+                // TODO: Try to generate indexes only once and use it for several
+                // primvars.
+
+                indexes.resize(rawVal.size());
+                // Fill it with 0, 1, ..., 99.
+                std::iota(std::begin(indexes), std::end(indexes), 0);
+            }
+            else
+            {
+                // We need to use indexes and we can't use vtIndices because we need
+                // unsigned int. Converting int to unsigned int.
+                indexes.resize(vtIndices.size());
+                std::copy(vtIndices.begin(), vtIndices.end(), indexes.begin());
+            }
+
+            // Reverse indexes.
+            if (numVertsArray)
+            {
+                reverseFaceAttribute(indexes, *numVertsArray);
+            }
+
+            AiNodeSetArray(
+                node,
+                indexName.c_str(),
+                AiArrayConvert(indexes.size(), 1, AI_TYPE_UINT, indexes.data()));
+        }
+    }
     return true;
 }
 
@@ -860,6 +898,32 @@ bool RendererPlugin::isImmediate(const UsdPrim& prim) const
 
     // Shaders should be output immediatly.
     return prim.IsA<UsdShadeShader>();
+}
+
+// This function is not compatible Arnold 4.
+void* RendererPlugin::output(
+    const UsdPrim& prim,
+    const std::vector<float>& times,
+    const void* userData
+) const
+{
+    const RendererPluginData* data =
+        reinterpret_cast<const RendererPluginData*>(userData);
+    assert(data);
+
+    SdfPath objectPath = prim.GetPath();
+    std::string prefix = data->prefix;
+    std::string name = prefix + ":" + objectPath.GetText() + ":proc";
+    std::vector<float> xform;
+
+    return createWalterProcedural(
+        data,
+        name,
+        times,
+        xform,
+        objectPath,
+        prefix
+    );
 }
 
 // TODO:
@@ -1063,11 +1127,11 @@ void* RendererPlugin::outputReference(
 
     if (prim.IsA<UsdGeomMesh>())
     {
-        node = outputGeomMesh(prim, times, name.c_str());
+        node = outputGeomMesh(prim, times, name.c_str(), userData);
     }
     else if (prim.IsA<UsdGeomCurves>())
     {
-        node = outputGeomCurves(prim, times, name.c_str());
+        node = outputGeomCurves(prim, times, name.c_str(), userData);
     }
     else if (prim.IsA<UsdShadeShader>())
     {
@@ -1084,6 +1148,7 @@ void* RendererPlugin::outputReference(
         // Walter overrides.
         const NameToAttribute* attributes =
             getAssignedAttributes(path, layer, userData, index, nullptr);
+
         outputAttributes(node, path, attributes, index, layer, userData, true);
     }
 
@@ -1219,7 +1284,8 @@ RendererAttribute RendererPlugin::createRendererAttribute(
 AtNode* RendererPlugin::outputGeomMesh(
     const UsdPrim& prim,
     const std::vector<float>& times,
-    const char* name) const
+    const char* name,
+    const void* userData) const
 {
     TF_DEBUG(WALTER_ARNOLD_PLUGIN)
         .Msg("[%s]: Render: %s\n", __FUNCTION__, name);
@@ -1234,6 +1300,12 @@ AtNode* RendererPlugin::outputGeomMesh(
     AiNodeSetStr(node, "name", name);
     AiNodeSetBool(node, "smoothing", true);
     AiNodeSetByte(node, "visibility", 0);
+
+    const RendererPluginData* data =
+        reinterpret_cast<const RendererPluginData*>(userData);
+    assert(data);
+
+    setMotionStartEnd(node, *data);
 
     // Get mesh.
     UsdGeomMesh mesh(prim);
@@ -1312,7 +1384,8 @@ AtNode* RendererPlugin::outputGeomMesh(
 AtNode* RendererPlugin::outputGeomCurves(
     const UsdPrim& prim,
     const std::vector<float>& times,
-    const char* name) const
+    const char* name,
+    const void* userData) const
 {
     TF_DEBUG(WALTER_ARNOLD_PLUGIN)
         .Msg("[%s]: Render: %s\n", __FUNCTION__, name);
@@ -1326,6 +1399,12 @@ AtNode* RendererPlugin::outputGeomCurves(
 
     AiNodeSetStr(node, "name", name);
     AiNodeSetByte(node, "visibility", 0);
+
+    const RendererPluginData* data =
+        reinterpret_cast<const RendererPluginData*>(userData);
+    assert(data);
+
+    setMotionStartEnd(node, *data);
 
     // Get the basis. From the Arnold docs: Can choose from Bezier, B-Spline,
     // Catmull-Rom, Linear.
@@ -1482,16 +1561,18 @@ void RendererPlugin::outputPrimvars(
         primvar.GetDeclarationInfo(
             &name, &typeName, &interpolation, &elementSize);
 
-        if (interpolation == UsdGeomTokens->constant)
-        {
-            // We don't support it for the moment.
-            continue;
-        }
-
         // Resolve the value
         VtValue vtValue;
         VtIntArray vtIndices;
-        if (interpolation == UsdGeomTokens->faceVarying && primvar.IsIndexed())
+        if (interpolation == UsdGeomTokens->constant)
+        { 
+            if (!primvar.Get(&vtValue, time))
+            {
+                continue;
+            }
+        }
+
+        else if (interpolation == UsdGeomTokens->faceVarying && primvar.IsIndexed())
         {
             // It's an indexed value. We don't want to flatten it because it
             // breaks subdivs.
@@ -1554,7 +1635,7 @@ void RendererPlugin::outputPrimvars(
                      node,
                      numVertsArray))
         { /* Nothing to do */
-        }    
+        }
     }
 }
 
@@ -1623,13 +1704,6 @@ void RendererPlugin::outputAttributes(
             }
         }
     }
-
-    // Get the user data
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
-    assert(data);
-    // Set Arnold motion_start and motion_end.
-    setMotionStartEnd(node, *data);
 
     // Form the full path considering instancing that is good for expression
     // resolving. The first part is saved in the index. The second part is the
