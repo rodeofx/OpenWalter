@@ -23,8 +23,6 @@ RendererDelegate::RendererDelegate(
 void RendererDelegate::populate(const UsdPrim& root)
 {
     const SdfPath rootPath = root.GetPath();
-
-
     bool childrenKnown = mIndex.isChildrenKnown(rootPath);
 
     // This accessor will freeze if there is another accessor in different
@@ -49,15 +47,25 @@ void RendererDelegate::populate(const UsdPrim& root)
 
         const SdfPath primPath = prim.GetPath();
 
+        // This will check if, in the hierarchy of the root path, a parent prim
+        // of primPath has already been added to the index.
+        // If it's the case, it means that a walter procedural will be created
+        // for it (the parent) and so children will be populate at this time.
+        if (mIndex.isParentKnown(rootPath, primPath))
+        {
+            continue;
+        }
+
         // In some cases like a bbox generated from a "point instance" a path could
-        // already by added to the index, but not from the same parent. In this case
+        // already be added to the index, but not from the same parent. In this case
         // we can't skip to early.
         bool skipLater = false;
-        // Skip it it's already cached. In USD it's possible to have several
+
+        // Skip if it's already cached. In USD it's possible to have several
         // parents. We need to be sure that we output the object only once.
         if (rootPath != primPath && mIndex.isProcessed(primPath))
         {
-            if(childrenKnown)
+            if (childrenKnown)
             {
                 continue;
             }
@@ -76,7 +84,7 @@ void RendererDelegate::populate(const UsdPrim& root)
             mIndex.insertPrim(rootPath, primPath);
         }
 
-        if(skipLater)
+        if (skipLater)
         {
             continue;
         }
@@ -148,6 +156,24 @@ void RendererDelegate::populate(const UsdPrim& root)
         }
     }
 
+    // If the locations '/' or '/materials' were not already "scanned" we don't
+    // want to check for expression and assignment as materials may not be
+    // retrieved to do it properly. So skip the Expression scan until
+    // '/materials' has been scanned in the loop above.
+    //
+    // If materials are retrieved and the check for expression and assignment
+    // are already done there is nothing else to do and we can skip the last
+    // loop on WalterExpression.
+    if (!mIndex.hasGlobalMaterials() || mIndex.isAssignmentDone())
+    {
+        return;
+    }
+
+    // Always check assignment from the pseudo root "/" whatever the given
+    // root prim was as material are usually under "/" directly.
+    UsdPrim pseudoRoot = root.GetStage()->GetPseudoRoot();
+    range = UsdPrimRange(pseudoRoot);
+
     for (const UsdPrim& prim : range)
     {
         // We already processed everything and since all the materials are
@@ -161,8 +187,9 @@ void RendererDelegate::populate(const UsdPrim& root)
         WalterExpression expression(prim);
         std::string expressionText = expression.GetExpression();
         WalterExpression::AssignmentLayers layers = expression.GetLayers();
+
         // Insert them into a cache.
         mIndex.insertExpression(
-            prim.GetPath(), rootPath, expressionText, layers);
+            prim.GetPath(), pseudoRoot.GetPath(), expressionText, layers);
     }
 }

@@ -13,8 +13,6 @@
 #include "common/UtilityFunctions.h"
 #include "mayaUtils.h"
 
-#include <json/reader.h>
-#include <json/writer.h>
 #include <maya/MBoundingBox.h>
 #include <maya/MDagPath.h>
 #include <maya/MFileObject.h>
@@ -34,27 +32,6 @@
     #include <dlfcn.h>
 #endif
 
-
-// Append a string value to the JSON dictionary with given key.
-void AppendValue(Json::Value& root, const char* key, const char* value)
-{
-    if (!key || !value || !strlen(key) || !strlen(value))
-    {
-        // Skip if not exist
-        return;
-    }
-
-    if (root.isMember(key))
-    {
-        root[key].append(value);
-    }
-    else
-    {
-        Json::Value array(Json::arrayValue);
-        array.append(value);
-        root[key] = array;
-    }
-}
 
 #if WALTER_MTOA_VERSION >= 10400
 CWalterStandinTranslator::CWalterStandinTranslator() :
@@ -204,8 +181,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             }
         }
 
-        MPlug objectPath = m_DagNode.findPlug("cacheGeomPath");
-
         // TODO: do we still need this block? We export nodes directly from our
         // connections. We might need this for compatibility with the first
         // versions.
@@ -237,107 +212,13 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             }
         }
 
-
-        MPlug jsonFile = m_DagNode.findPlug("jsonFile");
-        MPlug secondaryJsonFile = m_DagNode.findPlug("secondaryJsonFile");
-        MPlug shadersNamespace = m_DagNode.findPlug("shadersNamespace");
-        MPlug shadersAttribute = m_DagNode.findPlug("shadersAttribute");
-        MPlug abcShaders = m_DagNode.findPlug("abcShaders");
-        MPlug uvsArchive = m_DagNode.findPlug("uvsArchive");
-        MPlug shadersAssignation = m_DagNode.findPlug("shadersAssignation");
-        MPlug attributes = m_DagNode.findPlug("attributes");
-        MPlug displacementsAssignation = m_DagNode.findPlug("displacementsAssignation");
-        MPlug layersOverride = m_DagNode.findPlug("layersOverride");
         MPlug usdSessionLayer = m_DagNode.findPlug("USDSessionLayer");
         MPlug usdVariantsLayer = m_DagNode.findPlug("USDVariantsLayer");
         MPlug usdMayaStateLayer = m_DagNode.findPlug("USDMayaStateLayer");
         MPlug usdPurposeLayer = m_DagNode.findPlug("USDPurposeLayer");
         MPlug usdVisibilityLayer = m_DagNode.findPlug("USDVisibilityLayer");
 
-        bool skipJsonFile = m_DagNode.findPlug("skipJsonFile").asBool();
-        bool skipShaders = m_DagNode.findPlug("skipShaders").asBool();
-        bool skipAttributes = m_DagNode.findPlug("skipAttributes").asBool();
-        bool skipLayers = m_DagNode.findPlug("skipLayers").asBool();
-        bool skipDisplacements = m_DagNode.findPlug("skipDisplacements").asBool();
-
-        // JSON strings generated from layersAssignation attribute
-        MString layersAssignationForShaders;
-        MString layersAssignationForDisp;
-        MString layersAssignationForLayers;
-        MString layersAssignationForAttributes;
-
-        // Output all the shaders from the shadersAssignation attribute and from
-        // the layersOverride attribute. Output it even if skipShaders is true
-        // to be able to reuse them after generation of ass file.
-        std::set<std::string> shaderList;
-
-        GenerateLayersAssignation(
-                        layersAssignationForShaders,
-                        layersAssignationForDisp,
-                        layersAssignationForLayers,
-                        layersAssignationForAttributes);
-
-        if (!shadersAssignation.isNull())
-        {
-            // Get the regular shaders.
-            MString shadersJsonString = shadersAssignation.asString();
-            if (shadersJsonString.length())
-            {
-                Json::Value root;
-                Json::Reader reader;
-                reader.parse( shadersJsonString.asChar(), root );
-
-                Json::ValueConstIterator it;
-                for (it=root.begin(); it!=root.end(); it++)
-                {
-                    // Found a shader
-                    shaderList.insert(it.key().asString());
-                }
-            }
-        }
-
-        if (!layersOverride.isNull())
-        {
-            // Get the shaders from the layers. Layers should have the format
-            // like this:
-            // {"layer1":{"shaders":{"Shader1":{"Object1", "Object2"}, ...}}}
-            MString shadersJsonString = layersOverride.asString();
-            if (shadersJsonString.length())
-            {
-                Json::Value root;
-                Json::Reader reader;
-                reader.parse( shadersJsonString.asChar(), root );
-
-                // Iterate layers
-                Json::ValueConstIterator it;
-                for (it=root.begin(); it!=root.end(); it++)
-                {
-                    // Get shaders
-                    Json::Value shaders = (*it)["shaders"];
-
-                    // Iterate shaders
-                    for (Json::ValueConstIterator shIt = shaders.begin();
-                            shIt != shaders.end(); shIt++)
-                    {
-                        // Found a shader
-                        shaderList.insert(shIt.key().asString());
-                    }
-                }
-            }
-        }
-
-        // Get the shaders from Alembic assignments.
-        const MPlug alembicShaders = m_DagNode.findPlug("alembicShaders");
-        if (!alembicShaders.isNull())
-        {
-            unsigned int numElements = alembicShaders.numElements();
-            for (unsigned int i=0; i<numElements; i++)
-            {
-                MString currentShader =
-                    alembicShaders.elementByLogicalIndex(i).asString();
-                shaderList.insert(currentShader.asChar());
-            }
-        }
+        ExportMayaShadingGraph();
 
         // It's a list of materials from the Alembic file.
         // We don't use MStringArray because MStringArray::indexOf() absent in
@@ -355,223 +236,16 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             }
         }
 
-        // Shaders are collected. It's necessary to output them to Arnold.
-        for (auto it=shaderList.cbegin(); it!=shaderList.cend(); it++)
-        {
-            if (it->empty())
-            {
-                continue;
-            }
-
-            // Get the DAG Path from the string. First, create the section.
-            const MString& shaderName(it->c_str());
-            MSelectionList selection;
-            MStatus status = selection.add(shaderName);
-            if (status != MS::kSuccess)
-            {
-                // There is no shader in the scene.
-                auto found = std::find(
-                        embeddedShaderList.cbegin(),
-                        embeddedShaderList.cend(),
-                        shaderName);
-                if (found == embeddedShaderList.cend())
-                {
-                    // There is no shader in the Alembic file.
-                    AiMsgError(
-                        "[mtoa] [%s] Can't find shader %s in the scene "
-                        "and in the Alembic file.",
-                        GetTranslatorName().asChar(),
-                        shaderName.asChar());
-                }
-                continue;
-            }
-
-            // Get the dag path and of the given element of the selection
-            // list.
-            MObject object;
-            status = selection.getDependNode(0, object);
-            if (status != MS::kSuccess)
-            {
-                AiMsgError(
-                        "[mtoa] [%s] Can't find MFnDependencyNode %s.",
-                        GetTranslatorName().asChar(),
-                        shaderName.asChar());
-                continue;
-            }
-
-            // To export a node, it's necessary to provide Arnold any plug
-            // of that node. See CArnoldSession::ExportNode for details.
-            MFnDependencyNode depNode(object);
-            MPlug plug = depNode.findPlug("message");
-
-            // Push it to Arnold.
-#if WALTER_MTOA_VERSION >= 10400
-            ExportConnectedNode(plug);
-#else
-            ExportNode(plug);
-#endif
-        }
-
-        if(skipJsonFile)
-        {
-            AiNodeDeclare(procedural, "skipJsonFile", "constant BOOL");
-            AiNodeSetBool(procedural, "skipJsonFile", skipJsonFile);
-        }
-
-        if(skipShaders)
-        {
-            AiNodeDeclare(procedural, "skipShaders", "constant BOOL");
-            AiNodeSetBool(procedural, "skipShaders", skipShaders);
-        }
-
-        if(skipAttributes)
-        {
-            AiNodeDeclare(procedural, "skipAttributes", "constant BOOL");
-            AiNodeSetBool(procedural, "skipAttributes", skipAttributes);
-        }
-
-        if(skipLayers)
-        {
-            AiNodeDeclare(procedural, "skipLayers", "constant BOOL");
-            AiNodeSetBool(procedural, "skipLayers", skipLayers);
-        }
-
-        if(skipDisplacements)
-        {
-            AiNodeDeclare(procedural, "skipDisplacements", "constant BOOL");
-            AiNodeSetBool(procedural, "skipDisplacements", skipDisplacements);
-        }
-
-        if(abcShaders.asString() != "")
-        {
-            MFileObject AbcShadersObject;
-            AbcShadersObject.setRawFullName(abcShaders.asString().expandFilePath());
-            AbcShadersObject.setResolveMethod(MFileObject::kInputFile);
-            MString  AbcShadersFile = AbcShadersObject.resolvedFullName();
-
-            AiNodeDeclare(procedural, "abcShaders", "constant STRING");
-            AiNodeSetStr(procedural, "abcShaders", AbcShadersFile.asChar());
-        }
-
-        if(uvsArchive.asString() != "")
-        {
-            MFileObject UVsfileObject;
-            UVsfileObject.setRawFullName(uvsArchive.asString().expandFilePath());
-            UVsfileObject.setResolveMethod(MFileObject::kInputFile);
-            MString UvsFile = UVsfileObject.resolvedFullName();
-
-            AiNodeDeclare(procedural, "uvsArchive", "constant STRING");
-            AiNodeSetStr(procedural, "uvsArchive",UvsFile.asChar());
-        }
-
-        if(jsonFile.asString() != "")
-        {
-            MFileObject JSONfileObject;
-            JSONfileObject.setRawFullName(jsonFile.asString().expandFilePath());
-            JSONfileObject.setResolveMethod(MFileObject::kInputFile);
-            MString JSONfile = JSONfileObject.resolvedFullName();
-
-            AiNodeDeclare(procedural, "jsonFile", "constant STRING");
-            AiNodeSetStr(procedural, "jsonFile", JSONfile.asChar());
-        }
-
-        if(secondaryJsonFile.asString() != "")
-        {
-            MFileObject JSONfileObject;
-            JSONfileObject.setRawFullName(secondaryJsonFile.asString().expandFilePath());
-            JSONfileObject.setResolveMethod(MFileObject::kInputFile);
-            MString JSONfile = JSONfileObject.resolvedFullName();
-
-            AiNodeDeclare(procedural, "secondaryJsonFile", "constant STRING");
-            AiNodeSetStr(procedural, "secondaryJsonFile", JSONfile.asChar());
-        }
-
-        if(shadersNamespace.asString() != "")
-        {
-            AiNodeDeclare(procedural, "shadersNamespace", "constant STRING");
-            AiNodeSetStr(procedural, "shadersNamespace", shadersNamespace.asString().asChar());
-        }
-
-        if(shadersAttribute.asString() != "")
-        {
-            AiNodeDeclare(procedural, "shadersAttribute", "constant STRING");
-            AiNodeSetStr(procedural, "shadersAttribute", shadersAttribute.asString().asChar());
-        }
-
-        if(shadersAssignation.asString() != "")
-        {
-            AiNodeDeclare(procedural, "shadersAssignation", "constant STRING");
-            AiNodeSetStr(procedural, "shadersAssignation", shadersAssignation.asString().asChar());
-        }
-        else if (layersAssignationForShaders.length())
-        {
-            AiNodeDeclare(procedural, "shadersAssignation", "constant STRING");
-            AiNodeSetStr(
-                    procedural,
-                    "shadersAssignation",
-                    layersAssignationForShaders.asChar());
-        }
-
-        if(attributes.asString() != "")
-        {
-            AiNodeDeclare(procedural, "attributes", "constant STRING");
-            AiNodeSetStr(procedural, "attributes", attributes.asString().asChar());
-        }
-        else if (layersAssignationForAttributes.length())
-        {
-            AiNodeDeclare(procedural, "attributes", "constant STRING");
-            AiNodeSetStr(
-                    procedural,
-                    "attributes",
-                    layersAssignationForAttributes.asChar());
-        }
-
-        if(displacementsAssignation.asString() != "")
-        {
-            AiNodeDeclare(procedural, "displacementsAssignation", "constant STRING");
-            AiNodeSetStr(procedural, "displacementsAssignation", displacementsAssignation.asString().asChar());
-        }
-        else if (layersAssignationForDisp.length())
-        {
-            AiNodeDeclare(
-                    procedural, "displacementsAssignation", "constant STRING");
-            AiNodeSetStr(
-                    procedural,
-                    "displacementsAssignation",
-                    layersAssignationForDisp.asChar());
-        }
-
-        if(layersOverride.asString() != "")
-        {
-            AiNodeDeclare(procedural, "layersOverride", "constant STRING");
-            AiNodeSetStr(procedural, "layersOverride", layersOverride.asString().asChar());
-        }
-        else if (layersAssignationForLayers.length())
-        {
-            AiNodeDeclare(procedural, "layersOverride", "constant STRING");
-            AiNodeSetStr(
-                    procedural,
-                    "layersOverride",
-                    layersAssignationForLayers.asChar());
-        }
-
 #if WALTER_MTOA_VERSION >= 10400
         ExportFrame(procedural);
 #else
         ExportFrame(procedural, 0);
 #endif
 
-        std::string objectPathStr = objectPath.asString().asChar();
-
-        boost::replace_all(objectPathStr, "|", "/");
-
-        if(objectPathStr == "")
-            objectPathStr = "/";
-
         #if AI_VERSION_ARCH_NUM==4
         AiNodeDeclare(procedural, "objectPath", "constant STRING");
         #endif
-        AiNodeSetStr(procedural, "objectPath", objectPathStr.c_str());
+        AiNodeSetStr(procedural, "objectPath", "/");
 
         static const MTime sec(1.0, MTime::kSeconds);
         float fps = sec.as(MTime::uiUnit());
@@ -769,17 +443,8 @@ void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
     #endif
 }
 
-bool CWalterStandinTranslator::GenerateLayersAssignation(
-        MString& shaders,
-        MString& displacements,
-        MString& layers,
-        MString& attributes)
+bool CWalterStandinTranslator::ExportMayaShadingGraph()
 {
-    Json::Value shadersRoot;
-    Json::Value dispRoot;
-    Json::Value layersRoot;
-    Json::Value attrRoot;
-
     const MPlug layersAssignation = m_DagNode.findPlug("layersAssignation");
     if (layersAssignation.isNull())
     {
@@ -827,13 +492,6 @@ bool CWalterStandinTranslator::GenerateLayersAssignation(
             continue;
         }
 
-        Json::Value& currentShadersRoot =
-            mainLayer ? shadersRoot : layersRoot[layerName]["shaders"];
-        Json::Value& currentDispRoot =
-            mainLayer ? dispRoot : layersRoot[layerName]["displacements"];
-        Json::Value& currentAttrRoot =
-            mainLayer ? attrRoot : layersRoot[layerName]["properties"];
-
         for (unsigned j=0; j<shadersPlug.numElements(); j++)
         {
             // Get walterStandin.layersAssignation[i].shaderConnections[j]
@@ -855,51 +513,25 @@ bool CWalterStandinTranslator::GenerateLayersAssignation(
             MPlug shaderPlug;
             if (GetChildMPlug(shadersCompound, "shader", shaderPlug))
             {
-                AppendConnection(
-                        abcnode.asChar(), shaderPlug, currentShadersRoot);
+                ExportConnections(
+                        abcnode.asChar(), shaderPlug);
             }
 
             // The same for displacement
             MPlug dispPlug;
             if (GetChildMPlug(shadersCompound, "displacement", dispPlug))
             {
-                AppendConnection(abcnode.asChar(), dispPlug, currentDispRoot);
-            }
-
-            // The same for attributes
-            MPlug attrPlug;
-            if (GetChildMPlug(shadersCompound, "attribute", attrPlug))
-            {
-                AppendAttributes(abcnode.asChar(), attrPlug, currentAttrRoot);
+                ExportConnections(abcnode.asChar(), dispPlug);
             }
         }
-    }
-
-    Json::FastWriter fastWriter;
-    if (!shadersRoot.isNull())
-    {
-        shaders = fastWriter.write(shadersRoot).c_str();
-    }
-    if (!shadersRoot.isNull())
-    {
-        displacements = fastWriter.write(dispRoot).c_str();
-    }
-    if (!layersRoot.isNull())
-    {
-        layers = fastWriter.write(layersRoot).c_str();
-    }
-    if (!attrRoot.isNull())
-    {
-        attributes = fastWriter.write(attrRoot).c_str();
     }
 
     return true;
 }
 
-void CWalterStandinTranslator::AppendConnection(
-        const char* abcnode, const MPlug& shaderPlug, Json::Value& root)
+void CWalterStandinTranslator::ExportConnections(
+        const char* abcnode, const MPlug& shaderPlug)
 {
-    // Get the connected shader name
     MPlugArray connections;
     if (!shaderPlug.connectedTo(connections, true, false) ||
         !connections.length())
@@ -907,109 +539,12 @@ void CWalterStandinTranslator::AppendConnection(
         return;
     }
 
-    const MObject node(connections[0].node());
-    std::string shader = MFnDependencyNode(node).name().asChar();
-
-    AppendValue(root, shader.c_str(), abcnode);
-
     // Push this connection to the shader to Arnold.
 #if WALTER_MTOA_VERSION >= 10400
     ExportConnectedNode(connections[0]);
 #else
     ExportNode(connections[0]);
 #endif
-}
-
-void CWalterStandinTranslator::AppendAttributes(
-        const char* abcnode, const MPlug& attrPlug, Json::Value& root)const
-{
-    // Get the connected node
-    MPlugArray connections;
-    if (!attrPlug.connectedTo(connections, true, false) ||
-        !connections.length())
-    {
-        return;
-    }
-
-    const MFnDependencyNode node(connections[0].node());
-
-    // Iterate the attributes
-    for (unsigned i=0; i<node.attributeCount(); i++)
-    {
-        const MFnAttribute attr(node.attribute(i));
-        const MString name = attr.name();
-
-        // Set good name. Remove the prefix and convert it.
-        // "walterSubdivType" -> "subdiv_type"
-        std::string jsonName = attributeNameDemangle(name.asChar());
-        if (jsonName.empty())
-        {
-            continue;
-        }
-
-        // Get the value
-        const MPlug plug = node.findPlug(attr.object());
-        const MDataHandle data = plug.asMDataHandle();
-
-        switch (data.numericType())
-        {
-            case MFnNumericData::kInvalid:
-            {
-                int v;
-                if (data.type() == MFnData::kString)
-                {
-                    // It's a string.
-                    root[abcnode][jsonName] = data.asString().asChar();
-                }
-                else if (plug.getValue(v) == MS::kSuccess)
-                {
-                    // This plug doesn't have data. But we can try to get an int.
-                    root[abcnode][jsonName] = v;
-                }
-                break;
-            }
-
-            case MFnNumericData::kBoolean:
-                root[abcnode][jsonName] = data.asBool();
-                break;
-
-            case MFnNumericData::kShort:
-            case MFnNumericData::kLong:
-                root[abcnode][jsonName] = data.asInt();
-                break;
-
-            case MFnNumericData::kFloat:
-                root[abcnode][jsonName] = data.asFloat();
-                break;
-
-            case MFnNumericData::kDouble:
-                root[abcnode][jsonName] = data.asDouble();
-                break;
-
-            case MFnNumericData::k3Float:
-            {
-                // It's a color. We need to make a JSON list to store it.
-                const float3& color = data.asFloat3();
-                Json::Value value(Json::arrayValue);
-                for(unsigned i=0; i<sizeof(color)/sizeof(color[0]); i++)
-                {
-                    value.append(color[i]);
-                }
-                root[abcnode][jsonName] = value;
-
-                break;
-            }
-
-            default:
-                break;
-        }
-    }
-
-    int visibility = ComputeWalterVisibility(node);
-    if (visibility >=0)
-    {
-        root[abcnode]["visibility"] = visibility;
-    }
 }
 
 int CWalterStandinTranslator::ComputeWalterVisibility(

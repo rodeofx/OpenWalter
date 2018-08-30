@@ -113,6 +113,7 @@ if(BUILD_TESTS)
     arnold_test(09-b365c58f35b1-broken-regex.ass)
     arnold_test(10-6722c1d-aiComposite.ass)
     arnold_test(11-matrix-param_support.ass)
+    arnold_test(12-point-instancer.ass)
 endif()
 
 install(TARGETS ${PROC} DESTINATION ${CMAKE_INSTALL_PREFIX}/arnold)

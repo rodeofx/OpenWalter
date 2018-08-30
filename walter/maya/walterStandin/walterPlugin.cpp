@@ -31,7 +31,7 @@ MStatus createMenu()
     cmd += "}";
     cmd += "proc _walterCacheFileNameBrowser(string $cmd)";
     cmd += "{";
-    cmd += "\tfileBrowser($cmd, \"ABC File\", \"\", 0);";
+    cmd += "\tfileBrowser($cmd, \"USD or ABC File\", \"\", 0);";
     cmd += "}";
 
     cmd += "global string $gMainCreateMenu;";

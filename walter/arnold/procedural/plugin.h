@@ -92,6 +92,13 @@ public:
     // stuff.
     bool isImmediate(const UsdPrim& prim) const;
 
+    // Output the procedural from any prim.
+    void* output(
+        const UsdPrim& prim,
+        const std::vector<float>& times,
+        const void* userData
+    ) const;
+
     // Output the procedural with the primitive.
     void* outputBBox(
         const UsdPrim& prim,
@@ -139,12 +146,14 @@ private:
     AtNode* outputGeomMesh(
         const UsdPrim& prim,
         const std::vector<float>& times,
-        const char* name) const;
+        const char* name,
+        const void* userData) const;
 
     AtNode* outputGeomCurves(
         const UsdPrim& prim,
         const std::vector<float>& times,
-        const char* name) const;
+        const char* name,
+        const void* userData) const;
 
     AtNode* outputShader(
         const UsdPrim& prim,

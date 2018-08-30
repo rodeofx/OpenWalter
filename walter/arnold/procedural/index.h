@@ -38,13 +38,29 @@ public:
     void insertPrim(const SdfPath& parentPath, const SdfPath& objectPath);
 
     // Return true if the object is in the index.
-    bool isProcessed(const SdfPath& path)const;
+    bool isProcessed(const SdfPath& path) const;
 
-    // The number of the children.
-    int getNumNodes(const SdfPath& path)const;
+    // The number of the children (number found is cached for next call).
+    int getNumNodes(const SdfPath& path);
+
+    // Insert a number of nodes for a given path (needed for any path that
+    // didn't go through the delegate.populate function such as point instancer)
+    void insertNumNodes(const SdfPath& path, int numNodes);
 
     // Return true if children of this path are already in the index
-    bool isChildrenKnown(const SdfPath& path)const;
+    bool isChildrenKnown(const SdfPath& path) const;
+
+    // Return true if a parent of this path is already in the index.
+    bool isParentKnown(const SdfPath& root, const SdfPath& path) const;
+
+    // Assignment are always checked from "/" and on the entire stage, so it
+    // doesn't need to be done twice. This function return true if it has
+    // already be done.
+    bool isAssignmentDone() const;
+
+    // Return true if `/` or `/materials` has already been registered as
+    // parent location in the hierarchy map.
+    bool hasGlobalMaterials() const;
 
     // Get children.
     const SdfPath* getPath(const SdfPath& parentPath, unsigned int i)const;
@@ -185,6 +201,8 @@ private:
     typedef TfHashMap<SdfPath, NameToAttribute, SdfPath::Hash> Attributes;
     typedef tbb::concurrent_hash_map<std::string, NameToAttribute> ObjectAttrs;
 
+    typedef std::map<SdfPath, int> NumNodesMap;
+
     // All the objects that are in the index. They are considered as processed.
     // TODO: If using tbb:concurrent_unordered_set, we can ge rid of
     // mCachedObjectSetLock
@@ -203,6 +221,8 @@ private:
     // Object to Attributes. List of attributes for each object in the scene. We
     // need it to fast query attributes of the parent object.
     ObjectAttrs mObjectAttributes;
+
+    NumNodesMap mNumNodes;
 
     // The storage to keep the full paths of the given prefixes. Prefixe is the
     // arnold parameter of the walter procedural that is used to keep the name

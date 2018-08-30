@@ -157,7 +157,7 @@ target_link_libraries(
     ${HOUDINI_LIB_DIRS}/libhboost_system.so)
 
 install(
-    FILES ${CMAKE_SOURCE_DIR}/maya/icons/walterwhite.png
+    FILES ${CMAKE_SOURCE_DIR}/houdini/icons/Walter_round_logo_gold.png
     DESTINATION houdini/config/Icons)
 install(
     FILES ${CMAKE_CURRENT_SOURCE_DIR}/otls/walter_procedural.hda

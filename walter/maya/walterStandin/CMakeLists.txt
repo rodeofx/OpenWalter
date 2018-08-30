@@ -140,6 +140,33 @@ add_definitions(
     -DMINOR_VERSION="${MINOR_VERSION}"
     -DPATCH_VERSION="${PATCH_VERSION}")
 
+macro(maya_render_test mayaScene)
+    add_test(
+        NAME ${mayaScene}
+        COMMAND
+            ${MAYA_LOCATION}/bin/Render -r arnold -x 256 -y 256 -rd /tmp -im ${mayaScene} -of exr ${mayaScene}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/mayaRender)
+
+    add_test(
+        NAME ${mayaScene}-Diff
+        COMMAND
+            ${OIIO_idiff_BINARY}
+            -q
+            -warn 0.01
+            -fail 0.001
+            ${mayaScene}.exr
+            /tmp/${mayaScene}.exr
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/tests/mayaRender)
+    set_property(
+        TEST ${mayaScene}
+        PROPERTY ENVIRONMENT
+            "MAYA_MODULE_PATH=${CMAKE_INSTALL_PREFIX}/maya:${MTOA_INCLUDE_DIR}/..:${MAYA_MODULE_PATH};"
+            "MAYA_PLUG_IN_PATH=${CMAKE_INSTALL_PREFIX}/maya:${MAYA_PLUG_IN_PATH};"
+            "MAYA_RENDER_DESC_PATH=${MTOA_INCLUDE_DIR}/..:${MAYA_RENDER_DESC_PATH}/..;"
+            "LD_LIBRARY_PATH=${MTOA_INCLUDE_DIR}/../bin")
+
+endmacro()
+
 if(BUILD_TESTS)
     add_test(
         NAME Walter-Standin-Integration
@@ -152,6 +179,12 @@ if(BUILD_TESTS)
         PROPERTY ENVIRONMENT
             "MAYA_MODULE_PATH=${CMAKE_INSTALL_PREFIX}/maya:${MTOA_INCLUDE_DIR}/..;"
             "LD_LIBRARY_PATH=${MTOA_INCLUDE_DIR}/../bin")
+
+    find_package(OpenImageIO REQUIRED)
+    maya_render_test(testPointInstancer.ma)
+    maya_render_test(testPrimColor.ma)
+    maya_render_test(testPrimVertexColor.ma)
+
 endif()
 
 install(TARGETS ${WALTERSTANDIN} DESTINATION ${CMAKE_INSTALL_PREFIX}/maya/plug-ins)

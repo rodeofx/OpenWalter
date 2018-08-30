@@ -1,0 +1,40 @@
+#usda 1.0
+(
+    defaultPrim = "Meshes"
+    endTimeCode = 1
+    startTimeCode = 1
+    upAxis = "Y"
+)
+
+def Xform "Meshes" (
+    customData = {
+        bool zUp = 0
+    }
+    kind = "component"
+)
+{
+    def Mesh "mesh_0"
+    {
+        float3[] extent.timeSamples = {
+            1: [(0, 0, 0), (1, 1, 0)],
+        }
+        int[] faceVertexCounts.timeSamples = {
+            1: [3],
+        }
+        int[] faceVertexIndices.timeSamples = {
+            1: [0, 1, 2],
+        }
+        uniform token orientation = "leftHanded"
+        point3f[] points.timeSamples = {
+            1: [(0, 0, 0), (1, 0, 0), (0, 1, 0)],
+        }
+        color3f[] primvars:displayColor (
+            interpolation = "vertex"
+        )
+        color3f[] primvars:displayColor.timeSamples = {
+            1: [(0.13823998, 0.7690854, 0.7543167), (0.70516205, 0.725315, 0.77520585), (0.90488183, 0.30317855, 0.14076483)],
+        }
+        uniform token subdivisionScheme = "none"
+    }
+}
+

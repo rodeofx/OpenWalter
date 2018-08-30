@@ -73,10 +73,10 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 
     // Get USD stuff
     RendererEngine* engine = RendererEngine::getInstance(file, overrides);
-    
+
     SdfPath path;
     if(std::string(object) != "")
-    {        
+    {
         path = SdfPath(object);
     }
     else

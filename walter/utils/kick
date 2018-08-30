@@ -3,4 +3,4 @@
 : ${WALTER_ROOT:=./build/lib/walter}
 
 export ARNOLD_PLUGIN_PATH=${WALTER_ROOT}/arnold:${MTOA_ROOT}/shaders
-${ARNOLD_ROOT}/bin/kick $1
+${ARNOLD_ROOT}/bin/kick $@

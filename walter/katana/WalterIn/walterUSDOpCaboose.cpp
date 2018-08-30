@@ -1110,7 +1110,7 @@ void cookInstance(
     );
 }
 
-void cookInstanceAsRendererProcedural(
+void cookAsRendererProcedural(
     const UsdPrim& iPrim,
     const OpUtils::TimePtr iTime,
     FnAttribute::GroupBuilder& oStaticGb,
@@ -1175,12 +1175,14 @@ bool OpCaboose::isSupported(const UsdPrim& iPrim)
     // this way.
     return !iPrim.HasAuthoredTypeName() || iPrim.IsA<UsdGeomXform>() ||
         iPrim.IsA<UsdGeomScope>() || iPrim.IsA<UsdGeomMesh>() ||
-        iPrim.IsA<UsdShadeMaterial>() || iPrim.IsA<WalterVolume>();
+        iPrim.IsA<UsdShadeMaterial>() || iPrim.IsA<WalterVolume>() ||
+        iPrim.IsA<UsdGeomPointInstancer>();
 }
 
 bool OpCaboose::skipChildren(const UsdPrim& iPrim)
 {
-    return iPrim.IsA<UsdShadeMaterial>() || iPrim.IsA<UsdShadeShader>();
+    return iPrim.IsA<UsdShadeMaterial>() || iPrim.IsA<UsdShadeShader>() ||
+        iPrim.IsA<UsdGeomPointInstancer>();
 }
 
 void OpCaboose::cook(
@@ -1249,6 +1251,15 @@ void OpCaboose::cook(
     {
         OpCabooseImpl::cookWalterVolume(iPrim, time, staticBld);
     }
+    else if (iPrim.IsA<UsdGeomPointInstancer>())
+    {
+        OpCabooseImpl::cookAsRendererProcedural(
+            iPrim,
+            time,
+            staticBld,
+            iPrivateData->engine().getIdentifier()
+        );
+    }
     else if (isInstance)
     {
         auto cookInstancesAttr = interface->getOpArg("cookInstances");
@@ -1279,7 +1290,7 @@ void OpCaboose::cook(
         // Cook instances as renderer procedurals.
         else
         {
-            OpCabooseImpl::cookInstanceAsRendererProcedural(
+            OpCabooseImpl::cookAsRendererProcedural(
                 iPrim,
                 time,
                 staticBld,

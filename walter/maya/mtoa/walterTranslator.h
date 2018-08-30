@@ -2,7 +2,6 @@
 #include "translators/shape/ShapeTranslator.h"
 #include "mtoaVersion.h"
 
-#include <json/value.h>
 #include <translators/NodeTranslator.h>
 
 class CWalterStandinTranslator
@@ -37,24 +36,14 @@ protected:
    MFnDagNode m_DagNode;
 
 private:
-    // Generate the assignation JSON string from the layersAssignation attribute
-    bool GenerateLayersAssignation(
-            MString& shaders,
-            MString& displacements,
-            MString& layers,
-            MString& attributes);
+    // Export Arnold shader and displacement from the Maya shaders and displacements nodes
+    // connected to the shape.
+    bool ExportMayaShadingGraph();
 
-    // Add the connection to the JSON structure.
-    void AppendConnection(
+    // Export node graph connect to this plug
+    void ExportConnections(
             const char* abcnode,
-            const MPlug& shaderPlug,
-            Json::Value& root);
-
-    // Adds an attribute to the attribute json structure.
-    void AppendAttributes(
-            const char* abcnode,
-            const MPlug& attrPlug,
-            Json::Value& root)const;
+            const MPlug& shaderPlug);
 
     // Computes visibility attributes based on the node's attributes. Returns
     // negative when the visibility can't be reached.

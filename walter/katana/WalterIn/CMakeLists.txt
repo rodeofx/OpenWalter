@@ -171,7 +171,7 @@ macro(katana_test katanaScene)
         TEST ${katanaScene}
         PROPERTY ENVIRONMENT
             "KATANA_RESOURCES=${CMAKE_INSTALL_PREFIX}/katana:${KTOA_HOME};"
-            "ARNOLD_PLUGIN_PATH=${CMAKE_INSTALL_PREFIX}/procedurals:${KTOA_HOME}/shaders")
+            "ARNOLD_PLUGIN_PATH=${CMAKE_INSTALL_PREFIX}/arnold:${KTOA_HOME}/shaders:${MTOA_BASE_DIR}/shaders")
 endmacro()
 
 if(BUILD_TESTS)
@@ -183,6 +183,7 @@ if(BUILD_TESTS)
     katana_test(testWalterAssign.katana)
     katana_test(testAlembicPointCloudMotionBlur.katana)
     katana_test(testInstancesAssignation.katana)
+    katana_test(testPointInstancer.katana)
 endif()
 
 set(KATANA_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/katana)

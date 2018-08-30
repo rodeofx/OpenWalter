@@ -2,7 +2,6 @@ set(MTOATRANSLATOR walterMtoATranslator)
 
 file(GLOB SRC "*.cpp" "*h")
 include_directories(${Boost_INCLUDE_DIR})
-include_directories(${JSONCPP_INCLUDE_DIRS})
 include_directories(${MTOA_INCLUDE_DIR})
 include_directories(${ARNOLD_INCLUDE_DIR})
 
@@ -21,7 +20,6 @@ target_link_libraries(
     arnoldVersionPort
     ${ARNOLD_LIBRARY}
     ${Boost_REGEX_LIBRARY}
-    ${JSONCPP_LIBRARIES}
     ${MAYA_LIBRARIES}
     ${MTOA_LIBRARY} )
 set_target_properties(${MTOATRANSLATOR} PROPERTIES PREFIX "")
