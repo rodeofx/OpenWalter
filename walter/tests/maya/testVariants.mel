@@ -5,7 +5,7 @@ proc int _testVariants(string $dir, string $usdFile, string $variantListRef[])
     string $nodePath = $dir + $usdFile;
  	string $node = wCreateStandin($nodePath);
 
-    string $variantList[] = `walterStandin -getVariants $node`;
+    string $variantList[] = `walterStandin -getVariants $node "" 1`;
     int $size = size($variantList);
     int $sizeRef = size($variantListRef);
 

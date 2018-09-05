@@ -25,6 +25,7 @@ TEST(getVariantsLayerAsText, test1)
     colorsVset.AddVariant("blue");
     colorsVset.SetVariantSelection("green");
 
-    std::vector<std::string> result = WalterUSDCommonUtils::getVariantsUSD(stage);
+    std::vector<std::string> result = WalterUSDCommonUtils::getVariantsUSD(
+        stage, "", true);
     EXPECT_EQ(result[0], "{ \"prim\": \"/Foo\", \"variants\": [{ \"set\": \"colors\", \"names\": [\"blue\", \"green\", \"red\"], \"selection\": \"green\" } ]  }");
 }

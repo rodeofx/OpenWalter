@@ -135,10 +135,14 @@ std::vector<std::string> propertiesUSD(
  * @brief Fills result with all the USD variants of the stage.
  *
  * @param stage The USD stage.
+ * @param primPath The primitive path (as string).
  *
  * @return The variants list (as an array of json).
  */
-std::vector<std::string> getVariantsUSD(UsdStageRefPtr stage);
+std::vector<std::string> getVariantsUSD(
+    UsdStageRefPtr stage,
+    const char* primPath = "",
+    bool recursively = false);
 
 /**
  * @brief Sets the variants of the primitive at path primPath.

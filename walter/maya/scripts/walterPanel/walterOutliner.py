@@ -23,6 +23,7 @@ from walter import OVERRIDE_TRANSFORM
 from walterPropertiesDialog import WalterPropertiesDialog
 from walterVisibilityMenu import VisibilityMenu
 from walterPurposeMenu import StagePurposeMenu
+from walterVariantsMenu import VariantsMenu
 
 # Global look variables.
 ITEM_HEIGHT = dpiScale(22)
@@ -241,6 +242,16 @@ class OutlinerTreeView(BaseTreeView):
                 visIndices,
                 self.contextMenu))
 
+        if len(visIndices) == 1:
+            item = visIndices[0].internalPointer()
+            variantMenu = VariantsMenu()
+            if variantMenu.reset(
+                item.getOriginObject(),
+                item.alembicObject,
+                'Variants',
+                False, False, False):
+                self.contextMenu.addMenu(variantMenu)
+
         # Remove item
         removeActions = [
             (expressionIndices, "Remove Expression"),
@@ -301,6 +312,11 @@ class OutlinerTreeView(BaseTreeView):
             createActionPurposes.triggered.connect(
                 lambda i=originIndices[0], m=self.model(): m.savePurposes(i))
 
+            createActionVariants = \
+                self.contextMenu.addAction("Save Variants...")
+            createActionVariants.triggered.connect(
+                lambda i=originIndices[0], m=self.model(): m.saveVariantsLayer(i))
+
         if expressionIndices and not originIndices and not alembicObjects:
             group = self.contextMenu.addAction("Group")
             group.triggered.connect(
@@ -315,7 +331,7 @@ class OutlinerTreeView(BaseTreeView):
                     lambda idxs=expressionIndices, m=self.model():
                     m.unGroupExpressions(idxs))
 
-        if self.contextMenu.isEmpty(): # and len(indices) == 0:
+        if self.contextMenu.isEmpty():
             refreshAction = self.contextMenu.addAction("Refresh")
             refreshAction.triggered.connect(self.refresh)
 
@@ -671,7 +687,6 @@ class TreeModel(BaseModel):
     def __updateModel(self, action, walterStandinName,
                       prevWalterStandinName=None):
         """Update dynamically the tree model."""
-
 
         # Gets the walter standin root item
         walterStandinRootItem, walterStandinRootItemIndex = \
@@ -1143,50 +1158,29 @@ class TreeModel(BaseModel):
 
     def saveAssignment(self, index):
         """Save assignment of the origin object to the external file."""
-        if not index.isValid():
-            return
-
-        item = index.internalPointer()
-        if item.getType() != TreeItem.TYPE_ORIGIN:
-            return
-
-        self.traverser.saveAssignment(item.getName())
+        self.__saveLayer(index, self.traverser.saveAssignment)
 
     def saveAttributes(self, index):
         """Save assignment of the origin object to the external file."""
-        if not index.isValid():
-            return
-
-        item = index.internalPointer()
-        if item.getType() != TreeItem.TYPE_ORIGIN:
-            return
-
-        self.traverser.saveAttributes(item.getName())
+        self.__saveLayer(index, self.traverser.saveAttributes)
 
     def saveMaterials(self, index):
         """Save materials of the origin object to the external file."""
-        if not index.isValid():
-            return
-
-        item = index.internalPointer()
-        if item.getType() != TreeItem.TYPE_ORIGIN:
-            return
-
-        self.traverser.saveMaterials(item.getName())
+        self.__saveLayer(index, self.traverser.saveMaterials)
 
     def saveTransforms(self, index):
         """Save transforms of the origin object to the external file."""
-        if not index.isValid():
-            return
-
-        item = index.internalPointer()
-        if item.getType() != TreeItem.TYPE_ORIGIN:
-            return
-
-        self.traverser.saveTransforms(item.getName())
+        self.__saveLayer(index, self.traverser.saveTransforms)
 
     def savePurposes(self, index):
         """Save transforms of the origin object to the external file."""
+        self.__saveLayer(index, self.traverser.savePurposes)
+
+    def saveVariantsLayer(self, index):
+        """Save variant layer of the origin object to the external file."""
+        self.__saveLayer(index, self.traverser.saveVariantsLayer)
+
+    def __saveLayer(self, index, func):
         if not index.isValid():
             return
 
@@ -1194,7 +1188,7 @@ class TreeModel(BaseModel):
         if item.getType() != TreeItem.TYPE_ORIGIN:
             return
 
-        self.traverser.savePurposes(item.getName())
+        func(item.getName())
 
     def executeAction(self, action, index):
         """User pressed by one of the actions."""

@@ -60,8 +60,14 @@ MSyntax Command::cmdSyntax()
         "-ass", "-addSubSelection", MSyntax::kString, MSyntax::kString);
     syntax.addFlag("-da", "-dirAlembic", MSyntax::kString, MSyntax::kString);
     syntax.addFlag("-pa", "-propsAlembic", MSyntax::kString, MSyntax::kString);
+    
     syntax.addFlag(
-        "-gva", "-getVariants", MSyntax::kString);
+        "-gva", 
+        "-getVariants", 
+        MSyntax::kString, 
+        MSyntax::kString, 
+        MSyntax::kBoolean);
+    
     syntax.addFlag(
         "-sva",
         "-setVariant",
@@ -69,6 +75,7 @@ MSyntax Command::cmdSyntax()
         MSyntax::kString,
         MSyntax::kString,
         MSyntax::kString);
+
     syntax.addFlag("-v", "-version", MSyntax::kString, MSyntax::kString);
     syntax.addFlag("-s", "-saveAssignment", MSyntax::kString, MSyntax::kString);
     syntax.addFlag("-s", "-saveAttributes", MSyntax::kString, MSyntax::kString);
@@ -191,6 +198,12 @@ MSyntax Command::cmdSyntax()
         MSyntax::kString,
         MSyntax::kString);
 
+    syntax.addFlag(
+        "-svl",
+        "-saveVariantsLayer",
+        MSyntax::kString,
+        MSyntax::kString);
+
     syntax.useSelectionAsDefault(true);
     syntax.setObjectType(MSyntax::kSelectionList, 0);
 
@@ -274,11 +287,15 @@ MStatus Command::doIt(const MArgList& args)
     if (argsDb.isFlagSet("-getVariants"))
     {
         MString objectName;
+        MString subNodeName;
+        bool recursively;
 
         argsDb.getFlagArgument("-getVariants", 0, objectName);
+        argsDb.getFlagArgument("-getVariants", 1, subNodeName);
+        argsDb.getFlagArgument("-getVariants", 2, recursively);
 
         // Return. Don't execute anything else.
-        return getVariants(objectName);
+        return getVariants(objectName, subNodeName, recursively);
     }
 
     if (argsDb.isFlagSet("-setVariant"))
@@ -384,6 +401,23 @@ MStatus Command::doIt(const MArgList& args)
 
         // Return. Don't execute anything else.
         if (savePurposes(objectName, fileName))
+        {
+            return MS::kSuccess;
+        }
+
+        return MS::kFailure;
+    }
+
+    if (argsDb.isFlagSet("-saveVariantsLayer"))
+    {
+        MString objectName;
+        MString fileName;
+
+        argsDb.getFlagArgument("-saveVariantsLayer", 0, objectName);
+        argsDb.getFlagArgument("-saveVariantsLayer", 1, fileName);
+
+        // Return. Don't execute anything else.
+        if (saveVariantsLayer(objectName, fileName))
         {
             return MS::kSuccess;
         }
@@ -800,7 +834,9 @@ MStatus Command::propsAlembic(
 }
 
 MStatus Command::getVariants(
-    const MString& objectName) const
+    const MString& objectName,
+    const MString& subNodeName,
+    bool recursively) const
 {
     MStatus status;
 
@@ -817,7 +853,12 @@ MStatus Command::getVariants(
     WalterThreadingUtils::joinAll();
 
     MStringArray resultArray;
-    getVariantsUSD(userNode, resultArray);
+    getVariantsUSD(
+        userNode,
+        subNodeName,
+        recursively,
+        resultArray);
+
     MPxCommand::setResult(resultArray);
 
     return MS::kSuccess;

@@ -49,7 +49,9 @@ private:
         const;
 
     MStatus getVariants(
-        const MString& objectName) const;
+        const MString& objectName,
+        const MString& subNodeName,
+        bool recursively) const;
 
     MStatus setVariant(
         const MString& objectName,

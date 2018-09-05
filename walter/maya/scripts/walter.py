@@ -385,6 +385,16 @@ class Walter(object):
         """
         return self.details.savePurposes(origin, fileName)
 
+    def saveVariantsLayer(self, origin, fileName=None):
+        """
+        Save the usd variants layer to the external file. If the file is not
+        specified, show the dialog.
+
+        :param str origin: The stand-in object.
+        :param str fileName: The target file.
+        """
+        return self.details.saveVariantsLayer(origin, fileName)
+
     def setGroup(self, origin, path, group):
         """
         Set the group of the given expression.
