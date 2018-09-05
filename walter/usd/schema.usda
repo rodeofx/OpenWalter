@@ -2,8 +2,9 @@
 (
     "This file describes the USD Shader schemata for code generation."
     subLayers = [
-        @/tmp/build/USD/pxr/usd/lib/usd/schema.usda@,
-        @/tmp/build/USD/pxr/usd/lib/usdGeom/schema.usda@
+        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usd/schema.usda@,
+        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usdGeom/schema.usda@,
+        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usdLux/schema.usda@
     ]
 )
 
@@ -62,4 +63,10 @@ class Volume "Volume" (
     float velocityOutlierThreshold = 0.001 (
             doc = """Controls filtering of noisy velocities resulting in the
             faster rendering of motion blur from physics simulations.""" )
+}
+
+class ArnoldLight "ArnoldLight" (
+    inherits = </Light>
+    doc = "Defines a concrete generic Arnold light."
+) {
 }

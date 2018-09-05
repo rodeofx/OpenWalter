@@ -103,7 +103,7 @@ index ff890b43..259a7202 100644
 +        schema.getPtr(), ".material");
 +
 +    // Set prim type.
-+    context->GetPrim().typeName = UsdAbcPrimTypeNames->Light;
++    context->GetPrim().typeName = UsdAbcPrimTypeNames->ArnoldLight;
 +
 +    _ReadMaterialProperties(material, context);
 +}
@@ -160,7 +160,7 @@ index cd8592bc..1ca5d191 100644
      (Xform) \
      (Shader) \
      (Material) \
-+    (Light) \
++    (ArnoldLight) \
      /* end */
  TF_DECLARE_PUBLIC_TOKENS(UsdAbcPrimTypeNames, USD_ABC_PRIM_TYPE_NAMES);
  
