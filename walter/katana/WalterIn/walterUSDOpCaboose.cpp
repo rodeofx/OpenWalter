@@ -1139,9 +1139,6 @@ void cookAsRendererProcedural(
         "rendererProcedural.args.__outputStyle",
         FnAttribute::StringAttribute("typedArguments"));
     oStaticGb.set(
-        "rendererProcedural.args.__skipBuiltins",
-        FnAttribute::IntAttribute(1));
-    oStaticGb.set(
         "rendererProcedural.args.frame",
         FnAttribute::FloatAttribute(iTime->current()));
 }
