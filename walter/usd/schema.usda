@@ -2,9 +2,9 @@
 (
     "This file describes the USD Shader schemata for code generation."
     subLayers = [
-        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usd/schema.usda@,
-        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usdGeom/schema.usda@,
-        @/devLocal/openWalter/walter/build/build/USD/pxr/usd/lib/usdLux/schema.usda@
+        @../../build/build/USD/pxr/usd/lib/usd/schema.usda@,
+        @../../build/build/USD/pxr/usd/lib/usdGeom/schema.usda@,
+        @../../build/build/USD/pxr/usd/lib/usdLux/schema.usda@
     ]
 )
 
