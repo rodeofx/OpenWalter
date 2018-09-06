@@ -114,6 +114,7 @@ if(BUILD_TESTS)
     arnold_test(10-6722c1d-aiComposite.ass)
     arnold_test(11-matrix-param_support.ass)
     arnold_test(12-point-instancer.ass)
+    arnold_test(13-point-instancer-colors.ass)
 endif()
 
 install(TARGETS ${PROC} DESTINATION ${CMAKE_INSTALL_PREFIX}/arnold)

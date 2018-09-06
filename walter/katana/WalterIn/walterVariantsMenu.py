@@ -12,6 +12,13 @@ from UI4.Widgets import ToolbarButton
 from UI4.Util import IconManager
 from UI4.Manifest import QtGui
 from walterUSDExtern import WalterUSDExtern
+from Katana import Utils
+
+
+def SetEnableMenusRecursively(widget, enable):
+    for childWidget in widget.findChildren(QtGui.QWidget):
+        SetEnableMenusRecursively(childWidget, enable)
+    widget.setEnabled(enable)
 
 
 class VariantAction(walterWidgets.BaseVariantAction):
@@ -21,16 +28,25 @@ class VariantAction(walterWidgets.BaseVariantAction):
             primPath, index, variantName,
             variantSetName, isSelected, menu)
 
+        variantsMenu = self.menu.parent
+        self.menu.setEnabled(variantsMenu.canSetVariant)
+
     def _setVariantValue(self):
         """Implementation of walterWidgets.BaseVariantAction."""
+        variantsMenu = self.menu.parent
 
-        walterUSDExtern = self.menu.parent.walterUSDExtern
-        variant = walterUSDExtern.setVariantUsd(
-            self.primPath, self.variantSetName, self.variantName)
+        if variantsMenu.canSetVariant:
+            variantsMenu.canSetVariant = False
 
-        arrayParameterPolicy = self.menu.parent.parent.getValuePolicy()
-        arrayParameterPolicy.getArrayChild(
-            self.index).setValue(variant)
+            walterUSDExtern = variantsMenu.walterUSDExtern
+            variant = walterUSDExtern.setVariantUsd(
+                self.primPath, self.variantSetName, self.variantName)
+
+            arrayParameterPolicy = self.menu.parent.parent.getValuePolicy()
+            arrayParameterPolicy.getArrayChild(
+                self.index).setValue(variant)
+
+        self.menu.setEnabled(variantsMenu.canSetVariant)
 
 
 class VariantSetMenu(walterWidgets.BaseVariantSetMenu):
@@ -51,8 +67,9 @@ class VariantsMenu(walterWidgets.BaseVariantsMenu):
     def __init__(self, parent):
         super(VariantsMenu, self).__init__(parent)
         self.walterUSDExtern = WalterUSDExtern()
+        self.canSetVariant = True
 
-    def _getVariantList(self):
+    def _getVariantList(self, recursively=True):
         """Implementation of walterWidgets.BaseVariantsMenu."""
         self.walterUSDExtern.setIdentifier(self.nodePath)
 
@@ -93,13 +110,49 @@ class WalterVariantsToolbar(QT4FormWidgets.BaseValueFormWidget):
             action)
 
         layout.addWidget(self.__variantButton)
+        self.__registerEventsHandler()
+
+    def __registerEventsHandler(self):
+        eventCallbacks = {
+            'scenegraph_interruptProcessing':
+                self.__scenegraphProcessingEndedCallback,
+            'sceneGraph_processingFinished':
+                self.__scenegraphProcessingEndedCallback,
+            'scenegraphManager_locationOpened':
+                self.__scenegraphProcessingStartedCallback,
+            'scenegraphManager_locationOpenedRecursively':
+                self.__scenegraphProcessingStartedCallback,
+            'scenegraphManager_locationClosed':
+                self.__scenegraphProcessingStartedCallback,
+        }
+
+        for event, callback in eventCallbacks.items():
+            Utils.EventModule.RegisterEventHandler(callback, event)
 
     def __showVariantsMenu(self):
         nodePath = self.getValuePolicy().getNode().getParameter(
             'abcAsset').getValue(0.0)
-
         if self.variantsMenu.reset(nodePath):
             self.variantsMenu.exec_(QtGui.QCursor.pos())
+
+        SetEnableMenusRecursively(
+            self.variantsMenu,
+            self.variantsMenu.canSetVariant)
+
+    def __scenegraphProcessingEndedCallback(
+            self, eventType, eventID):
+        self.variantsMenu.canSetVariant = True
+        SetEnableMenusRecursively(
+            self.variantsMenu,
+            self.variantsMenu.canSetVariant)
+
+    def __scenegraphProcessingStartedCallback(
+            self, eventType, eventID, location, sender):
+        if self.variantsMenu.canSetVariant:
+            self.variantsMenu.canSetVariant = False
+            SetEnableMenusRecursively(
+                self.variantsMenu,
+                self.variantsMenu.canSetVariant)
 
 
 KatanaFactory.RegisterPluginWidget(

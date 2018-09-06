@@ -25,6 +25,36 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_DEFINE_PUBLIC_TOKENS(WalterTokens, WALTER_TOKENS);
+WalterTokensType::WalterTokensType() :
+    compress("compress", TfToken::Immortal),
+    expression("expression", TfToken::Immortal),
+    filedata("filedata", TfToken::Immortal),
+    filename("filename", TfToken::Immortal),
+    grids("grids", TfToken::Immortal),
+    group("group", TfToken::Immortal),
+    stepScale("stepScale", TfToken::Immortal),
+    stepSize("stepSize", TfToken::Immortal),
+    velocityFps("velocityFps", TfToken::Immortal),
+    velocityOutlierThreshold("velocityOutlierThreshold", TfToken::Immortal),
+    velocityScale("velocityScale", TfToken::Immortal),
+    volumePadding("volumePadding", TfToken::Immortal),
+    allTokens({
+        compress,
+        expression,
+        filedata,
+        filename,
+        grids,
+        group,
+        stepScale,
+        stepSize,
+        velocityFps,
+        velocityOutlierThreshold,
+        velocityScale,
+        volumePadding
+    })
+{
+}
+
+TfStaticData<WalterTokensType> WalterTokens;
 
 PXR_NAMESPACE_CLOSE_SCOPE

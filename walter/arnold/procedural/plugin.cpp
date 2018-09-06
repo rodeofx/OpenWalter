@@ -598,7 +598,8 @@ bool vtToArnold(
     const SdfValueTypeName& typeName,
     const TfToken& interpolation,
     AtNode* node,
-    const VtIntArray* numVertsArray)
+    const VtIntArray* numVertsArray,
+    const int pointInstanceId)
 {
     if (!vtValue.IsHolding<VtArray<T>>())
     {
@@ -719,21 +720,29 @@ bool vtToArnold(
     // Constant USD attributs are provided as an array of one element.
     if(interpolation == UsdGeomTokens->constant) 
     {
-        if(std::is_same<T, GfVec3f>::value) 
+        if (std::is_same<T, GfVec3f>::value)
         {
-            auto vector = vtValue.Get<VtArray<GfVec3f>>()[0];
-            TfToken role = typeName.GetRole();
-
-            if (role == SdfValueRoleNames->Color)
+            VtArray<GfVec3f> vecArray = vtValue.Get<VtArray<GfVec3f>>();
+            GfVec3f value;
+            if (pointInstanceId == -1)
             {
-              AiNodeSetRGB(node, arnoldName.GetText(), vector[0], vector[1],
-                           vector[2]);
+                value = vecArray[0];
+            }
+            else
+            {
+                value = vecArray[pointInstanceId];
             }
 
-            else 
+            TfToken role = typeName.GetRole();
+            if (role == SdfValueRoleNames->Color)
             {
-              AiNodeSetVec(node, arnoldName.GetText(), vector[0], vector[1],
-                           vector[2]);
+                AiNodeSetRGB(
+                    node, arnoldName.GetText(), value[0], value[1], value[2]);
+            }
+            else
+            {
+                AiNodeSetVec(
+                    node, arnoldName.GetText(), value[0], value[1], value[2]);
             }
         }
 
@@ -1100,7 +1109,7 @@ void* RendererPlugin::outputBBoxFromPoint(
     const GfVec3d& max = range.GetMax();
 #endif // ARNOLD 4
 
-    return createWalterProcedural(
+    AtNode* node = createWalterProcedural(
         data,
         name,
         times,
@@ -1110,6 +1119,8 @@ void* RendererPlugin::outputBBoxFromPoint(
 #endif // ARNOLD 4
         protoPath,
         data->prefix);
+    outputPrimvars(prim, averageTime, node, nullptr, id);
+    return node;
 }
 
 void* RendererPlugin::outputReference(
@@ -1545,7 +1556,8 @@ void RendererPlugin::outputPrimvars(
     const UsdPrim& prim,
     float time,
     AtNode* node,
-    const VtIntArray* numVertsArray) const
+    const VtIntArray* numVertsArray,
+    const int pointInstanceId) const
 {
     assert(prim);
     UsdGeomImageable imageable = UsdGeomImageable(prim);
@@ -1560,6 +1572,12 @@ void RendererPlugin::outputPrimvars(
 
         primvar.GetDeclarationInfo(
             &name, &typeName, &interpolation, &elementSize);
+
+        if(pointInstanceId > -1)
+        {
+            assert(interpolation == UsdGeomTokens->uniform);
+            interpolation = UsdGeomTokens->constant;
+        }
 
         // Resolve the value
         VtValue vtValue;
@@ -1603,7 +1621,8 @@ void RendererPlugin::outputPrimvars(
                 typeName,
                 interpolation,
                 node,
-                numVertsArray))
+                numVertsArray,
+                pointInstanceId))
         { /* Nothing to do */
         }
         else if (vtToArnold<GfVec3f>(
@@ -1613,8 +1632,9 @@ void RendererPlugin::outputPrimvars(
                      typeName,
                      interpolation,
                      node,
-                     numVertsArray))
-        { /* Nothing to do */
+                     numVertsArray,
+                     pointInstanceId))
+        { /* Nothing to do */          
         }
         else if (vtToArnold<float>(
                      vtValue,
@@ -1623,7 +1643,8 @@ void RendererPlugin::outputPrimvars(
                      typeName,
                      interpolation,
                      node,
-                     numVertsArray))
+                     numVertsArray,
+                     pointInstanceId))
         { /* Nothing to do */
         }
         else if (vtToArnold<int>(
@@ -1633,7 +1654,8 @@ void RendererPlugin::outputPrimvars(
                      typeName,
                      interpolation,
                      node,
-                     numVertsArray))
+                     numVertsArray,
+                     pointInstanceId))
         { /* Nothing to do */
         }
     }

@@ -305,8 +305,9 @@ std::string WalterUSDCommonUtils::getVisibilityLayerAsText(UsdStageRefPtr stage)
  * @param result The variants list (as an array of json).
  *
  */
-void GetPrimVariantsRecursively(
+void GetPrimVariants(
     UsdPrim const& prim,
+    bool recursively,
     std::vector<std::string>& result)
 {
     const UsdVariantSets& variantsSets = prim.GetVariantSets();
@@ -332,31 +333,55 @@ void GetPrimVariantsRecursively(
         {
             jsonStr += "\"" + variantsName[j] + "\"";
             if(j < (variantsName.size() - 1))
+            {
                 jsonStr += ", ";
+            }
         }
         jsonStr += "], \"selection\": \"" + variantsSet.GetVariantSelection() + "\"";
         jsonStr += " } ";
         if (i < variantsSetsName.size() - 1)
+        {
             jsonStr += ", ";
+        }
         else
+        {
             jsonStr += "] ";
+        }
     }
     jsonStr += " }";
 
     if (variantsSetsName.size() > 0)
+    {
         result.push_back(jsonStr);
+    }
 
-    for (const UsdPrim& child : prim.GetChildren())
-        GetPrimVariantsRecursively(child, result);
+    if(recursively)
+    {
+        for (const UsdPrim& child : prim.GetChildren())
+        {
+            GetPrimVariants(child, recursively, result);
+        }
+    }
 }
 
 std::vector<std::string> WalterUSDCommonUtils::getVariantsUSD(
-    UsdStageRefPtr stage)
+    UsdStageRefPtr stage,
+    const char* primPath,
+    bool recursively)
 {
     std::vector<std::string> result;
-    SdfPath path = SdfPath::AbsoluteRootPath();
+    SdfPath path = GetSdfPathFromPrimPath(primPath);
     UsdPrim prim = stage->GetPrimAtPath(path);
-    GetPrimVariantsRecursively(prim, result);
+    if (!prim)
+    {
+        return {};
+    }
+
+    GetPrimVariants(
+        prim,
+        recursively,
+        result);
+
     return result;
 }
 
@@ -374,10 +399,14 @@ void SetVariantsRecursively(
 {
     UsdVariantSets variantsSets = prim.GetVariantSets();
     if (variantsSets.HasVariantSet(variantSetName))
+    {
         variantsSets.SetSelection(variantSetName, variantName);
+    }
 
     for (const UsdPrim& child : prim.GetChildren())
+    {
         SetVariantsRecursively(child, variantName, variantSetName);
+    }
 }
 
 void WalterUSDCommonUtils::setVariantUSD(
@@ -403,7 +432,9 @@ void WalterUSDCommonUtils::setVariantUSD(
 {
     std::string str = variantDefStr;
     if (str.empty())
+    {
         return;
+    }
 
     std::vector<std::string> tmp;
     boost::algorithm::split(tmp, str, boost::is_any_of("{"));
@@ -433,7 +464,9 @@ std::vector<std::string> WalterUSDCommonUtils::primVarUSD(
     }
 
     if (!prim.IsA<UsdGeomImageable>())
+    {
         return {};
+    }
 
     UsdGeomImageable imageable(prim);
 
@@ -548,13 +581,18 @@ bool WalterUSDCommonUtils::setVisibility(
         for(uint32_t i=tmp.size(); i--;)
         {
             const UsdPrim& prim = tmp[i];
-            if(prim && prim.IsValid() && prim.IsA<UsdGeomImageable>()) {
+            if(prim && prim.IsValid() && prim.IsA<UsdGeomImageable>()) 
+            {
                 UsdGeomImageable imageable(prim);
 
                 if(visible)
+                {
                     imageable.MakeVisible();
+                }
                 else
+                {
                     imageable.MakeInvisible();
+                }
             }
         }
     }
@@ -562,13 +600,18 @@ bool WalterUSDCommonUtils::setVisibility(
     UsdPrimRange range(parentPrim);
     for (const UsdPrim& prim : range)
     {
-        if( prim.IsA<UsdGeomImageable>()) {
+        if( prim.IsA<UsdGeomImageable>()) 
+        {
             UsdGeomImageable imageable(prim);
 
             if(visible)
+            {
                 imageable.MakeVisible();
+            }
             else
+            {
                 imageable.MakeInvisible();
+            }
         }
     }
 
@@ -586,7 +629,9 @@ bool WalterUSDCommonUtils::hideAllExceptedThis(
     const char* primPath)
 {
     if (!stage)
+    {
         return false;
+    }
 
     // Hide all the prims
     setVisibility(stage, "", false);
@@ -599,7 +644,9 @@ bool WalterUSDCommonUtils::expressionIsMatching(
     const char* expression)
 {
     if (!stage)
+    {
         return false;
+    }
 
     bool expressionIsValid = false;
 
@@ -633,7 +680,9 @@ std::vector<UsdPrim> WalterUSDCommonUtils::primsMatchingExpression(
 {
     std::vector<UsdPrim> res;
     if (!stage)
+    {
         return res;
+    }
 
     // Generate a regexp object.
     void* regexp = WalterCommon::createRegex(expression);
@@ -648,7 +697,9 @@ std::vector<UsdPrim> WalterUSDCommonUtils::primsMatchingExpression(
         // try to select the first one, both of them will be selected.
         if (boost::starts_with(current, expression) ||
             WalterCommon::searchRegex(regexp, current))
+        {
             res.push_back(prim);
+        }
     }
     // Delete a regexp object.
     WalterCommon::clearRegex(regexp);
@@ -664,7 +715,9 @@ std::vector<std::string> WalterUSDCommonUtils::primPathsMatchingExpression(
 
     std::vector<std::string> res;
     for(auto prim : prims)
+    {
         res.push_back(prim.GetPath().GetText());
+    }
 
     return res;
 }
@@ -683,7 +736,8 @@ std::string WalterUSDCommonUtils::setPurpose(
     UsdPrim parentPrim = stage->GetPrimAtPath(path);
     std::vector<UsdPrim> tmp;
     UsdPrim prim = parentPrim;
-    while(prim && prim.IsValid()) {
+    while(prim && prim.IsValid()) 
+    {
         tmp.push_back(prim);
         prim = prim.GetParent();
     }
@@ -691,7 +745,8 @@ std::string WalterUSDCommonUtils::setPurpose(
     for(uint32_t i=tmp.size(); i--;)
     {
         const UsdPrim& prim = tmp[i];
-        if(prim && prim.IsValid() && prim.IsA<UsdGeomImageable>()) {
+        if(prim && prim.IsValid() && prim.IsA<UsdGeomImageable>()) 
+        {
             UsdGeomImageable imageable(prim);
             TfToken token("default");
             imageable.CreatePurposeAttr(VtValue(token));
@@ -701,7 +756,8 @@ std::string WalterUSDCommonUtils::setPurpose(
     UsdPrimRange range(parentPrim);
     for (const UsdPrim& prim : range)
     {
-        if( prim.IsA<UsdGeomImageable>()) {
+        if( prim.IsA<UsdGeomImageable>()) 
+        {
             UsdGeomImageable imageable(prim);
             TfToken token(purposeStr);
             imageable.CreatePurposeAttr(VtValue(token));
@@ -748,7 +804,9 @@ WalterUSDCommonUtils::MastersInfoMap WalterUSDCommonUtils::getMastersInfo(
         // If the primitive is not an instance there is no master prim
         // information to look for...
         if (!prim.IsInstance())
+        {
             continue;
+        }
 
         // ... Otherwise get the master primitive and look for more information
         // if it's the first time we encounter it.

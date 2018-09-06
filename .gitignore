@@ -5,4 +5,5 @@ build
 
 # Houdini
 walter/houdini/otls/backup
+walter/tests/resources/usd/testPointInstancer/houdiniScene/backup
 

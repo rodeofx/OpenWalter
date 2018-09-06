@@ -41,12 +41,13 @@ class VariantSetMenu(walterWidgets.BaseVariantSetMenu):
 class VariantsMenu(walterWidgets.BaseVariantsMenu):
     """Menu for editing walter variants."""
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(VariantsMenu, self).__init__(parent)
 
-    def _getVariantList(self):
+    def _getVariantList(self, recursively=True):
         """Implementation of BaseVariantsMenu."""
-        return pm.walterStandin(getVariants=(self.nodePath))
+        return pm.walterStandin(
+            getVariants=(self.nodePath, self.primPath, recursively))
 
     def _createMenu(self, primPath, index, variantSet):
         """Implementation of BaseVariantsMenu."""
@@ -59,7 +60,6 @@ class VariantButton(QtWidgets.QToolButton):
         super(VariantButton, self).__init__(toolbar)
         self.variantsMenu = VariantsMenu(self)
         self.setMenu(self.variantsMenu)
-
         self.setText('Variants')
         self.setIcon(QtGui.QIcon(":/syncOn.png"))
         self.setPopupMode(QtWidgets.QToolButton.InstantPopup)
