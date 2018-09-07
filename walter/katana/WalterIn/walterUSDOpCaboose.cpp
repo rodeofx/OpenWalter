@@ -518,6 +518,27 @@ void cookGeomImageable(
     }
 
     oStaticGb.set("geometry.arbitrary", primvarsBuilder.build());
+
+    // Purposes
+    UsdAttribute purpose = imageable.GetPurposeAttr();
+    TfToken purposeValue;
+    if (purpose.Get(&purposeValue))
+    {
+        if (purposeValue.GetString() == "proxy" ||
+            purposeValue.GetString() == "guide")
+        {
+            oStaticGb.set("visible", FnAttribute::IntAttribute(0));
+        }
+
+        // Note: purpose "render" is seen in viewport AND render for now.
+        // We could allow artists to have a control on that, for example with
+        // a check box on the Walter_In node to hide "render" primitives in the
+        // viewport. The code for that is the following:
+        //      oStaticGb.set(
+        //          "viewer.default.drawOptions.hide",
+        //          FnAttribute::IntAttribute(1)
+        //      );
+    }
 }
 
 /**
