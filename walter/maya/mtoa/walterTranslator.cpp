@@ -124,12 +124,12 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             procLib = MString("walterProcedural") + LIBEXT;
         }
 
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeSetStr(procedural, "dso", procLib.asChar() );
+        // #if AI_VERSION_ARCH_NUM==4
+        // AiNodeSetStr(procedural, "dso", procLib.asChar() );
 
-        bool loadAtInit =  m_DagNode.findPlug("loadAtInit").asBool();
-        AiNodeSetBool(procedural, "load_at_init", loadAtInit);
-        #endif
+        // bool loadAtInit =  m_DagNode.findPlug("loadAtInit").asBool();
+        // AiNodeSetBool(procedural, "load_at_init", loadAtInit);
+        // #endif
 
         // Split the string with ":" symbol, expand all the filenames and join
         // it back.
@@ -242,9 +242,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
         ExportFrame(procedural, 0);
 #endif
 
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeDeclare(procedural, "objectPath", "constant STRING");
-        #endif
+        // #if AI_VERSION_ARCH_NUM==4
+        // AiNodeDeclare(procedural, "objectPath", "constant STRING");
+        // #endif
         AiNodeSetStr(procedural, "objectPath", "/");
 
         static const MTime sec(1.0, MTime::kSeconds);
@@ -252,9 +252,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
         AiNodeDeclare(procedural, "fps", "constant FLOAT");
         AiNodeSetFlt(procedural, "fps", fps);
 
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeDeclare(procedural, "filePaths", "constant STRING");
-        #endif
+        // #if AI_VERSION_ARCH_NUM==4
+        // AiNodeDeclare(procedural, "filePaths", "constant STRING");
+        // #endif
         AiNodeSetStr(procedural, "filePaths", abcfiles.asChar());
 
         // Output the USD session layer if exists.
@@ -263,9 +263,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString sessionLayer = usdSessionLayer.asString();
             if (sessionLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "sessionLayer", "constant STRING");
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 AiNodeDeclare(procedural, "sessionLayer", "constant STRING");
+// #endif
                 AiNodeSetStr(procedural, "sessionLayer", sessionLayer.asChar());
             }
         }
@@ -276,9 +276,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString variantsLayer = usdVariantsLayer.asString();
             if (variantsLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "variantsLayer", "constant STRING");
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 AiNodeDeclare(procedural, "variantsLayer", "constant STRING");
+// #endif
                 AiNodeSetStr(procedural, "variantsLayer", variantsLayer.asChar());
             }
         }
@@ -289,9 +289,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString purposeLayer = usdPurposeLayer.asString();
             if (purposeLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "purposeLayer", "constant STRING");
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 AiNodeDeclare(procedural, "purposeLayer", "constant STRING");
+// #endif
                 AiNodeSetStr(procedural, "purposeLayer", purposeLayer.asChar());
             }
         }
@@ -302,9 +302,9 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString mayaStateLayer = usdMayaStateLayer.asString();
             if (mayaStateLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "mayaStateLayer", "constant STRING");
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 AiNodeDeclare(procedural, "mayaStateLayer", "constant STRING");
+// #endif
                 AiNodeSetStr(
                     procedural, "mayaStateLayer", mayaStateLayer.asChar());
             }
@@ -316,16 +316,16 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString visibilityLayer = usdVisibilityLayer.asString();
             if (visibilityLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "visibilityLayer", "constant STRING");
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 AiNodeDeclare(procedural, "visibilityLayer", "constant STRING");
+// #endif
                 AiNodeSetStr(procedural, "visibilityLayer", visibilityLayer.asChar());
             }
         }
 
-#if AI_VERSION_ARCH_NUM == 4
-        ExportBoundingBox(procedural);
-#else
+// #if AI_VERSION_ARCH_NUM == 4
+//         ExportBoundingBox(procedural);
+// #else
         // MTOA does this for every node.
         if (RequiresMotionData())
         {
@@ -403,23 +403,23 @@ void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
 #endif
 }
 
-#if AI_VERSION_ARCH_NUM==4
-void CWalterStandinTranslator::ExportBoundingBox(AtNode* procedural)
-{
-    MBoundingBox boundingBox = m_DagNode.boundingBox();
-    MPoint bbMin = boundingBox.min();
-    MPoint bbMax = boundingBox.max();
+// #if AI_VERSION_ARCH_NUM==4
+// void CWalterStandinTranslator::ExportBoundingBox(AtNode* procedural)
+// {
+//     MBoundingBox boundingBox = m_DagNode.boundingBox();
+//     MPoint bbMin = boundingBox.min();
+//     MPoint bbMax = boundingBox.max();
 
-    float minCoords[4];
-    float maxCoords[4];
+//     float minCoords[4];
+//     float maxCoords[4];
 
-    bbMin.get(minCoords);
-    bbMax.get(maxCoords);
+//     bbMin.get(minCoords);
+//     bbMax.get(maxCoords);
 
-    AiNodeSetPnt(procedural, "min", minCoords[0], minCoords[1], minCoords[2]);
-    AiNodeSetPnt(procedural, "max", maxCoords[0], maxCoords[1], maxCoords[2]);
-}
-#endif
+//     AiNodeSetPnt(procedural, "min", minCoords[0], minCoords[1], minCoords[2]);
+//     AiNodeSetPnt(procedural, "max", maxCoords[0], maxCoords[1], maxCoords[2]);
+// }
+// #endif
 
 
 void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
@@ -427,20 +427,20 @@ void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
     CExtensionAttrHelper helper(context.maya, RDO_WALTER_PROC);
     CShapeTranslator::MakeCommonAttributes(helper);
 
-    #if AI_VERSION_ARCH_NUM==4
-    CAttrData data;
+    // #if AI_VERSION_ARCH_NUM==4
+    // CAttrData data;
 
-    data.defaultValue.BOOL = false;
-    data.name = "overrideGlobalShader";
-    data.shortName = "ogs";
-    helper.MakeInputBoolean(data) ;
+    // data.defaultValue.BOOL = false;
+    // data.name = "overrideGlobalShader";
+    // data.shortName = "ogs";
+    // helper.MakeInputBoolean(data) ;
 
-    data.defaultValue.BOOL = true;
-    data.name = "loadAtInit";
-    data.shortName = "lai";
-    data.channelBox = true;
-    helper.MakeInputBoolean(data);
-    #endif
+    // data.defaultValue.BOOL = true;
+    // data.name = "loadAtInit";
+    // data.shortName = "lai";
+    // data.channelBox = true;
+    // helper.MakeInputBoolean(data);
+    // #endif
 }
 
 bool CWalterStandinTranslator::ExportMayaShadingGraph()
@@ -682,11 +682,11 @@ void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
             int step = GetMotionStep();
 #endif
             int arraySize =
-#if AI_VERSION_ARCH_NUM == 4
-                frames->nkeys * frames->nelements;
-#else
-                AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
-#endif
+// #if AI_VERSION_ARCH_NUM == 4
+//                 frames->nkeys * frames->nelements;
+// #else
+            AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
+// #endif
             if (step >= arraySize)
 
             {

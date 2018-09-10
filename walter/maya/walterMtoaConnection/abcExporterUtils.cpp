@@ -43,9 +43,9 @@ const MStringArray& GetComponentNames(int arnoldParamType)
    case AI_TYPE_RGBA:
       return RGBA_COMPONENTS;
    
-   #if AI_VERSION_ARCH_NUM==4
-   case AI_TYPE_VECTOR:
-   #endif
+//    #if AI_VERSION_ARCH_NUM==4
+//    case AI_TYPE_VECTOR:
+//    #endif
    case RDO_AI_TYPE_VECTOR:
       return VECTOR_COMPONENTS;
    case RDO_AI_TYPE_VECTOR2:
@@ -348,20 +348,20 @@ void processArrayValues(AtNode* sit, const char *paramName, AtArray* paramArray,
         prop.set(vals);
     }
 
-    #if AI_VERSION_ARCH_NUM==4
-    else if (typeArray == AI_TYPE_VECTOR)
-    {
-        Abc::OV3fArrayProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
-        std::vector<Imath::V3f> vals;
-        for(unsigned int i=0; i < RdoAiArrayGetNumElements(paramArray); i++)
-        {
-            AtVector a_val = AiArrayGetVec(paramArray, i);
-            Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
-            vals.push_back(vec_val);
-        }
-        prop.set(vals);
-    }
-    #endif
+    // #if AI_VERSION_ARCH_NUM==4
+    // // else if (typeArray == AI_TYPE_VECTOR)
+    // // {
+    // //     Abc::OV3fArrayProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
+    // //     std::vector<Imath::V3f> vals;
+    // //     for(unsigned int i=0; i < RdoAiArrayGetNumElements(paramArray); i++)
+    // //     {
+    // //         AtVector a_val = AiArrayGetVec(paramArray, i);
+    // //         Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
+    // //         vals.push_back(vec_val);
+    // //     }
+    // //     prop.set(vals);
+    // // }
+    // #endif
 
     else if (typeArray == AI_TYPE_STRING)
     {
@@ -578,16 +578,16 @@ void exportParameterFromArray(AtNode* sit, Mat::OMaterial matObj, AtArray* param
         prop.set(vec_val);
     }
 
-    #if AI_VERSION_ARCH_NUM==4
-    else if (type == AI_TYPE_VECTOR)
-    {
-        // type vector
-        Abc::OV3fProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
-        AtVector a_val = AiArrayGetVec(paramArray, index);
-        Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
-        prop.set(vec_val);
-    }
-    #endif
+    // #if AI_VERSION_ARCH_NUM==4
+    // else if (type == AI_TYPE_VECTOR)
+    // {
+    //     // type vector
+    //     Abc::OV3fProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
+    //     AtVector a_val = AiArrayGetVec(paramArray, index);
+    //     Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
+    //     prop.set(vec_val);
+    // }
+    // #endif
 
     else if (type == AI_TYPE_STRING)
     {
@@ -637,12 +637,12 @@ bool isDefaultValue(const AtNode* node, const char* paramName)
             if (AiNodeGetRGBA (node, paramName) == RdoRGBA(pdefaultvalue))
                 return true;
             break;
-        #if AI_VERSION_ARCH_NUM==4
-        case AI_TYPE_VECTOR:
-            if (AiNodeGetVec (node, paramName) == pdefaultvalue->VEC)
-                return true;
-            break;
-        #endif
+        // #if AI_VERSION_ARCH_NUM==4
+        // case AI_TYPE_VECTOR:
+        //     if (AiNodeGetVec (node, paramName) == pdefaultvalue->VEC)
+        //         return true;
+        //     break;
+        // #endif
         case RDO_AI_TYPE_VECTOR:
             if (RdoAiNodeGetVec (node, paramName) == RdoVEC(pdefaultvalue))
                 return true;
@@ -756,16 +756,16 @@ void exportParameter(AtNode* sit, Mat::OMaterial matObj, int type, MString nodeN
         Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
         prop.set(vec_val);
     }
-    #if AI_VERSION_ARCH_NUM==4
-    else if (type == AI_TYPE_VECTOR)
-    {
-        // type vector
-        Abc::OV3fProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
-        AtVector a_val = AiNodeGetVec(sit, paramName);
-        Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
-        prop.set(vec_val);
-    }
-    #endif
+    // #if AI_VERSION_ARCH_NUM==4
+    // else if (type == AI_TYPE_VECTOR)
+    // {
+    //     // type vector
+    //     Abc::OV3fProperty prop(matObj.getSchema().getNetworkNodeParameters(nodeName.asChar()), paramName);
+    //     AtVector a_val = AiNodeGetVec(sit, paramName);
+    //     Imath::V3f vec_val( a_val.x, a_val.y, a_val.z );
+    //     prop.set(vec_val);
+    // }
+    // #endif
     else if (type == AI_TYPE_STRING)
     {
         // type string

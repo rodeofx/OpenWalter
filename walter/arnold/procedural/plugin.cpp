@@ -106,7 +106,7 @@ inline AtNode* createWalterProcedural(
     const std::vector<float>& iTimes,
     const std::vector<float>& iXform,
 #if AI_VERSION_ARCH_NUM == 4
-    const GfRange3d& iRange,
+    // const GfRange3d& iRange,
 #endif // ARNOLD 4
     const SdfPath& iObjectPath,
     const std::string& iPrefix)
@@ -116,7 +116,7 @@ inline AtNode* createWalterProcedural(
     AiNodeSetStr(node, "name", iName.c_str());
 
 #if AI_VERSION_ARCH_NUM == 4
-    AiNodeSetStr(node, "dso", iData->dso.c_str());
+    // AiNodeSetStr(node, "dso", iData->dso.c_str());
 #endif // ARNOLD 4
 
     // Output frame.
@@ -148,34 +148,34 @@ inline AtNode* createWalterProcedural(
     setMotionStartEnd(node, *iData);
 
 #if AI_VERSION_ARCH_NUM == 4
-    const GfVec3d& min = iRange.GetMin();
-    const GfVec3d& max = iRange.GetMax();
+    // const GfVec3d& min = iRange.GetMin();
+    // const GfVec3d& max = iRange.GetMax();
 
-    RdoAiNodeSetVec(node, "min", min[0], min[1], min[2]);
-    RdoAiNodeSetVec(node, "max", max[0], max[1], max[2]);
+    // RdoAiNodeSetVec(node, "min", min[0], min[1], min[2]);
+    // RdoAiNodeSetVec(node, "max", max[0], max[1], max[2]);
 
-    TF_DEBUG(WALTER_ARNOLD_PLUGIN)
-        .Msg(
-            "[%s]: Output bounding box: %s min: %f %f %f max: %f %f %f\n",
-            __FUNCTION__,
-            iName.c_str(),
-            min[0],
-            min[1],
-            min[2],
-            max[0],
-            max[1],
-            max[2]);
+    // TF_DEBUG(WALTER_ARNOLD_PLUGIN)
+    //     .Msg(
+    //         "[%s]: Output bounding box: %s min: %f %f %f max: %f %f %f\n",
+    //         __FUNCTION__,
+    //         iName.c_str(),
+    //         min[0],
+    //         min[1],
+    //         min[2],
+    //         max[0],
+    //         max[1],
+    //         max[2]);
 #endif // ARNOLD 4
 
 // USD file name.
 #if AI_VERSION_ARCH_NUM == 4
-    AiNodeDeclare(node, "filePaths", "constant STRING");
+    // AiNodeDeclare(node, "filePaths", "constant STRING");
 #endif
     AiNodeSetStr(node, "filePaths", iData->filePaths.c_str());
 
 // Save SdfPath.
 #if AI_VERSION_ARCH_NUM == 4
-    AiNodeDeclare(node, "objectPath", "constant STRING");
+    // AiNodeDeclare(node, "objectPath", "constant STRING");
 #endif
 
     AiNodeSetStr(node, "objectPath", iObjectPath.GetText());
@@ -688,11 +688,11 @@ bool vtToArnold(
 #if AI_VERSION_ARCH_NUM == 4
         // AI_TYPE_VECTOR is distinct to AI_TYPE_POINT only in Arnold 4.
         // So in Arnold 5, this block is redundant with the one above.
-        else
-        {
-            declaration += "VECTOR";
-            arnoldAPIType = AI_TYPE_VECTOR;
-        }
+        // else
+        // {
+        //     declaration += "VECTOR";
+        //     arnoldAPIType = AI_TYPE_VECTOR;
+        // }
 #endif  // ARNOLD 4
     }
     else if (std::is_same<T, float>::value)
@@ -959,32 +959,32 @@ void* RendererPlugin::outputBBox(
     std::vector<float> xform = getPrimTransform(prim, times);
 
 #if AI_VERSION_ARCH_NUM == 4
-    UsdGeomImageable imageable(prim);
+    // UsdGeomImageable imageable(prim);
 
-    // Add the bounding box.
-    GfBBox3d bbox;
-    // We need to combine all the bounding boxes of the all the motion samples.
-    bool bboxInitialized = false;
-    for (float time : times)
-    {
-        GfBBox3d current = imageable.ComputeUntransformedBound(
-            time, UsdGeomTokens->default_, UsdGeomTokens->render);
+    // // Add the bounding box.
+    // GfBBox3d bbox;
+    // // We need to combine all the bounding boxes of the all the motion samples.
+    // bool bboxInitialized = false;
+    // for (float time : times)
+    // {
+    //     GfBBox3d current = imageable.ComputeUntransformedBound(
+    //         time, UsdGeomTokens->default_, UsdGeomTokens->render);
 
-        if (bboxInitialized)
-        {
-            bbox = GfBBox3d::Combine(bbox, current);
-        }
-        else
-        {
-            bbox = current;
-            bboxInitialized = true;
-        }
-    }
+    //     if (bboxInitialized)
+    //     {
+    //         bbox = GfBBox3d::Combine(bbox, current);
+    //     }
+    //     else
+    //     {
+    //         bbox = current;
+    //         bboxInitialized = true;
+    //     }
+    // }
 
-    // Push the bbox to Arnold.
-    const GfRange3d& range = bbox.ComputeAlignedBox();
-    const GfVec3d& min = range.GetMin();
-    const GfVec3d& max = range.GetMax();
+    // // Push the bbox to Arnold.
+    // const GfRange3d& range = bbox.ComputeAlignedBox();
+    // const GfVec3d& min = range.GetMin();
+    // const GfVec3d& max = range.GetMax();
 
 #endif  // ARNOLD 4
 
@@ -1011,7 +1011,7 @@ void* RendererPlugin::outputBBox(
         times,
         xform,
 #if AI_VERSION_ARCH_NUM == 4
-        range,
+        // range,
 #endif // ARNOLD 4
         objectPath,
         prefix);
@@ -1079,34 +1079,34 @@ void* RendererPlugin::outputBBoxFromPoint(
 
 #if AI_VERSION_ARCH_NUM == 4
 
-    UsdStageRefPtr stage = prim.GetStage();
-    const UsdPrim& protoPrim = stage->GetPrimAtPath(protoPath);
-    UsdGeomImageable imageable(protoPrim);
+    // UsdStageRefPtr stage = prim.GetStage();
+    // const UsdPrim& protoPrim = stage->GetPrimAtPath(protoPath);
+    // UsdGeomImageable imageable(protoPrim);
 
-    // Add the bounding box.
-    GfBBox3d bbox;
-    // We need to combine all the bounding boxes of the all the motion samples.
-    bool bboxInitialized = false;
-    for (float time : times)
-    {
-        GfBBox3d current = imageable.ComputeUntransformedBound(
-            time, UsdGeomTokens->default_, UsdGeomTokens->render);
+    // // Add the bounding box.
+    // GfBBox3d bbox;
+    // // We need to combine all the bounding boxes of the all the motion samples.
+    // bool bboxInitialized = false;
+    // for (float time : times)
+    // {
+    //     GfBBox3d current = imageable.ComputeUntransformedBound(
+    //         time, UsdGeomTokens->default_, UsdGeomTokens->render);
 
-        if (bboxInitialized)
-        {
-            bbox = GfBBox3d::Combine(bbox, current);
-        }
-        else
-        {
-            bbox = current;
-            bboxInitialized = true;
-        }
-    }
+    //     if (bboxInitialized)
+    //     {
+    //         bbox = GfBBox3d::Combine(bbox, current);
+    //     }
+    //     else
+    //     {
+    //         bbox = current;
+    //         bboxInitialized = true;
+    //     }
+    // }
 
-    // Push the bbox to Arnold.
-    const GfRange3d& range = bbox.ComputeAlignedBox();
-    const GfVec3d& min = range.GetMin();
-    const GfVec3d& max = range.GetMax();
+    // // Push the bbox to Arnold.
+    // const GfRange3d& range = bbox.ComputeAlignedBox();
+    // const GfVec3d& min = range.GetMin();
+    // const GfVec3d& max = range.GetMax();
 #endif // ARNOLD 4
 
     AtNode* node = createWalterProcedural(
@@ -1115,7 +1115,7 @@ void* RendererPlugin::outputBBoxFromPoint(
         times,
         xform,
 #if AI_VERSION_ARCH_NUM == 4
-        range,
+        // range,
 #endif // ARNOLD 4
         protoPath,
         data->prefix);
@@ -1806,8 +1806,8 @@ void RendererPlugin::outputShadingAttribute(
 void* RendererPlugin::outputEmptyNode(const std::string& iNodeName) const
 {
 #if AI_VERSION_ARCH_NUM == 4
-    // Everything works well with Arnold 4.
-    return nullptr;
+    // // Everything works well with Arnold 4.
+    // return nullptr;
 #else
     // Output a very small point that is visible only for volume rays
     static const float points[] = {0.0f, 0.0f, 0.0f};

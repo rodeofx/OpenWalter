@@ -42,6 +42,7 @@ const char* AiNodeLookUpAndGetStr(AtNode* node, const char* param)
 static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 {
 // Get parameters
+// We can keep this logic check for future
 #if AI_VERSION_ARCH_NUM == 5
     const char* dso = "\n";
     const char* file = AiNodeGetStr(node, "filePaths");
@@ -51,15 +52,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
     const char* purposeLayer = AiNodeGetStr(node, "purposeLayer");
     const char* mayaStateLayer = AiNodeGetStr(node, "mayaStateLayer");
     const char* visibilityLayer = AiNodeGetStr(node, "visibilityLayer");
-#else  // ARNOLD 4
-    const char* dso = AiNodeGetStr(node, "dso");
-    const char* file = AiNodeLookUpAndGetStr(node, "filePaths");
-    const char* object = AiNodeLookUpAndGetStr(node, "objectPath");
-    const char* sessionLayer = AiNodeLookUpAndGetStr(node, "sessionLayer");
-    const char* variantsLayer = AiNodeLookUpAndGetStr(node, "variantsLayer");
-    const char* purposeLayer = AiNodeLookUpAndGetStr(node, "purposeLayer");
-    const char* mayaStateLayer = AiNodeLookUpAndGetStr(node, "mayaStateLayer");
-    const char* visibilityLayer = AiNodeLookUpAndGetStr(node, "visibilityLayer");
 #endif  // ARNOLD
 
     std::vector<std::string> overrides;
@@ -263,29 +255,28 @@ node_loader
     strcpy(node->version, AI_VERSION);
     return true;
 }
+// #else  // ARNOLD 4
 
-#else  // ARNOLD 4
+// // DSO export
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
-// DSO export
-#ifdef __cplusplus
-extern "C" {
-#endif
+// AI_EXPORT_LIB int ProcLoader(AtProcVtable* vtable)
+// {
+//     // Arnold's initialization routine.
+//     vtable->Init = arnoldProceduralInit;
+//     vtable->Cleanup = arnoldProceduralCleanup;
+//     vtable->NumNodes = arnoldProceduralNumNodes;
+//     vtable->GetNode = arnoldProceduralGetNode;
+//     vtable->InitPlugin = arnoldProceduralInitPlugin;
+//     vtable->CleanupPlugin = arnoldProceduralCleanupPlugin;
+//     strcpy(vtable->version, AI_VERSION);
+//     return 1;
+// }
 
-AI_EXPORT_LIB int ProcLoader(AtProcVtable* vtable)
-{
-    // Arnold's initialization routine.
-    vtable->Init = arnoldProceduralInit;
-    vtable->Cleanup = arnoldProceduralCleanup;
-    vtable->NumNodes = arnoldProceduralNumNodes;
-    vtable->GetNode = arnoldProceduralGetNode;
-    vtable->InitPlugin = arnoldProceduralInitPlugin;
-    vtable->CleanupPlugin = arnoldProceduralCleanupPlugin;
-    strcpy(vtable->version, AI_VERSION);
-    return 1;
-}
-
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif
 
 #endif  // ARNOLD
