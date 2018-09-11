@@ -1,5 +1,7 @@
 build
-
+[user]
+	name = Snow
+	email = xcui@rodeofx.com
 # Maya
 *.mayaSwatches
 

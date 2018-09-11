@@ -54,7 +54,7 @@ void CWalterStandinTranslator::Update(AtNode* procedural)
 
 AtNode*  CWalterStandinTranslator::CreateArnoldNodes()
 {
-    m_arnoldRootNode = AddArnoldNode(RDO_WALTER_PROC);
+    m_arnoldRootNode = AddArnoldNode("walter");
     return m_arnoldRootNode;
 }
 
@@ -123,13 +123,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             // Use the standard name if not found.
             procLib = MString("walterProcedural") + LIBEXT;
         }
-
-        // #if AI_VERSION_ARCH_NUM==4
-        // AiNodeSetStr(procedural, "dso", procLib.asChar() );
-
-        // bool loadAtInit =  m_DagNode.findPlug("loadAtInit").asBool();
-        // AiNodeSetBool(procedural, "load_at_init", loadAtInit);
-        // #endif
 
         // Split the string with ":" symbol, expand all the filenames and join
         // it back.
@@ -242,19 +235,12 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
         ExportFrame(procedural, 0);
 #endif
 
-        // #if AI_VERSION_ARCH_NUM==4
-        // AiNodeDeclare(procedural, "objectPath", "constant STRING");
-        // #endif
         AiNodeSetStr(procedural, "objectPath", "/");
 
         static const MTime sec(1.0, MTime::kSeconds);
         float fps = sec.as(MTime::uiUnit());
         AiNodeDeclare(procedural, "fps", "constant FLOAT");
         AiNodeSetFlt(procedural, "fps", fps);
-
-        // #if AI_VERSION_ARCH_NUM==4
-        // AiNodeDeclare(procedural, "filePaths", "constant STRING");
-        // #endif
         AiNodeSetStr(procedural, "filePaths", abcfiles.asChar());
 
         // Output the USD session layer if exists.
@@ -334,7 +320,7 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             AiNodeSetFlt(procedural, "motion_start", (float)motionStart);
             AiNodeSetFlt(procedural, "motion_end", (float)motionEnd);
         }
-#endif
+// #endif
     }
 }
 
@@ -403,44 +389,10 @@ void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
 #endif
 }
 
-// #if AI_VERSION_ARCH_NUM==4
-// void CWalterStandinTranslator::ExportBoundingBox(AtNode* procedural)
-// {
-//     MBoundingBox boundingBox = m_DagNode.boundingBox();
-//     MPoint bbMin = boundingBox.min();
-//     MPoint bbMax = boundingBox.max();
-
-//     float minCoords[4];
-//     float maxCoords[4];
-
-//     bbMin.get(minCoords);
-//     bbMax.get(maxCoords);
-
-//     AiNodeSetPnt(procedural, "min", minCoords[0], minCoords[1], minCoords[2]);
-//     AiNodeSetPnt(procedural, "max", maxCoords[0], maxCoords[1], maxCoords[2]);
-// }
-// #endif
-
-
 void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
 {
-    CExtensionAttrHelper helper(context.maya, RDO_WALTER_PROC);
+    CExtensionAttrHelper helper(context.maya, "walter");
     CShapeTranslator::MakeCommonAttributes(helper);
-
-    // #if AI_VERSION_ARCH_NUM==4
-    // CAttrData data;
-
-    // data.defaultValue.BOOL = false;
-    // data.name = "overrideGlobalShader";
-    // data.shortName = "ogs";
-    // helper.MakeInputBoolean(data) ;
-
-    // data.defaultValue.BOOL = true;
-    // data.name = "loadAtInit";
-    // data.shortName = "lai";
-    // data.channelBox = true;
-    // helper.MakeInputBoolean(data);
-    // #endif
 }
 
 bool CWalterStandinTranslator::ExportMayaShadingGraph()
@@ -592,7 +544,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_REFLECTED;
+            visibility &= ~AI_RAY_ALL_REFLECT;
         }
     }
 
@@ -602,7 +554,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_REFRACTED;
+            visibility &= ~AI_RAY_ALL_TRANSMIT;
         }
     }
 
@@ -612,7 +564,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_DIFFUSE;
+            visibility &= ~AI_RAY_ALL_DIFFUSE;
         }
     }
 
@@ -622,7 +574,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_GLOSSY;
+            visibility &= ~AI_RAY_ALL_SPECULAR;
         }
     }
 

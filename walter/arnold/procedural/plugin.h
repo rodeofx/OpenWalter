@@ -3,6 +3,7 @@
 #ifndef __PLUGIN_H__
 #define __PLUGIN_H__
 
+#include <at.h>
 #include <pxr/base/tf/debug.h>
 #include <pxr/usd/usd/attribute.h>
 #include <pxr/usd/usd/prim.h>

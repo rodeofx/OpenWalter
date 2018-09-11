@@ -113,8 +113,8 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
             case AI_TYPE_ARRAY:
             {
                 AtArray* array = AiNodeGetArray(node, timeName);
-                int keys = RdoAiArrayGetNumElements(array) *
-                    RdoAiArrayGetNumKeys(array);
+                int keys = AiArrayGetNumElements(array) *
+                    AiArrayGetNumKeys(array);
                 data->mTimes.reserve(keys);
                 for (int i = 0; i < keys; i++)
                 {
@@ -255,28 +255,5 @@ node_loader
     strcpy(node->version, AI_VERSION);
     return true;
 }
-// #else  // ARNOLD 4
-
-// // DSO export
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-
-// AI_EXPORT_LIB int ProcLoader(AtProcVtable* vtable)
-// {
-//     // Arnold's initialization routine.
-//     vtable->Init = arnoldProceduralInit;
-//     vtable->Cleanup = arnoldProceduralCleanup;
-//     vtable->NumNodes = arnoldProceduralNumNodes;
-//     vtable->GetNode = arnoldProceduralGetNode;
-//     vtable->InitPlugin = arnoldProceduralInitPlugin;
-//     vtable->CleanupPlugin = arnoldProceduralCleanupPlugin;
-//     strcpy(vtable->version, AI_VERSION);
-//     return 1;
-// }
-
-// #ifdef __cplusplus
-// }
-// #endif
 
 #endif  // ARNOLD

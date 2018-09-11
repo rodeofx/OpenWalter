@@ -3,3 +3,5 @@ if(BUILD_ARNOLD_PROCEDURALS)
 endif()
 
 add_subdirectory(utility)
+
+message (STATUS ${ARNOLD_INCLUDE_DIR})

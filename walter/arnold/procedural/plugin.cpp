@@ -33,7 +33,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
  * @return If found, returns a pointer to the parameter entry. Otherwise, it
  * returns NULL.
  */
-const AtParamEntry* getArnoldParameter(AtNode* node, const char* name)
+const AtParamEntry *getArnoldParameter(AtNode *node, const char *name)
 {
     return AiNodeEntryLookUpParameter(AiNodeGetNodeEntry(node), name);
 }
@@ -63,8 +63,8 @@ inline std::string uniqueString()
  * @return Resolved/joined full path that is good for the expression resolving.
  */
 inline std::string joinPaths(
-    const std::string& iInstanceRootPath,
-    const SdfPath& iPath)
+    const std::string &iInstanceRootPath,
+    const SdfPath &iPath)
 {
     assert(!iPath.IsEmpty());
 
@@ -74,7 +74,7 @@ inline std::string joinPaths(
         return iPath.GetString();
     }
 
-    const std::string& pathStr = iPath.GetString();
+    const std::string &pathStr = iPath.GetString();
 
     // Concat them. If we are in the instance, the path looks like this:
     // "/__Master_01/normal/path", we don't need the first part.
@@ -87,7 +87,7 @@ inline std::string joinPaths(
  * @param iNode Arnold node to set.
  * @param iData Reference to RendererPluginData.
  */
-void setMotionStartEnd(AtNode* iNode, const RendererPluginData& iData)
+void setMotionStartEnd(AtNode *iNode, const RendererPluginData &iData)
 {
     if (iData.motionStart)
     {
@@ -100,24 +100,17 @@ void setMotionStartEnd(AtNode* iNode, const RendererPluginData& iData)
     }
 }
 
-inline AtNode* createWalterProcedural(
-    const RendererPluginData* iData,
+inline AtNode *createWalterProcedural(
+    const RendererPluginData *iData,
     const std::string iName,
-    const std::vector<float>& iTimes,
-    const std::vector<float>& iXform,
-#if AI_VERSION_ARCH_NUM == 4
-    // const GfRange3d& iRange,
-#endif // ARNOLD 4
-    const SdfPath& iObjectPath,
-    const std::string& iPrefix)
+    const std::vector<float> &iTimes,
+    const std::vector<float> &iXform,
+    const SdfPath &iObjectPath,
+    const std::string &iPrefix)
 {
     // Create a procedural.
-    AtNode* node = AiNode(RDO_WALTER_PROC);
+    AtNode *node = AiNode("walter");
     AiNodeSetStr(node, "name", iName.c_str());
-
-#if AI_VERSION_ARCH_NUM == 4
-    // AiNodeSetStr(node, "dso", iData->dso.c_str());
-#endif // ARNOLD 4
 
     // Output frame.
     assert(iTimes.size() > 0);
@@ -147,36 +140,8 @@ inline AtNode* createWalterProcedural(
     // Set Arnold motion_start and motion_end.
     setMotionStartEnd(node, *iData);
 
-#if AI_VERSION_ARCH_NUM == 4
-    // const GfVec3d& min = iRange.GetMin();
-    // const GfVec3d& max = iRange.GetMax();
-
-    // RdoAiNodeSetVec(node, "min", min[0], min[1], min[2]);
-    // RdoAiNodeSetVec(node, "max", max[0], max[1], max[2]);
-
-    // TF_DEBUG(WALTER_ARNOLD_PLUGIN)
-    //     .Msg(
-    //         "[%s]: Output bounding box: %s min: %f %f %f max: %f %f %f\n",
-    //         __FUNCTION__,
-    //         iName.c_str(),
-    //         min[0],
-    //         min[1],
-    //         min[2],
-    //         max[0],
-    //         max[1],
-    //         max[2]);
-#endif // ARNOLD 4
-
-// USD file name.
-#if AI_VERSION_ARCH_NUM == 4
-    // AiNodeDeclare(node, "filePaths", "constant STRING");
-#endif
+    // USD file name.
     AiNodeSetStr(node, "filePaths", iData->filePaths.c_str());
-
-// Save SdfPath.
-#if AI_VERSION_ARCH_NUM == 4
-    // AiNodeDeclare(node, "objectPath", "constant STRING");
-#endif
 
     AiNodeSetStr(node, "objectPath", iObjectPath.GetText());
 
@@ -189,7 +154,8 @@ inline AtNode* createWalterProcedural(
 
 // Reverse an attribute of the face. Basically, it converts from the clockwise
 // to the counterclockwise and back.
-template <class T, class V> void reverseFaceAttribute(T& attr, const V& counts)
+template <class T, class V>
+void reverseFaceAttribute(T &attr, const V &counts)
 {
     size_t counter = 0;
 
@@ -210,13 +176,13 @@ template <class T, class V> void reverseFaceAttribute(T& attr, const V& counts)
 // Function template specialization for all the AiNodeSet*
 // TODO: AiNodeSetVec, AiNodeSetPnt
 template <class A>
-void aiNodeSet(AtNode* node, std::string name, const A& value);
+void aiNodeSet(AtNode *node, std::string name, const A &value);
 
 template <>
 void aiNodeSet<unsigned int>(
-    AtNode* node,
+    AtNode *node,
     std::string name,
-    const unsigned int& value)
+    const unsigned int &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -227,7 +193,7 @@ void aiNodeSet<unsigned int>(
 }
 
 template <>
-void aiNodeSet<int>(AtNode* node, std::string name, const int& value)
+void aiNodeSet<int>(AtNode *node, std::string name, const int &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -238,7 +204,7 @@ void aiNodeSet<int>(AtNode* node, std::string name, const int& value)
 }
 
 template <>
-void aiNodeSet<bool>(AtNode* node, std::string name, const bool& value)
+void aiNodeSet<bool>(AtNode *node, std::string name, const bool &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -249,7 +215,7 @@ void aiNodeSet<bool>(AtNode* node, std::string name, const bool& value)
 }
 
 template <>
-void aiNodeSet<float>(AtNode* node, std::string name, const float& value)
+void aiNodeSet<float>(AtNode *node, std::string name, const float &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -261,9 +227,9 @@ void aiNodeSet<float>(AtNode* node, std::string name, const float& value)
 
 template <>
 void aiNodeSet<std::string>(
-    AtNode* node,
+    AtNode *node,
     std::string name,
-    const std::string& value)
+    const std::string &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -274,7 +240,7 @@ void aiNodeSet<std::string>(
 }
 
 template <>
-void aiNodeSet<TfToken>(AtNode* node, std::string name, const TfToken& value)
+void aiNodeSet<TfToken>(AtNode *node, std::string name, const TfToken &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -285,9 +251,9 @@ void aiNodeSet<TfToken>(AtNode* node, std::string name, const TfToken& value)
 }
 
 template <>
-void aiNodeSet<GfVec3f>(AtNode* node, std::string name, const GfVec3f& value)
+void aiNodeSet<GfVec3f>(AtNode *node, std::string name, const GfVec3f &value)
 {
-    const AtParamEntry* entry = getArnoldParameter(node, name.c_str());
+    const AtParamEntry *entry = getArnoldParameter(node, name.c_str());
     if (!entry)
     {
         AiNodeDeclare(node, name.c_str(), "constant RGB");
@@ -304,9 +270,9 @@ void aiNodeSet<GfVec3f>(AtNode* node, std::string name, const GfVec3f& value)
 }
 
 template <>
-void aiNodeSet<GfVec4f>(AtNode* node, std::string name, const GfVec4f& value)
+void aiNodeSet<GfVec4f>(AtNode *node, std::string name, const GfVec4f &value)
 {
-    const AtParamEntry* entry = getArnoldParameter(node, name.c_str());
+    const AtParamEntry *entry = getArnoldParameter(node, name.c_str());
     if (!entry)
     {
         AiNodeDeclare(node, name.c_str(), "constant RGBA");
@@ -316,18 +282,18 @@ void aiNodeSet<GfVec4f>(AtNode* node, std::string name, const GfVec4f& value)
 }
 
 template <>
-void aiNodeSet<GfVec2f>(AtNode* node, std::string name, const GfVec2f& value)
+void aiNodeSet<GfVec2f>(AtNode *node, std::string name, const GfVec2f &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
-        AiNodeDeclare(node, name.c_str(), "constant " RDO_STR_TYPE_VECTOR2);
+        AiNodeDeclare(node, name.c_str(), "constant VECTOR2");
     }
 
-    RdoAiNodeSetVec2(node, name.c_str(), value[0], value[1]);
+    AiNodeGetVec2(node, name.c_str(), value[0], value[1]);
 }
 
 template <>
-void aiNodeSet<uint8_t>(AtNode* node, std::string name, const uint8_t& value)
+void aiNodeSet<uint8_t>(AtNode *node, std::string name, const uint8_t &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
@@ -338,14 +304,14 @@ void aiNodeSet<uint8_t>(AtNode* node, std::string name, const uint8_t& value)
 }
 
 template <>
-void aiNodeSet<GfMatrix4d>(AtNode* node, std::string name, const GfMatrix4d& value)
+void aiNodeSet<GfMatrix4d>(AtNode *node, std::string name, const GfMatrix4d &value)
 {
     if (!getArnoldParameter(node, name.c_str()))
     {
         AiNodeDeclare(node, name.c_str(), "constant MATRIX");
     }
     // Usd GfMatrix4d is using doubles. We need to cast it for Arnold who is using floats
-    const double* data = value.GetArray();
+    const double *data = value.GetArray();
     AtMatrix mat;
     mat.data[0][0] = static_cast<float>(data[0]);
     mat.data[0][1] = static_cast<float>(data[1]);
@@ -369,8 +335,8 @@ void aiNodeSet<GfMatrix4d>(AtNode* node, std::string name, const GfMatrix4d& val
 // Return the funstion that pushes USD attribute to Arnold.
 template <class U, class A = U>
 RendererAttribute attributeToArnold(
-    const UsdAttribute& attr,
-    const std::string& name,
+    const UsdAttribute &attr,
+    const std::string &name,
     UsdTimeCode time)
 {
     // Todo: samples.
@@ -389,8 +355,8 @@ RendererAttribute attributeToArnold(
 }
 
 RendererAttribute usdAttributeToArnold(
-    const std::string& attributeName,
-    const UsdAttribute& attr,
+    const std::string &attributeName,
+    const UsdAttribute &attr,
     UsdTimeCode time)
 {
     SdfValueTypeName type;
@@ -427,19 +393,19 @@ RendererAttribute usdAttributeToArnold(
         }
         else if (attributeName == "visible_in_diffuse")
         {
-            ray = RDO_AI_RAY_DIFFUSE;
+            ray = AI_RAY_ALL_DIFFUSE;
         }
         else if (attributeName == "visible_in_glossy")
         {
-            ray = RDO_AI_RAY_GLOSSY;
+            ray = AI_RAY_ALL_SPECULAR;
         }
         else if (attributeName == "visible_in_reflections")
         {
-            ray = RDO_AI_RAY_REFLECTED;
+            ray = AI_RAY_ALL_REFLECT;
         }
         else if (attributeName == "visible_in_refractions")
         {
-            ray = RDO_AI_RAY_REFRACTED;
+            ray = AI_RAY_ALL_TRANSMIT;
         }
 #if AI_VERSION_ARCH_NUM != 4
         else if (attributeName == "visible_in_diffuse_reflection")
@@ -543,11 +509,11 @@ RendererAttribute usdAttributeToArnold(
 template <class A, class U>
 size_t attributeArrayToArnold(
     UsdAttribute attr,
-    AtNode* node,
-    const char* name,
+    AtNode *node,
+    const char *name,
     uint8_t type,
-    const std::vector<float>& times,
-    const VtIntArray* numVertsArray)
+    const std::vector<float> &times,
+    const VtIntArray *numVertsArray)
 {
     // Number of motion keys.
     size_t keys = times.size();
@@ -592,20 +558,20 @@ size_t attributeArrayToArnold(
 
 template <class T>
 bool vtToArnold(
-    const VtValue& vtValue,
-    const VtIntArray& vtIndices,
-    const TfToken& name,
-    const SdfValueTypeName& typeName,
-    const TfToken& interpolation,
-    AtNode* node,
-    const VtIntArray* numVertsArray,
+    const VtValue &vtValue,
+    const VtIntArray &vtIndices,
+    const TfToken &name,
+    const SdfValueTypeName &typeName,
+    const TfToken &interpolation,
+    AtNode *node,
+    const VtIntArray *numVertsArray,
     const int pointInstanceId)
 {
     if (!vtValue.IsHolding<VtArray<T>>())
     {
         return false;
     }
- 
+
     TfToken arnoldName = name;
     bool needDeclare = true;
 
@@ -650,21 +616,14 @@ bool vtToArnold(
     //         were not shared. The user should only create parameters of
     //         "interpolatable" variable types (such as floats, colors,
     //         etc.)
-    std::string declaration = (interpolation == UsdGeomTokens->uniform) ?
-        "uniform " :
-        (interpolation == UsdGeomTokens->varying) ?
-        "varying " :
-        (interpolation == UsdGeomTokens->vertex) ?
-        "varying " :
-        (interpolation == UsdGeomTokens->faceVarying) ? "indexed " :
-                                                        "constant ";
+    std::string declaration = (interpolation == UsdGeomTokens->uniform) ? "uniform " : (interpolation == UsdGeomTokens->varying) ? "varying " : (interpolation == UsdGeomTokens->vertex) ? "varying " : (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : "constant ";
 
     int arnoldAPIType;
 
     if (std::is_same<T, GfVec2f>::value)
     {
-        declaration += RDO_STR_TYPE_VECTOR2;
-        arnoldAPIType = RDO_AI_TYPE_VECTOR2;
+        declaration += "VECTOR2";
+        arnoldAPIType = AI_TYPE_VECTOR2;
 
         // A special case for UVs.
         if (name == "uv")
@@ -676,24 +635,16 @@ bool vtToArnold(
     else if (std::is_same<T, GfVec3f>::value)
     {
         TfToken role = typeName.GetRole();
-        if (role == SdfValueRoleNames->Color) {
+        if (role == SdfValueRoleNames->Color)
+        {
             declaration += "RGB";
             arnoldAPIType = AI_TYPE_RGB;
         }
-        else {
-            declaration += RDO_STR_TYPE_VECTOR;
-            arnoldAPIType = RDO_AI_TYPE_VECTOR;
+        else
+        {
+            declaration += "VECTOR";
+            arnoldAPIType = AI_TYPE_VECTOR;
         }
-
-#if AI_VERSION_ARCH_NUM == 4
-        // AI_TYPE_VECTOR is distinct to AI_TYPE_POINT only in Arnold 4.
-        // So in Arnold 5, this block is redundant with the one above.
-        // else
-        // {
-        //     declaration += "VECTOR";
-        //     arnoldAPIType = AI_TYPE_VECTOR;
-        // }
-#endif  // ARNOLD 4
     }
     else if (std::is_same<T, float>::value)
     {
@@ -718,7 +669,7 @@ bool vtToArnold(
     }
 
     // Constant USD attributs are provided as an array of one element.
-    if(interpolation == UsdGeomTokens->constant) 
+    if (interpolation == UsdGeomTokens->constant)
     {
         if (std::is_same<T, GfVec3f>::value)
         {
@@ -746,26 +697,26 @@ bool vtToArnold(
             }
         }
 
-        else if(std::is_same<T, GfVec2f>::value) 
+        else if (std::is_same<T, GfVec2f>::value)
         {
             auto vector = vtValue.Get<VtArray<GfVec2f>>()[0];
             AiNodeSetVec2(node, arnoldName.GetText(), vector[0], vector[1]);
         }
 
-        else if(std::is_same<T, float>::value) 
+        else if (std::is_same<T, float>::value)
         {
             AiNodeSetFlt(node, arnoldName.GetText(), vtValue.Get<VtArray<float>>()[0]);
         }
 
-        else if(std::is_same<T, int>::value) 
+        else if (std::is_same<T, int>::value)
         {
             AiNodeSetInt(node, arnoldName.GetText(), vtValue.Get<VtArray<int>>()[0]);
         }
     }
 
-    else 
+    else
     {
-        const VtArray<T>& rawVal = vtValue.Get<VtArray<T>>();
+        const VtArray<T> &rawVal = vtValue.Get<VtArray<T>>();
         AiNodeSetArray(
             node,
             arnoldName.GetText(),
@@ -820,8 +771,8 @@ bool vtToArnold(
  * @return Vector of the 4x4 matrices that represent the transforms.
  */
 std::vector<float> getPrimTransform(
-    const UsdPrim& iPrim,
-    const std::vector<float>& times)
+    const UsdPrim &iPrim,
+    const std::vector<float> &times)
 {
     std::vector<float> xform;
 
@@ -851,14 +802,14 @@ std::vector<float> getPrimTransform(
     {
         GfMatrix4d matrix = imageable.ComputeLocalToWorldTransform(time);
 
-        const double* matrixArray = matrix.GetArray();
+        const double *matrixArray = matrix.GetArray();
         xform.insert(xform.end(), matrixArray, matrixArray + 16);
     }
 
     return xform;
 }
 
-void RendererAttribute::evaluate(AtNode* node) const
+void RendererAttribute::evaluate(AtNode *node) const
 {
     if (mFunction)
     {
@@ -888,17 +839,17 @@ RendererPlugin::RendererPlugin()
 #endif
 }
 
-bool RendererPlugin::isSupported(const UsdPrim& prim) const
+bool RendererPlugin::isSupported(const UsdPrim &prim) const
 {
     if (!prim)
     {
         return false;
     }
     return prim.IsInstance() || prim.IsA<UsdGeomMesh>() ||
-        prim.IsA<UsdGeomCurves>() || prim.IsA<UsdGeomPointInstancer>();
+           prim.IsA<UsdGeomCurves>() || prim.IsA<UsdGeomPointInstancer>();
 }
 
-bool RendererPlugin::isImmediate(const UsdPrim& prim) const
+bool RendererPlugin::isImmediate(const UsdPrim &prim) const
 {
     if (!prim)
     {
@@ -909,15 +860,13 @@ bool RendererPlugin::isImmediate(const UsdPrim& prim) const
     return prim.IsA<UsdShadeShader>();
 }
 
-// This function is not compatible Arnold 4.
-void* RendererPlugin::output(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const void* userData
-) const
+void *RendererPlugin::output(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const void *userData) const
 {
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     SdfPath objectPath = prim.GetPath();
@@ -931,23 +880,22 @@ void* RendererPlugin::output(
         times,
         xform,
         objectPath,
-        prefix
-    );
+        prefix);
 }
 
 // TODO:
 // AiNodeSetBool(node, "inherit_xform", false);
 // AiNodeSetBool(node, "invert_normals", true);
 // AiNodeSetByte(node, "sidedness", AI_RAY_ALL);
-void* RendererPlugin::outputBBox(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const void* userData,
-    RendererIndex& index) const
+void *RendererPlugin::outputBBox(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const void *userData,
+    RendererIndex &index) const
 {
     // Get the user data
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     const SdfPath path = prim.GetPath();
@@ -957,36 +905,6 @@ void* RendererPlugin::outputBBox(
 
     // Output XForm
     std::vector<float> xform = getPrimTransform(prim, times);
-
-#if AI_VERSION_ARCH_NUM == 4
-    // UsdGeomImageable imageable(prim);
-
-    // // Add the bounding box.
-    // GfBBox3d bbox;
-    // // We need to combine all the bounding boxes of the all the motion samples.
-    // bool bboxInitialized = false;
-    // for (float time : times)
-    // {
-    //     GfBBox3d current = imageable.ComputeUntransformedBound(
-    //         time, UsdGeomTokens->default_, UsdGeomTokens->render);
-
-    //     if (bboxInitialized)
-    //     {
-    //         bbox = GfBBox3d::Combine(bbox, current);
-    //     }
-    //     else
-    //     {
-    //         bbox = current;
-    //         bboxInitialized = true;
-    //     }
-    // }
-
-    // // Push the bbox to Arnold.
-    // const GfRange3d& range = bbox.ComputeAlignedBox();
-    // const GfVec3d& min = range.GetMin();
-    // const GfVec3d& max = range.GetMax();
-
-#endif  // ARNOLD 4
 
     SdfPath objectPath;
     std::string prefix;
@@ -1010,23 +928,20 @@ void* RendererPlugin::outputBBox(
         name,
         times,
         xform,
-#if AI_VERSION_ARCH_NUM == 4
-        // range,
-#endif // ARNOLD 4
         objectPath,
         prefix);
 }
 
-void* RendererPlugin::outputBBoxFromPoint(
-    const UsdPrim& prim,
+void *RendererPlugin::outputBBoxFromPoint(
+    const UsdPrim &prim,
     const int id,
-    const std::vector<float>& times,
-    const void* userData,
-    RendererIndex& index) const
+    const std::vector<float> &times,
+    const void *userData,
+    RendererIndex &index) const
 {
     // Get the user data
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     UsdGeomPointInstancer instancer(prim);
@@ -1045,11 +960,11 @@ void* RendererPlugin::outputBBoxFromPoint(
 
     SdfPathVector protoPaths;
     instancer.GetPrototypesRel().GetTargets(&protoPaths);
-    const SdfPath& protoPath = protoPaths[protoIndices[id]];
+    const SdfPath &protoPath = protoPaths[protoIndices[id]];
 
     // Form the name.
     std::string name = data->prefix + ":" + protoPath.GetText() + ":proc_" +
-        std::to_string(id);
+                       std::to_string(id);
 
     // Compute Xform from point
     std::vector<float> xform;
@@ -1073,68 +988,33 @@ void* RendererPlugin::outputBBoxFromPoint(
         xfo.SetRotation(GfRotation(orientations[id]));
         xfo.SetTranslation(positions[id]);
 
-        const double* matrixArray = xfo.GetMatrix().GetArray();
+        const double *matrixArray = xfo.GetMatrix().GetArray();
         xform.insert(xform.end(), matrixArray, matrixArray + 16);
     }
 
-#if AI_VERSION_ARCH_NUM == 4
-
-    // UsdStageRefPtr stage = prim.GetStage();
-    // const UsdPrim& protoPrim = stage->GetPrimAtPath(protoPath);
-    // UsdGeomImageable imageable(protoPrim);
-
-    // // Add the bounding box.
-    // GfBBox3d bbox;
-    // // We need to combine all the bounding boxes of the all the motion samples.
-    // bool bboxInitialized = false;
-    // for (float time : times)
-    // {
-    //     GfBBox3d current = imageable.ComputeUntransformedBound(
-    //         time, UsdGeomTokens->default_, UsdGeomTokens->render);
-
-    //     if (bboxInitialized)
-    //     {
-    //         bbox = GfBBox3d::Combine(bbox, current);
-    //     }
-    //     else
-    //     {
-    //         bbox = current;
-    //         bboxInitialized = true;
-    //     }
-    // }
-
-    // // Push the bbox to Arnold.
-    // const GfRange3d& range = bbox.ComputeAlignedBox();
-    // const GfVec3d& min = range.GetMin();
-    // const GfVec3d& max = range.GetMax();
-#endif // ARNOLD 4
-
-    AtNode* node = createWalterProcedural(
+    AtNode *node = createWalterProcedural(
         data,
         name,
         times,
         xform,
-#if AI_VERSION_ARCH_NUM == 4
-        // range,
-#endif // ARNOLD 4
         protoPath,
         data->prefix);
     outputPrimvars(prim, averageTime, node, nullptr, id);
     return node;
 }
 
-void* RendererPlugin::outputReference(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const void* userData,
-    RendererIndex& index) const
+void *RendererPlugin::outputReference(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const void *userData,
+    RendererIndex &index) const
 {
     assert(prim);
 
     std::string name = prim.GetStage()->GetSessionLayer()->GetIdentifier() +
-        ":" + prim.GetPath().GetText();
+                       ":" + prim.GetPath().GetText();
 
-    AtNode* node = nullptr;
+    AtNode *node = nullptr;
 
     if (prim.IsA<UsdGeomMesh>())
     {
@@ -1157,7 +1037,7 @@ void* RendererPlugin::outputReference(
         SdfPath path = prim.GetPath();
 
         // Walter overrides.
-        const NameToAttribute* attributes =
+        const NameToAttribute *attributes =
             getAssignedAttributes(path, layer, userData, index, nullptr);
 
         outputAttributes(node, path, attributes, index, layer, userData, true);
@@ -1168,11 +1048,11 @@ void* RendererPlugin::outputReference(
 }
 
 void RendererPlugin::establishConnections(
-    const UsdPrim& prim,
-    void* data,
-    RendererIndex& index) const
+    const UsdPrim &prim,
+    void *data,
+    RendererIndex &index) const
 {
-    AtNode* node = reinterpret_cast<AtNode*>(data);
+    AtNode *node = reinterpret_cast<AtNode *>(data);
 
     if (!prim.IsA<UsdShadeShader>())
     {
@@ -1181,7 +1061,7 @@ void RendererPlugin::establishConnections(
 
     UsdShadeShader shader(prim);
 
-    for (const UsdShadeInput& input : shader.GetInputs())
+    for (const UsdShadeInput &input : shader.GetInputs())
     {
         UsdShadeConnectableAPI connectableAPISource;
         TfToken sourceName;
@@ -1205,7 +1085,7 @@ void RendererPlugin::establishConnections(
             continue;
         }
 
-        AtNode* source = reinterpret_cast<AtNode*>(accessor->second);
+        AtNode *source = reinterpret_cast<AtNode *>(accessor->second);
 
         if (sourceName.IsEmpty() || sourceName == "out")
         {
@@ -1223,20 +1103,20 @@ void RendererPlugin::establishConnections(
     }
 }
 
-void* RendererPlugin::render(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    void* renderData,
-    const void* userData,
-    RendererIndex& index) const
+void *RendererPlugin::render(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    void *renderData,
+    const void *userData,
+    RendererIndex &index) const
 {
     size_t keys = times.size();
     std::vector<float> averageTime(
         1, std::accumulate(times.begin(), times.end(), 0.0f) / keys);
 
     // Get the user data
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     SdfPath primPath = prim.GetPath();
@@ -1247,17 +1127,17 @@ void* RendererPlugin::render(
 
     // We need to know if the object is visible before we create the node.
     uint8_t visibility;
-    const NameToAttribute* attributes =
+    const NameToAttribute *attributes =
         getAssignedAttributes(primPath, layer, userData, index, &visibility);
 
     // We should also consider standard USD visibility flag.
     UsdGeomImageable imageable = UsdGeomImageable(prim);
     bool invisibleFromUSD = imageable &&
-        imageable.ComputeVisibility(averageTime[0]) == UsdGeomTokens->invisible;
+                            imageable.ComputeVisibility(averageTime[0]) == UsdGeomTokens->invisible;
 
     bool canRender = imageable
-        ? imageable.ComputePurpose() != UsdGeomTokens->proxy && imageable.ComputePurpose() != UsdGeomTokens->guide
-        : true;
+                         ? imageable.ComputePurpose() != UsdGeomTokens->proxy && imageable.ComputePurpose() != UsdGeomTokens->guide
+                         : true;
 
     if (visibility == AI_RAY_UNDEFINED || invisibleFromUSD || !canRender)
     {
@@ -1270,7 +1150,7 @@ void* RendererPlugin::render(
         return outputEmptyNode(name);
     }
 
-    AtNode* node = AiNode("ginstance");
+    AtNode *node = AiNode("ginstance");
 
     AiNodeSetStr(node, "name", name.c_str());
 
@@ -1286,17 +1166,17 @@ void* RendererPlugin::render(
 }
 
 RendererAttribute RendererPlugin::createRendererAttribute(
-    const UsdAttribute& attr,
+    const UsdAttribute &attr,
     UsdTimeCode time) const
 {
     return usdAttributeToArnold(attr.GetBaseName(), attr, time);
 }
 
-AtNode* RendererPlugin::outputGeomMesh(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const char* name,
-    const void* userData) const
+AtNode *RendererPlugin::outputGeomMesh(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const char *name,
+    const void *userData) const
 {
     TF_DEBUG(WALTER_ARNOLD_PLUGIN)
         .Msg("[%s]: Render: %s\n", __FUNCTION__, name);
@@ -1306,14 +1186,14 @@ AtNode* RendererPlugin::outputGeomMesh(
         1, std::accumulate(times.begin(), times.end(), 0.0f) / keys);
 
     // Create a polymesh.
-    AtNode* node = AiNode("polymesh");
+    AtNode *node = AiNode("polymesh");
 
     AiNodeSetStr(node, "name", name);
     AiNodeSetBool(node, "smoothing", true);
     AiNodeSetByte(node, "visibility", 0);
 
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     setMotionStartEnd(node, *data);
@@ -1360,7 +1240,7 @@ AtNode* RendererPlugin::outputGeomMesh(
         mesh.GetPointsAttr(),
         node,
         "vlist",
-        RDO_AI_TYPE_VECTOR,
+        AI_TYPE_VECTOR,
         times,
         nullptr);
 
@@ -1392,11 +1272,11 @@ AtNode* RendererPlugin::outputGeomMesh(
     return node;
 }
 
-AtNode* RendererPlugin::outputGeomCurves(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const char* name,
-    const void* userData) const
+AtNode *RendererPlugin::outputGeomCurves(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const char *name,
+    const void *userData) const
 {
     TF_DEBUG(WALTER_ARNOLD_PLUGIN)
         .Msg("[%s]: Render: %s\n", __FUNCTION__, name);
@@ -1406,13 +1286,13 @@ AtNode* RendererPlugin::outputGeomCurves(
         1, std::accumulate(times.begin(), times.end(), 0.0f) / keys);
 
     // Create curves.
-    AtNode* node = AiNode("curves");
+    AtNode *node = AiNode("curves");
 
     AiNodeSetStr(node, "name", name);
     AiNodeSetByte(node, "visibility", 0);
 
-    const RendererPluginData* data =
-        reinterpret_cast<const RendererPluginData*>(userData);
+    const RendererPluginData *data =
+        reinterpret_cast<const RendererPluginData *>(userData);
     assert(data);
 
     setMotionStartEnd(node, *data);
@@ -1466,7 +1346,7 @@ AtNode* RendererPlugin::outputGeomCurves(
         curves.GetPointsAttr(),
         node,
         "points",
-        RDO_AI_TYPE_VECTOR,
+        AI_TYPE_VECTOR,
         times,
         nullptr);
 
@@ -1480,10 +1360,10 @@ AtNode* RendererPlugin::outputGeomCurves(
     return node;
 }
 
-AtNode* RendererPlugin::outputShader(
-    const UsdPrim& prim,
-    const std::vector<float>& times,
-    const char* name) const
+AtNode *RendererPlugin::outputShader(
+    const UsdPrim &prim,
+    const std::vector<float> &times,
+    const char *name) const
 {
     if (!prim.IsA<UsdShadeShader>())
     {
@@ -1508,13 +1388,13 @@ AtNode* RendererPlugin::outputShader(
     shaderTypeAttr.Get(&shaderType, averageTime[0]);
 
     // Create shader.
-    AtNode* node = AiNode(shaderType.GetText());
+    AtNode *node = AiNode(shaderType.GetText());
 
     // Set the name
     AiNodeSetStr(node, "name", name);
 
     // Output XForm
-    static const char* matrix = "matrix";
+    static const char *matrix = "matrix";
     if (getArnoldParameter(node, matrix))
     {
         std::vector<float> xform = getPrimTransform(prim, times);
@@ -1531,7 +1411,7 @@ AtNode* RendererPlugin::outputShader(
     }
 
     // Iterate all the paramters.
-    for (const UsdAttribute& attr : prim.GetAttributes())
+    for (const UsdAttribute &attr : prim.GetAttributes())
     {
         if (!attr.GetNamespace().IsEmpty())
         {
@@ -1553,17 +1433,17 @@ AtNode* RendererPlugin::outputShader(
 }
 
 void RendererPlugin::outputPrimvars(
-    const UsdPrim& prim,
+    const UsdPrim &prim,
     float time,
-    AtNode* node,
-    const VtIntArray* numVertsArray,
+    AtNode *node,
+    const VtIntArray *numVertsArray,
     const int pointInstanceId) const
 {
     assert(prim);
     UsdGeomImageable imageable = UsdGeomImageable(prim);
     assert(imageable);
 
-    for (const UsdGeomPrimvar& primvar : imageable.GetPrimvars())
+    for (const UsdGeomPrimvar &primvar : imageable.GetPrimvars())
     {
         TfToken name;
         SdfValueTypeName typeName;
@@ -1573,7 +1453,7 @@ void RendererPlugin::outputPrimvars(
         primvar.GetDeclarationInfo(
             &name, &typeName, &interpolation, &elementSize);
 
-        if(pointInstanceId > -1)
+        if (pointInstanceId > -1)
         {
             assert(interpolation == UsdGeomTokens->uniform);
             interpolation = UsdGeomTokens->constant;
@@ -1583,7 +1463,7 @@ void RendererPlugin::outputPrimvars(
         VtValue vtValue;
         VtIntArray vtIndices;
         if (interpolation == UsdGeomTokens->constant)
-        { 
+        {
             if (!primvar.Get(&vtValue, time))
             {
                 continue;
@@ -1634,7 +1514,7 @@ void RendererPlugin::outputPrimvars(
                      node,
                      numVertsArray,
                      pointInstanceId))
-        { /* Nothing to do */          
+        { /* Nothing to do */
         }
         else if (vtToArnold<float>(
                      vtValue,
@@ -1661,15 +1541,15 @@ void RendererPlugin::outputPrimvars(
     }
 }
 
-const NameToAttribute* RendererPlugin::getAssignedAttributes(
-    const SdfPath& path,
-    const std::string& layer,
-    const void* userData,
-    RendererIndex& index,
-    uint8_t* oVisibility) const
+const NameToAttribute *RendererPlugin::getAssignedAttributes(
+    const SdfPath &path,
+    const std::string &layer,
+    const void *userData,
+    RendererIndex &index,
+    uint8_t *oVisibility) const
 {
-    const std::string& prefix =
-        reinterpret_cast<const RendererPluginData*>(userData)->prefix;
+    const std::string &prefix =
+        reinterpret_cast<const RendererPluginData *>(userData)->prefix;
 
     // Form the full path considering instancing that is good for expression
     // resolving. The first part is saved in the index. The second part is the
@@ -1680,13 +1560,13 @@ const NameToAttribute* RendererPlugin::getAssignedAttributes(
     uint8_t visibility = AI_RAY_ALL;
 
     // Get attributes.
-    const NameToAttribute* attributes =
+    const NameToAttribute *attributes =
         index.getObjectAttribute(virtualObjectName, layer);
 
     // Compute the visibility.
     if (attributes && oVisibility)
     {
-        for (const auto& attr : *attributes)
+        for (const auto &attr : *attributes)
         {
             if (attr.second.isVisibility())
             {
@@ -1702,16 +1582,16 @@ const NameToAttribute* RendererPlugin::getAssignedAttributes(
 }
 
 void RendererPlugin::outputAttributes(
-    AtNode* node,
-    const SdfPath& path,
-    const NameToAttribute* attributes,
-    RendererIndex& index,
-    const std::string& layer,
-    const void* userData,
+    AtNode *node,
+    const SdfPath &path,
+    const NameToAttribute *attributes,
+    RendererIndex &index,
+    const std::string &layer,
+    const void *userData,
     bool forReference) const
 {
-    const std::string& prefix =
-        reinterpret_cast<const RendererPluginData*>(userData)->prefix;
+    const std::string &prefix =
+        reinterpret_cast<const RendererPluginData *>(userData)->prefix;
 
     // Output attributes to Arnold.
     if (forReference && attributes)
@@ -1720,7 +1600,7 @@ void RendererPlugin::outputAttributes(
         // Get attributes.
         if (attributes)
         {
-            for (const auto& attr : *attributes)
+            for (const auto &attr : *attributes)
             {
                 attr.second.evaluate(node);
             }
@@ -1747,11 +1627,11 @@ void RendererPlugin::outputAttributes(
 }
 
 void RendererPlugin::outputShadingAttribute(
-    AtNode* node,
-    const std::string& objectName,
-    RendererIndex& index,
-    const std::string& layer,
-    const std::string& target) const
+    AtNode *node,
+    const std::string &objectName,
+    RendererIndex &index,
+    const std::string &layer,
+    const std::string &target) const
 {
     // Get shader
     SdfPath shaderPath = index.getShaderAssignment(objectName, layer, target);
@@ -1773,7 +1653,7 @@ void RendererPlugin::outputShadingAttribute(
         // TODO: It's not an effective way. It's much better to export all
         // the necessary nodes to the session layer. But it's much more
         // complicated.
-        AtNode* shaderNode = AiNodeLookUpByName(shaderPath.GetText());
+        AtNode *shaderNode = AiNodeLookUpByName(shaderPath.GetText());
 
         if (!shaderNode && isDisplacement)
         {
@@ -1790,29 +1670,26 @@ void RendererPlugin::outputShadingAttribute(
     }
 
     // Read and release the accessor.
-    void* shaderData = accessor->second;
+    void *shaderData = accessor->second;
     accessor.release();
 
     if (shaderData)
     {
         std::string arrayName = isDisplacement ? "disp_map" : target;
 
-        AtArray* shaders = AiArrayAllocate(1, 1, AI_TYPE_NODE);
+        AtArray *shaders = AiArrayAllocate(1, 1, AI_TYPE_NODE);
         AiArraySetPtr(shaders, 0, shaderData);
         AiNodeSetArray(node, arrayName.c_str(), shaders);
     }
 }
 
-void* RendererPlugin::outputEmptyNode(const std::string& iNodeName) const
+void *RendererPlugin::outputEmptyNode(const std::string &iNodeName) const
 {
-#if AI_VERSION_ARCH_NUM == 4
-    // // Everything works well with Arnold 4.
-    // return nullptr;
-#else
+#if AI_VERSION_ARCH_NUM == 5
     // Output a very small point that is visible only for volume rays
     static const float points[] = {0.0f, 0.0f, 0.0f};
     static const float radius[] = {1e-9f};
-    AtNode* node = AiNode("points");
+    AtNode *node = AiNode("points");
     AiNodeSetStr(node, "name", iNodeName.c_str());
     AiNodeSetByte(node, "visibility", AI_RAY_VOLUME);
     AiNodeSetByte(node, "sidedness", AI_RAY_UNDEFINED);
