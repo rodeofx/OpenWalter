@@ -16,7 +16,6 @@ include_directories(${ILMBASE_INCLUDE_DIR})
 target_link_libraries(
     ${MAYAPLUGIN}
     walterCommon
-    arnoldVersionPort
     walterMayaCommon
     walterMtoATranslator
     ${MTOA_LIBRARY}

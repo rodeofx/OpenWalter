@@ -4,7 +4,6 @@
 
 #include "abcExporterUtils.h"
 #include "mtoaScene.h"
-#include "rdoArnold.h"
 
 #include <json/value.h>
 #include <json/writer.h>
@@ -130,11 +129,6 @@ Json::Value arnParamToJson(const AtNode* node, const AtParamEntry* param)
             case AI_TYPE_RGBA:
                 result["value"] = arnToJsonArray(AiNodeGetRGBA(node, name));
                 break;
-// #if AI_VERSION_ARCH_NUM == 4
-//             case AI_TYPE_VECTOR:
-//                 result["value"] = arnToJsonArray(AiNodeGetVec(node, name));
-//                 break;
-// #endif
             case AI_TYPE_VECTOR:
                 result["value"] = arnToJsonArray(AiNodeGetVec(node, name));
                 break;

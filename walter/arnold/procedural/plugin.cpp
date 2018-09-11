@@ -3,7 +3,6 @@
 #include "plugin.h"
 
 #include "index.h"
-#include "rdoArnold.h"
 
 #include <ai.h>
 #include <pxr/base/gf/matrix4f.h>
@@ -407,7 +406,6 @@ RendererAttribute usdAttributeToArnold(
         {
             ray = AI_RAY_ALL_TRANSMIT;
         }
-#if AI_VERSION_ARCH_NUM != 4
         else if (attributeName == "visible_in_diffuse_reflection")
         {
             ray = AI_RAY_DIFFUSE_REFLECT;
@@ -428,7 +426,6 @@ RendererAttribute usdAttributeToArnold(
         {
             ray = AI_RAY_VOLUME;
         }
-#endif
 
         bool visibilityFlag;
         if (ray && attr.Get(&visibilityFlag, time) && !visibilityFlag)
@@ -1685,7 +1682,6 @@ void RendererPlugin::outputShadingAttribute(
 
 void *RendererPlugin::outputEmptyNode(const std::string &iNodeName) const
 {
-#if AI_VERSION_ARCH_NUM == 5
     // Output a very small point that is visible only for volume rays
     static const float points[] = {0.0f, 0.0f, 0.0f};
     static const float radius[] = {1e-9f};
@@ -1704,5 +1700,4 @@ void *RendererPlugin::outputEmptyNode(const std::string &iNodeName) const
         AiArrayConvert(
             sizeof(radius) / sizeof(radius[0]), 1, AI_TYPE_FLOAT, radius));
     return node;
-#endif
 }

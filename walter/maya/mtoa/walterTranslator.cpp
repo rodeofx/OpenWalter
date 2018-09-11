@@ -3,7 +3,6 @@
 #include <ai_array.h>
 #include <ai_nodes.h>
 #include <ai_ray.h>
-#include "rdoArnold.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
@@ -249,9 +248,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString sessionLayer = usdSessionLayer.asString();
             if (sessionLayer.length())
             {
-// #if AI_VERSION_ARCH_NUM == 4
-//                 AiNodeDeclare(procedural, "sessionLayer", "constant STRING");
-// #endif
                 AiNodeSetStr(procedural, "sessionLayer", sessionLayer.asChar());
             }
         }
@@ -262,9 +258,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString variantsLayer = usdVariantsLayer.asString();
             if (variantsLayer.length())
             {
-// #if AI_VERSION_ARCH_NUM == 4
-//                 AiNodeDeclare(procedural, "variantsLayer", "constant STRING");
-// #endif
                 AiNodeSetStr(procedural, "variantsLayer", variantsLayer.asChar());
             }
         }
@@ -275,9 +268,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString purposeLayer = usdPurposeLayer.asString();
             if (purposeLayer.length())
             {
-// #if AI_VERSION_ARCH_NUM == 4
-//                 AiNodeDeclare(procedural, "purposeLayer", "constant STRING");
-// #endif
                 AiNodeSetStr(procedural, "purposeLayer", purposeLayer.asChar());
             }
         }
@@ -288,9 +278,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString mayaStateLayer = usdMayaStateLayer.asString();
             if (mayaStateLayer.length())
             {
-// #if AI_VERSION_ARCH_NUM == 4
-//                 AiNodeDeclare(procedural, "mayaStateLayer", "constant STRING");
-// #endif
                 AiNodeSetStr(
                     procedural, "mayaStateLayer", mayaStateLayer.asChar());
             }
@@ -302,16 +289,10 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString visibilityLayer = usdVisibilityLayer.asString();
             if (visibilityLayer.length())
             {
-// #if AI_VERSION_ARCH_NUM == 4
-//                 AiNodeDeclare(procedural, "visibilityLayer", "constant STRING");
-// #endif
                 AiNodeSetStr(procedural, "visibilityLayer", visibilityLayer.asChar());
             }
         }
 
-// #if AI_VERSION_ARCH_NUM == 4
-//         ExportBoundingBox(procedural);
-// #else
         // MTOA does this for every node.
         if (RequiresMotionData())
         {
@@ -320,7 +301,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             AiNodeSetFlt(procedural, "motion_start", (float)motionStart);
             AiNodeSetFlt(procedural, "motion_end", (float)motionEnd);
         }
-// #endif
     }
 }
 
@@ -633,12 +613,7 @@ void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
 #if WALTER_MTOA_VERSION >= 10400
             int step = GetMotionStep();
 #endif
-            int arraySize =
-// #if AI_VERSION_ARCH_NUM == 4
-//                 frames->nkeys * frames->nelements;
-// #else
-            AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
-// #endif
+            int arraySize = AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
             if (step >= arraySize)
 
             {

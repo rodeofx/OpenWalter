@@ -1,7 +1,6 @@
 // Copyright 2017 Rodeo FX.  All rights reserved.
 
 #include "engine.h"
-#include "rdoArnold.h"
 
 #include <ai.h>
 #include <pxr/usd/sdf/path.h>
@@ -43,7 +42,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 {
 // Get parameters
 // We can keep this logic check for future
-#if AI_VERSION_ARCH_NUM == 5
     const char* dso = "\n";
     const char* file = AiNodeGetStr(node, "filePaths");
     const char* object = AiNodeGetStr(node, "objectPath");
@@ -52,7 +50,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
     const char* purposeLayer = AiNodeGetStr(node, "purposeLayer");
     const char* mayaStateLayer = AiNodeGetStr(node, "mayaStateLayer");
     const char* visibilityLayer = AiNodeGetStr(node, "visibilityLayer");
-#endif  // ARNOLD
 
     std::vector<std::string> overrides;
     for (const char* o : {sessionLayer, variantsLayer, mayaStateLayer, visibilityLayer, purposeLayer})
@@ -131,7 +128,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
         data->mTimes.push_back(1.0f);
     }
 
-#if AI_VERSION_ARCH_NUM != 4
     // It's possible that motion_start/motion_end are not there if motion blur
     // is disabled.
     const AtNodeEntry* entry = AiNodeGetNodeEntry(node);
@@ -143,7 +139,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
     {
         data->mData.motionEnd = AiNodeGetFlt(node, "motion_end");
     }
-#endif
 
     // Save it for future
     *user_ptr = data;
@@ -202,8 +197,6 @@ bool arnoldProceduralCleanupPlugin(void* plugin_user_ptr)
     return true;
 }
 
-#if AI_VERSION_ARCH_NUM == 5
-
 AI_PROCEDURAL_NODE_EXPORT_METHODS(WalterMtd);
 
 node_parameters
@@ -255,5 +248,3 @@ node_loader
     strcpy(node->version, AI_VERSION);
     return true;
 }
-
-#endif  // ARNOLD

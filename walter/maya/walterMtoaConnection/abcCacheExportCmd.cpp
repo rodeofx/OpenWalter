@@ -16,7 +16,6 @@ License along with this library.*/
 #include "abcCacheExportCmd.h"
 #include "abcExporterUtils.h"
 #include "mtoaScene.h"
-#include "rdoArnold.h"
 #include "mtoaVersion.h"
 
 #include <Alembic/AbcCoreLayer/Util.h>
