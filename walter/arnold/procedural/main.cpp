@@ -40,8 +40,7 @@ const char* AiNodeLookUpAndGetStr(AtNode* node, const char* param)
 
 static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 {
-// Get parameters
-// We can keep this logic check for future
+    // Get parameters
     const char* dso = "\n";
     const char* file = AiNodeGetStr(node, "filePaths");
     const char* object = AiNodeGetStr(node, "objectPath");
