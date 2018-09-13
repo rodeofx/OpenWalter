@@ -4,7 +4,6 @@
 
 #include "index.h"
 
-#include <ai.h>
 #include <boost/algorithm/string.hpp>
 #include <functional>
 #include <pxr/base/gf/matrix4f.h>
@@ -287,7 +286,7 @@ void aiNodeSet<GfVec2f>(AtNode* node, std::string name, const GfVec2f& value)
         AiNodeDeclare(node, name.c_str(), "constant VECTOR2");
     }
 
-    AiNodeGetVec2(node, name.c_str(), value[0], value[1]);
+    AiNodeSetVec2(node, name.c_str(), value[0], value[1]);
 }
 
 template <>
@@ -612,10 +611,16 @@ bool vtToArnold(
     //         were not shared. The user should only create parameters of
     //         "interpolatable" variable types (such as floats, colors,
     //         etc.)
-    std::string declaration = (interpolation == UsdGeomTokens->uniform) ? "uniform " : (interpolation == UsdGeomTokens->varying) ? "varying " : (interpolation == UsdGeomTokens->vertex) ? "varying " : (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : "constant ";
+    std::string declaration = (interpolation == UsdGeomTokens->uniform) ? 
+    "uniform " : 
+    (interpolation == UsdGeomTokens->varying) ? 
+    "varying " : 
+    (interpolation == UsdGeomTokens->vertex) ? 
+    "varying " : 
+    (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : 
+                                                    "constant ";
 
     int arnoldAPIType;
-
     if (std::is_same<T, GfVec2f>::value)
     {
         declaration += "VECTOR2";
