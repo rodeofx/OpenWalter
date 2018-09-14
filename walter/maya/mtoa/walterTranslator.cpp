@@ -32,7 +32,6 @@
 #endif
 
 
-#if WALTER_MTOA_VERSION >= 10400
 CWalterStandinTranslator::CWalterStandinTranslator() :
     m_arnoldRootNode(NULL)
 {
@@ -42,14 +41,6 @@ AtNode* CWalterStandinTranslator::GetArnoldRootNode()
 {
     return m_arnoldRootNode;
 }
-
-#else
-void CWalterStandinTranslator::Update(AtNode* procedural)
-{
-    ExportProcedural(procedural, true);
-}
-
-#endif
 
 AtNode*  CWalterStandinTranslator::CreateArnoldNodes()
 {
@@ -101,11 +92,8 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
     MStatus stat;
     m_DagNode.setObject(m_dagPath.node());
 
-#if WALTER_MTOA_VERSION >= 10400
     ExportMatrix(procedural);
-#else
-    ExportMatrix(procedural, 0);
-#endif
+
     ProcessRenderFlagsCustom(procedural);
 
     if (!update)
@@ -192,11 +180,7 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
                             MPlug sgPlug = connections[k];
                             if (sgPlug.node().apiType() == MFn::kShadingEngine || sgPlug.node().apiType() == MFn::kDisplacementShader)
                             {
-#if WALTER_MTOA_VERSION >= 10400
                                 ExportConnectedNode(sgPlug);
-#else
-                                ExportNode(sgPlug);
-#endif
                             }
                         }
                 }
@@ -228,11 +212,7 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             }
         }
 
-#if WALTER_MTOA_VERSION >= 10400
         ExportFrame(procedural);
-#else
-        ExportFrame(procedural, 0);
-#endif
 
         AiNodeSetStr(procedural, "objectPath", "/");
 
@@ -319,12 +299,7 @@ void CWalterStandinTranslator::ExportStandinsShaders(AtNode* procedural)
     if (!shadingGroupPlug.isNull())
     {
 
-        AtNode *shader =
-#if WALTER_MTOA_VERSION >= 10400
-            ExportConnectedNode(shadingGroupPlug);
-#else
-            ExportNode(shadingGroupPlug);
-#endif
+        AtNode *shader = ExportConnectedNode(shadingGroupPlug);
         if (shader != NULL)
         {
             // We can't put it to "shader" attribute because in this way we will
@@ -348,11 +323,7 @@ void CWalterStandinTranslator::ExportStandinsShaders(AtNode* procedural)
     }
 }
 
-#if WALTER_MTOA_VERSION >= 10400
 void CWalterStandinTranslator::ExportMotion(AtNode* anode)
-#else
-void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
-#endif
 {
     // Check if motionblur is enabled and early out if it's not.
     if (!IsMotionBlurEnabled())
@@ -360,13 +331,8 @@ void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
         return;
     }
 
-#if WALTER_MTOA_VERSION >= 10400
     ExportMatrix(anode);
     ExportFrame(anode);
-#else
-    ExportMatrix(anode, step);
-    ExportFrame(anode, step);
-#endif
 }
 
 void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
@@ -472,11 +438,7 @@ void CWalterStandinTranslator::ExportConnections(
     }
 
     // Push this connection to the shader to Arnold.
-#if WALTER_MTOA_VERSION >= 10400
     ExportConnectedNode(connections[0]);
-#else
-    ExportNode(connections[0]);
-#endif
 }
 
 int CWalterStandinTranslator::ComputeWalterVisibility(
@@ -566,29 +528,20 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
     return visibility;
 }
 
-#if WALTER_MTOA_VERSION >= 10400
 void CWalterStandinTranslator::ExportFrame(AtNode* node)
-#else
-void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
-#endif
 {
     // The reference implementation is CDagTranslator::ExportMatrix.
     MTime time = m_DagNode.findPlug("time").asMTime() +
         m_DagNode.findPlug("timeOffset").asMTime();
     float frame = time.as(time.unit());
 
-#if WALTER_MTOA_VERSION >= 10400
     if (!IsExportingMotion())
-#else
-    if (step == 0)
-#endif
     {
         // We are here because it's called from Export.
         if (RequiresMotionData())
         {
-#if WALTER_MTOA_VERSION >= 10400
             int step = GetMotionStep();
-#endif
+
             AiNodeDeclare(node, "frame", "constant ARRAY FLOAT");
 
             AtArray* frames =
@@ -610,9 +563,8 @@ void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
         AtArray* frames = AiNodeGetArray(node, "frame");
         if (frames)
         {
-#if WALTER_MTOA_VERSION >= 10400
             int step = GetMotionStep();
-#endif
+
             int arraySize = AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
             if (step >= arraySize)
 

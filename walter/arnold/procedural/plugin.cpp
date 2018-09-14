@@ -612,12 +612,12 @@ bool vtToArnold(
     //         "interpolatable" variable types (such as floats, colors,
     //         etc.)
     std::string declaration = (interpolation == UsdGeomTokens->uniform) ? 
-        "uniform " : 
-        (interpolation == UsdGeomTokens->varying) ? 
-        "varying " : 
-        (interpolation == UsdGeomTokens->vertex) ? 
-        "varying " : 
-        (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : 
+        "uniform " :
+        (interpolation == UsdGeomTokens->varying) ?
+        "varying " :
+        (interpolation == UsdGeomTokens->vertex) ?
+        "varying " :
+        (interpolation == UsdGeomTokens->faceVarying) ? "indexed " :
                                                         "constant ";
 
     int arnoldAPIType;
@@ -1134,11 +1134,12 @@ void* RendererPlugin::render(
     // We should also consider standard USD visibility flag.
     UsdGeomImageable imageable = UsdGeomImageable(prim);
     bool invisibleFromUSD = imageable &&
-                            imageable.ComputeVisibility(averageTime[0]) == UsdGeomTokens->invisible;
+        imageable.ComputeVisibility(averageTime[0]) == UsdGeomTokens->invisible;
 
-    bool canRender = imageable
-                         ? imageable.ComputePurpose() != UsdGeomTokens->proxy && imageable.ComputePurpose() != UsdGeomTokens->guide
-                         : true;
+    bool canRender = imageable ?
+        imageable.ComputePurpose() != UsdGeomTokens->proxy &&
+            imageable.ComputePurpose() != UsdGeomTokens->guide :
+        true;
 
     if (visibility == AI_RAY_UNDEFINED || invisibleFromUSD || !canRender)
     {

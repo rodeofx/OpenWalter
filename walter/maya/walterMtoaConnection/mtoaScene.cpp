@@ -2,11 +2,7 @@
 
 #include "mtoaScene.h"
 
-#if WALTER_MTOA_VERSION >= 10400
 #include <link.h>
-#else
-#include <scene/MayaScene.h>
-#endif
 
 #include <boost/foreach.hpp>
 
@@ -21,7 +17,6 @@ inline bool endsWith(const std::string& str, const std::string& ending)
 }
 
 MTOAScene::MTOAScene()
-#if WALTER_MTOA_VERSION >= 10400
         :
         mEnd(NULL),
         fSession(NULL),
@@ -120,36 +115,18 @@ const char* symbolA = nullptr;
 
     // Call CMayaScene::Export(NULL)
     (*expor)(NULL);
-
-#else
-{
-    CMayaScene::Begin(MTOA_SESSION_ASS);
-    fSession = CMayaScene::GetArnoldSession();
-    CRenderSession* renderSession = CMayaScene::GetRenderSession();
-
-    renderSession->SetOutputAssMask(16);
-    fSession->SetExportFilterMask(16);
-    renderSession->SetForceTranslateShadingEngines(true);
-
-    CMayaScene::Export(NULL);
-#endif
 }
 
 MTOAScene::~MTOAScene()
 {
-#if WALTER_MTOA_VERSION >= 10400
     if (mEnd) {
         // Call CMayaScene::End()
         (*mEnd)();
     }
-#else
-    CMayaScene::End();
-#endif
 }
 
 CNodeTranslator* MTOAScene::exportNode(const MPlug& plug, AtNodeSet* nodes)
 {
-#if WALTER_MTOA_VERSION >= 10400
     if (mExportNode) {
         // Call fSession->ExportNode(plug, nodes)
         return (*mExportNode)(fSession, plug, nodes, NULL, false, -1, NULL);
@@ -161,7 +138,4 @@ CNodeTranslator* MTOAScene::exportNode(const MPlug& plug, AtNodeSet* nodes)
     }
 
     return nullptr;
-#else
-    return fSession->ExportNode(plug, nodes);
-#endif
 }

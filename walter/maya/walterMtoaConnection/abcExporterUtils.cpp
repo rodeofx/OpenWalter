@@ -352,10 +352,10 @@ void processArrayValues(AtNode* sit, const char *paramName, AtArray* paramArray,
         prop.set(vals);
     }
 
-    cout << "exported " << AiArrayGetNumElements(paramArray) << " array values of type " << typeArray << " for " << nodeName.asChar() << "." << paramName << endl;
+    cout << "exported " << AiArrayGetNumElements(paramArray)
+         << " array values of type " << typeArray << " for "
+         << nodeName.asChar() << "." << paramName << endl;
 }
-
-
 
 void processArrayParam(AtNode* sit, const char *paramName, AtArray* paramArray, int index, int outputType, Mat::OMaterial matObj, MString nodeName, MString containerName)
 {
@@ -483,7 +483,6 @@ void exportLink(AtNode* sit, Mat::OMaterial matObj, MString nodeName, const char
     AiMsgTab (-2);
 }
 
-
 void exportParameterFromArray(AtNode* sit, Mat::OMaterial matObj, AtArray* paramArray, int index, MString nodeName, const char* paramName)
 {
     int type = AiArrayGetType(paramArray);
@@ -565,7 +564,6 @@ void exportParameterFromArray(AtNode* sit, Mat::OMaterial matObj, AtArray* param
     }
 
 }
-
 
 bool isDefaultValue(const AtNode* node, const char* paramName)
 {

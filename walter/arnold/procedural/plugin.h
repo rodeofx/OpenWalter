@@ -18,7 +18,6 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 struct RendererPluginData
 {
-    // std::string dso;
     std::string prefix;
     std::string filePaths;
     boost::optional<float> motionStart;
