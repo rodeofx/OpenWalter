@@ -18,7 +18,6 @@ License along with this library.*/
 #include "mtoaScene.h"
 #include "mtoaVersion.h"
 
-// #include "ai.h"
 #include <ai.h>
 // FIXME: private mtoa headers:
 #include "translators/NodeTranslator.h"

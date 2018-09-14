@@ -12,12 +12,11 @@ PXR_NAMESPACE_USING_DIRECTIVE
 struct ProceduralData
 {
     ProceduralData(
-        const std::string& dso,
         const std::string& prefix,
         const std::string& filePaths,
         RendererEngine* engine,
         const SdfPath& path) :
-            mData{dso, prefix, filePaths},
+            mData{prefix, filePaths},
             mEngine(engine),
             mPath(path)
     {}
@@ -41,7 +40,6 @@ const char* AiNodeLookUpAndGetStr(AtNode* node, const char* param)
 static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 {
     // Get parameters
-    const char* dso = "\n";
     const char* file = AiNodeGetStr(node, "filePaths");
     const char* object = AiNodeGetStr(node, "objectPath");
     const char* sessionLayer = AiNodeGetStr(node, "sessionLayer");
@@ -92,7 +90,7 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
         prefix = AiNodeGetName(node);
     }
 
-    ProceduralData* data = new ProceduralData(dso, prefix, file, engine, path);
+    ProceduralData* data = new ProceduralData(prefix, file, engine, path);
 
     // Get times
     const char* timeName = "frame";

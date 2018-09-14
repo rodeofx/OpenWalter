@@ -612,13 +612,13 @@ bool vtToArnold(
     //         "interpolatable" variable types (such as floats, colors,
     //         etc.)
     std::string declaration = (interpolation == UsdGeomTokens->uniform) ? 
-    "uniform " : 
-    (interpolation == UsdGeomTokens->varying) ? 
-    "varying " : 
-    (interpolation == UsdGeomTokens->vertex) ? 
-    "varying " : 
-    (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : 
-                                                    "constant ";
+        "uniform " : 
+        (interpolation == UsdGeomTokens->varying) ? 
+        "varying " : 
+        (interpolation == UsdGeomTokens->vertex) ? 
+        "varying " : 
+        (interpolation == UsdGeomTokens->faceVarying) ? "indexed " : 
+                                                        "constant ";
 
     int arnoldAPIType;
     if (std::is_same<T, GfVec2f>::value)
