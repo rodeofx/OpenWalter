@@ -30,25 +30,6 @@ SOURCES_ROOT := ${THIS_DIR}/build/src
 BUILD_ROOT := ${THIS_DIR}/build/build
 PREFIX_ROOT := ${THIS_DIR}/build/lib
 
-ifeq "$(ARNOLD_ROOT)" ""
-	ARNOLD_ROOT := (empty)
-endif
-ifeq "$(KATANA_ROOT)" ""
-	KATANA_ROOT := (empty)
-endif
-ifeq "$(KTOA_ROOT)" ""
-	KTOA_ROOT := (empty)
-endif
-ifeq "$(HOUDINI_ROOT)" ""
-	HOUDINI_ROOT := (empty)
-endif
-ifeq "$(MAYA_ROOT)" ""
-	MAYA_ROOT := (empty)
-endif
-ifeq "$(MTOA_ROOT)" ""
-	MTOA_ROOT := (empty)
-endif
-
 USD_DCC_PACKAGE_NAME := usdDCC
 USD_DCC_STAMP := $(PREFIX_ROOT)/built_$(USD_DCC_PACKAGE_NAME)
 USD_PROCEDURAL_PACKAGE_NAME := usdProcedural
@@ -162,24 +143,24 @@ tests : test_dcc test_procedural
 #=============================================================================
 # Target rules for usd (used by Walter DCC plugins)
 $(USD_DCC_STAMP) :
-	@$(call vfx_builder,"USD for DCC plugins",$(USD_DCC_PACKAGE_NAME),$(BOOST_NAMESPACE),$(TBB_NAMESPACE),usd)
+	@$(call vfx_builder,"USD for DCC plugins",$(USD_DCC_PACKAGE_NAME),$(BOOST_NAMESPACE),$(TBB_NAMESPACE),$(BUILD_HOUDINI_PLUGINS),$(BUILD_KATANA_PLUGINS),usd)
 
 #=============================================================================
 # Target rules for usd  (used by Walter for Arnold Procedural)
 $(USD_PROCEDURAL_STAMP) :
-	@$(call vfx_builder,"USD for Arnold procedural",$(USD_PROCEDURAL_PACKAGE_NAME),$(BOOST_NAMESPACE),$(TBB_NAMESPACE),usd)
+	@$(call vfx_builder,"USD for Arnold procedural",$(USD_PROCEDURAL_PACKAGE_NAME),$(BOOST_NAMESPACE),$(TBB_NAMESPACE),"OFF","OFF",usd)
 
 #=============================================================================
 # Target rules for Walter dependencies not needed by USD
 
 $(JSONCPP_STAMP) :
-	@$(call vfx_builder,"Json CPP","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),jsoncpp)
+	@$(call vfx_builder,"Json CPP","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),"OFF","OFF",jsoncpp)
 
 $(GOOGLETEST_STAMP) :
-	@$(call vfx_builder,"Google Test","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),googletest)
+	@$(call vfx_builder,"Google Test","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),"OFF","OFF",googletest)
 
 $(OPENVDB_STAMP) :
-	@$(call vfx_builder,"Open VDB","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),openvdb)
+	@$(call vfx_builder,"Open VDB","",$(BOOST_NAMESPACE),$(TBB_NAMESPACE),"OFF","OFF",openvdb)
 
 ################################################################################
 # Target rules for walter DCC plugins
@@ -337,7 +318,9 @@ walter_procedural_fast :
 # 	$(2): USD_DCC_PACKAGE_NAME
 # 	$(3): BOOST_NAMESPACE
 # 	$(4): TBB_NAMESPACE
-# 	$(5): targets
+# 	$(5): BUILD_HOUDINI_PLUGINS
+# 	$(6): BUILD_KATANA_PLUGINS
+# 	$(7): targets
 vfx_builder = \
 	echo "Building" $(1) "for Walter" && \
 	cd $(THIS_DIR)/vfx_platform_builder && \
@@ -345,10 +328,14 @@ vfx_builder = \
 	USD_PACKAGE_NAME=$(2) \
 	BOOST_NAMESPACE=$(3) \
 	TBB_NAMESPACE=$(4) \
+	BUILD_HOUDINI_PLUGINS=$(5) \
+	HOUDINI_ROOT=$(HOUDINI_ROOT) \
+	BUILD_KATANA_PLUGINS=$(6) \
+	KATANA_ROOT=$(KATANA_ROOT) \
 	SOURCES_ROOT=$(SOURCES_ROOT) \
 	BUILD_ROOT=$(BUILD_ROOT) \
 	PREFIX_ROOT=$(PREFIX_ROOT) -j$(JOB_COUNT) \
-	$(5)
+	$(7)
 
 # Help Target
 help:
