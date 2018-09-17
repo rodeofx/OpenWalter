@@ -4,6 +4,7 @@
 
 #include "index.h"
 
+#include <ai.h>
 #include <boost/algorithm/string.hpp>
 #include <functional>
 #include <pxr/base/gf/matrix4f.h>
@@ -611,7 +612,7 @@ bool vtToArnold(
     //         were not shared. The user should only create parameters of
     //         "interpolatable" variable types (such as floats, colors,
     //         etc.)
-    std::string declaration = (interpolation == UsdGeomTokens->uniform) ? 
+    std::string declaration = (interpolation == UsdGeomTokens->uniform) ?
         "uniform " :
         (interpolation == UsdGeomTokens->varying) ?
         "varying " :

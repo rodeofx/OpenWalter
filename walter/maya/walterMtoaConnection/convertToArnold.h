@@ -3,7 +3,6 @@
 #ifndef __CONVERT_TO_ARNOLD_H__
 #define __CONVERT_TO_ARNOLD_H__
 
-#include <ai.h>
 #include <maya/MPxCommand.h>
 #include <maya/MSyntax.h>
 
