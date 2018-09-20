@@ -35,29 +35,17 @@
 
 #include "pxr/pxr.h"
 #include ".//api.h"
-#include "pxr/base/tf/staticTokens.h"
+#include "pxr/base/tf/staticData.h"
+#include "pxr/base/tf/token.h"
+#include <vector>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-/// \hideinitializer
-#define WALTER_TOKENS \
-    (compress) \
-    (expression) \
-    (filedata) \
-    (filename) \
-    (grids) \
-    (group) \
-    (stepScale) \
-    (stepSize) \
-    (velocityFps) \
-    (velocityOutlierThreshold) \
-    (velocityScale) \
-    (volumePadding)
 
-/// \anchor WalterTokens
+/// \class WalterTokensType
 ///
-/// <b>WalterTokens</b> provides static, efficient TfToken's for
-/// use in all public USD API
+/// \link WalterTokens \endlink provides static, efficient
+/// \link TfToken TfTokens\endlink for use in all public USD API.
 ///
 /// These tokens are auto-generated from the module's schema, representing
 /// property names, for when you need to fetch an attribute or relationship
@@ -65,28 +53,72 @@ PXR_NAMESPACE_OPEN_SCOPE
 /// manner, and allow the compiler to verify that you spelled the name
 /// correctly.
 ///
-/// WalterTokens also contains all of the \em allowedTokens values declared
-/// for schema builtin attributes of 'token' scene description type.
+/// WalterTokens also contains all of the \em allowedTokens values
+/// declared for schema builtin attributes of 'token' scene description type.
 /// Use WalterTokens like so:
 ///
 /// \code
-///     gprim.GetVisibilityAttr().Set(WalterTokens->invisible);
+///     gprim.GetMyTokenValuedAttr().Set(WalterTokens->compress);
 /// \endcode
+struct WalterTokensType {
+    WALTERUSDEXTRAS_API WalterTokensType();
+    /// \brief "compress"
+    /// 
+    /// WalterVolume
+    const TfToken compress;
+    /// \brief "expression"
+    /// 
+    /// WalterExpression
+    const TfToken expression;
+    /// \brief "filedata"
+    /// 
+    /// WalterVolume
+    const TfToken filedata;
+    /// \brief "filename"
+    /// 
+    /// WalterVolume
+    const TfToken filename;
+    /// \brief "grids"
+    /// 
+    /// WalterVolume
+    const TfToken grids;
+    /// \brief "group"
+    /// 
+    /// WalterExpression
+    const TfToken group;
+    /// \brief "stepScale"
+    /// 
+    /// WalterVolume
+    const TfToken stepScale;
+    /// \brief "stepSize"
+    /// 
+    /// WalterVolume
+    const TfToken stepSize;
+    /// \brief "velocityFps"
+    /// 
+    /// WalterVolume
+    const TfToken velocityFps;
+    /// \brief "velocityOutlierThreshold"
+    /// 
+    /// WalterVolume
+    const TfToken velocityOutlierThreshold;
+    /// \brief "velocityScale"
+    /// 
+    /// WalterVolume
+    const TfToken velocityScale;
+    /// \brief "volumePadding"
+    /// 
+    /// WalterVolume
+    const TfToken volumePadding;
+    /// A vector of all of the tokens listed above.
+    const std::vector<TfToken> allTokens;
+};
+
+/// \var WalterTokens
 ///
-/// The tokens are:
-/// \li <b>compress</b> - WalterVolume
-/// \li <b>expression</b> - WalterExpression
-/// \li <b>filedata</b> - WalterVolume
-/// \li <b>filename</b> - WalterVolume
-/// \li <b>grids</b> - WalterVolume
-/// \li <b>group</b> - WalterExpression
-/// \li <b>stepScale</b> - WalterVolume
-/// \li <b>stepSize</b> - WalterVolume
-/// \li <b>velocityFps</b> - WalterVolume
-/// \li <b>velocityOutlierThreshold</b> - WalterVolume
-/// \li <b>velocityScale</b> - WalterVolume
-/// \li <b>volumePadding</b> - WalterVolume
-TF_DECLARE_PUBLIC_TOKENS(WalterTokens, WALTERUSDEXTRAS_API, WALTER_TOKENS);
+/// A global variable with static, efficient \link TfToken TfTokens\endlink
+/// for use in all public USD API.  \sa WalterTokensType
+extern WALTERUSDEXTRAS_API TfStaticData<WalterTokensType> WalterTokens;
 
 PXR_NAMESPACE_CLOSE_SCOPE
 

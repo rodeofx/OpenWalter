@@ -571,7 +571,11 @@ bool propertiesUSD(
     return true;
 }
 
-bool getVariantsUSD(const ShapeNode* node, MStringArray& result)
+bool getVariantsUSD(
+    const ShapeNode* node, 
+    const MString& subNodeName,
+    bool recursively,
+    MStringArray& result)
 {
     // Get USD stuff from the node.
     UsdStageRefPtr stage = getStage(node);
@@ -581,7 +585,11 @@ bool getVariantsUSD(const ShapeNode* node, MStringArray& result)
     }
 
     std::vector<std::string> result_ =
-        WalterUSDCommonUtils::getVariantsUSD(stage);
+        WalterUSDCommonUtils::getVariantsUSD(
+            stage, 
+            subNodeName.asChar(), 
+            recursively);
+
     stdStringArrayToMStringArray(result_, result);
 
     return true;
@@ -2671,6 +2679,38 @@ bool savePurposes(
         WalterUSDCommonUtils::getAnonymousLayer(stage, "purposeLayer");
 
     if (!purposeLayer->Export(fileName.asChar()))
+    {
+        MString msg;
+        msg.format(
+            "[walter] Can't write USD ^1s. See the terminal for the details.",
+            fileName);
+
+        MGlobal::displayError(msg);
+        return false;
+    }
+
+    return true;
+}
+
+bool saveVariantsLayer(
+    const MString& objectName,
+    const MString& fileName) {
+
+    // Looking for MFnDependencyNode object in the scene.
+    MSelectionList selectionList;
+    selectionList.add(objectName);
+
+    MObject obj;
+    selectionList.getDependNode(0, obj);
+
+    MFnDependencyNode depNode(obj);
+    ShapeNode* shapeNode = dynamic_cast<ShapeNode*>(depNode.userNode());
+    UsdStageRefPtr stage = getStage(shapeNode);
+
+    SdfLayerRefPtr variantLayer =
+        WalterUSDCommonUtils::getAnonymousLayer(stage, "variantLayer");
+
+    if (!variantLayer->Export(fileName.asChar()))
     {
         MString msg;
         msg.format(

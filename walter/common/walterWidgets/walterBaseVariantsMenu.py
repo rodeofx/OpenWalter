@@ -98,28 +98,41 @@ class BaseVariantsMenu(QtWidgets.QMenu):
         def addVariantSet(self, variantSet):
             self.variantSets.append(variantSet)
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(BaseVariantsMenu, self).__init__(parent)
         self.parent = parent
-        self.setTearOffEnabled(True)
-        self.setSeparatorsCollapsible(False)
         self.nodePath = ''
+        self.primPath = ''
 
-    def reset(self, nodePath):
+    def reset(self, nodePath, primPath='', title=None,
+              addSeparators=True, tearOff=True, recursively=True):
         self.clear()
         self.nodePath = nodePath
-        self.setTitle(nodePath)
-        self.setWindowTitle(nodePath)
-        self.__constructMenu(self._getVariantList())
+        self.primPath = primPath
+
+        title_ = title
+        if not title_:
+            title_ = nodePath + '-' + primPath
+        self.setTitle(title_)
+        self.setWindowTitle(title_)
+        self.setTearOffEnabled(tearOff)
+
+        self.setStyleSheet("menu-scrollable: 1;")
+        if addSeparators:
+            self.setSeparatorsCollapsible(False)
+
+        self.__constructMenu(
+            self._getVariantList(recursively), addSeparators)
+
         return not self.isEmpty()
 
-    def _getVariantList(self):
+    def _getVariantList(self, recursively):
         pass
 
     def _createMenu(self, primPath, index, variantSet):
         pass
 
-    def __constructMenu(self, variantSetsStr):
+    def __constructMenu(self, variantSetsStr, addSeparators):
         objectVariantSets = []
 
         for variantStr in variantSetsStr:
@@ -138,10 +151,11 @@ class BaseVariantsMenu(QtWidgets.QMenu):
         # Creates a variantset menu per object
         for idx, objectVariantSet in enumerate(objectVariantSets):
 
-            action = self.addAction(objectVariantSet.name)
-            # Cause a diplay bug. The titles are cropped
-            # action.setSeparator(True)
-            action.setEnabled(False)
+            if addSeparators:
+                action = self.addAction(objectVariantSet.name)
+                # Cause a diplay bug. The titles are cropped
+                # action.setSeparator(True)
+                action.setEnabled(False)
 
             for variantSet in objectVariantSet.variantSets:
                 self.addMenu(self._createMenu(

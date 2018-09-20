@@ -184,6 +184,8 @@ if(BUILD_TESTS)
     katana_test(testAlembicPointCloudMotionBlur.katana)
     katana_test(testInstancesAssignation.katana)
     katana_test(testPointInstancer.katana)
+    katana_test(testUSDLights.katana)
+    katana_test(testUSDPurposes.katana)
 endif()
 
 set(KATANA_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/katana)

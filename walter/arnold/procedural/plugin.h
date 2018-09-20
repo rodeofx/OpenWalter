@@ -164,7 +164,8 @@ private:
         const UsdPrim& prim,
         float times,
         AtNode* node,
-        const VtIntArray* numVertsArray) const;
+        const VtIntArray* numVertsArray,
+        const int pointInstanceId=-1) const;
 
     /**
      * @brief Returns path to walterOverride object assigned to the given node

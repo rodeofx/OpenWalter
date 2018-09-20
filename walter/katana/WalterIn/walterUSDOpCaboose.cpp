@@ -14,6 +14,7 @@
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/scope.h>
 #include <pxr/usd/usdGeom/xform.h>
+#include <pxr/usd/usdLux/light.h>
 #include <pxr/usd/usdShade/connectableAPI.h>
 #include <pxr/usd/usdShade/material.h>
 #include <pxr/usd/usdShade/shader.h>
@@ -517,6 +518,27 @@ void cookGeomImageable(
     }
 
     oStaticGb.set("geometry.arbitrary", primvarsBuilder.build());
+
+    // Purposes
+    UsdAttribute purpose = imageable.GetPurposeAttr();
+    TfToken purposeValue;
+    if (purpose.Get(&purposeValue))
+    {
+        if (purposeValue.GetString() == "proxy" ||
+            purposeValue.GetString() == "guide")
+        {
+            oStaticGb.set("visible", FnAttribute::IntAttribute(0));
+        }
+
+        // Note: purpose "render" is seen in viewport AND render for now.
+        // We could allow artists to have a control on that, for example with
+        // a check box on the Walter_In node to hide "render" primitives in the
+        // viewport. The code for that is the following:
+        //      oStaticGb.set(
+        //          "viewer.default.drawOptions.hide",
+        //          FnAttribute::IntAttribute(1)
+        //      );
+    }
 }
 
 /**
@@ -718,9 +740,6 @@ void cookShadeMaterial(
     const OpUtils::TimePtr iTime,
     FnAttribute::GroupBuilder& oStaticGb)
 {
-    // Get material.
-    UsdShadeMaterial material(iPrim);
-
     FnAttribute::GroupBuilder nodesBuilder;
     FnAttribute::GroupBuilder terminalsBuilder;
 
@@ -799,6 +818,19 @@ void cookShadeMaterial(
     oStaticGb.set("material.nodes", nodesBuilder.build());
     oStaticGb.set("material.terminals", terminalsBuilder.build());
     oStaticGb.set("material.style", networkStrAttr);
+}
+
+// The cooking of light is actually exactly the same thing as cooking a material
+// network. The only difference is that the type of the location is 'light'.
+void cookLight(
+    const UsdPrim& iPrim,
+    const OpUtils::TimePtr iTime,
+    FnAttribute::GroupBuilder& oStaticGb)
+{
+    cookShadeMaterial(iPrim, iTime, oStaticGb);
+
+    static const FnAttribute::StringAttribute lightStrAttr("light");
+    oStaticGb.set("type", lightStrAttr);
 }
 
 /**
@@ -1139,9 +1171,6 @@ void cookAsRendererProcedural(
         "rendererProcedural.args.__outputStyle",
         FnAttribute::StringAttribute("typedArguments"));
     oStaticGb.set(
-        "rendererProcedural.args.__skipBuiltins",
-        FnAttribute::IntAttribute(1));
-    oStaticGb.set(
         "rendererProcedural.args.frame",
         FnAttribute::FloatAttribute(iTime->current()));
 }
@@ -1176,7 +1205,7 @@ bool OpCaboose::isSupported(const UsdPrim& iPrim)
     return !iPrim.HasAuthoredTypeName() || iPrim.IsA<UsdGeomXform>() ||
         iPrim.IsA<UsdGeomScope>() || iPrim.IsA<UsdGeomMesh>() ||
         iPrim.IsA<UsdShadeMaterial>() || iPrim.IsA<WalterVolume>() ||
-        iPrim.IsA<UsdGeomPointInstancer>();
+        iPrim.IsA<UsdGeomPointInstancer>() || iPrim.IsA<UsdLuxLight>();
 }
 
 bool OpCaboose::skipChildren(const UsdPrim& iPrim)
@@ -1250,6 +1279,10 @@ void OpCaboose::cook(
     else if (iPrim.IsA<WalterVolume>())
     {
         OpCabooseImpl::cookWalterVolume(iPrim, time, staticBld);
+    }
+    else if (iPrim.IsA<UsdLuxLight>())
+    {
+        OpCabooseImpl::cookLight(iPrim, time, staticBld);
     }
     else if (iPrim.IsA<UsdGeomPointInstancer>())
     {
@@ -1419,3 +1452,4 @@ OpCaboose::ClientAttributePtr OpCaboose::createClientAttribute(
             attr));
     return std::make_shared<OpCaboose::ClientAttribute>(function);
 }
+

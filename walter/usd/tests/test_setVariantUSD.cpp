@@ -33,7 +33,7 @@ TEST(setVariantUSD, testSetVariantOnChildPrimFromParent)
     WalterUSDCommonUtils::setVariantUSD(stage, variants.c_str());
 
     std::vector<std::string> result =
-        WalterUSDCommonUtils::getVariantsUSD(stage);
+        WalterUSDCommonUtils::getVariantsUSD(stage, "", true);
 
     EXPECT_EQ(result.size(), 1);
     EXPECT_EQ(colorsVset.GetVariantSelection(), std::string(variantName));

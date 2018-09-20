@@ -1,0 +1,11 @@
+#usda 1.0
+(
+    endTimeCode = 48
+    startTimeCode = 1
+    subLayers = [
+        @./triangle_override_time_offset.usda@,
+        @./triangle.usda@
+    ]
+    upAxis = "Y"
+)
+

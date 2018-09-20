@@ -627,6 +627,16 @@ class WalterMayaImplementation(object):
 
         return pm.walterStandin(savePurposes=(origin, fileName))
 
+    def saveVariantsLayer(self, origin, fileName=None):
+        """Save the shader assignment to external file."""
+        fileName = self.getFileDialog(
+            fileName, options=False, fileType="USD (*.usd *.usda)")
+
+        if not fileName:
+            return
+
+        return pm.walterStandin(saveVariantsLayer=(origin, fileName))
+
     def setGroup(self, origin, path, group):
         """Set the group of the given expression."""
         # Walter Standin

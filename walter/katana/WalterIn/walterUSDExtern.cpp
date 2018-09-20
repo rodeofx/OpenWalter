@@ -23,7 +23,8 @@ void WalterUSDExtern::extractVariantsUsd()
 {
     OpEngine& engine = OpEngine::getInstance(mIdentifiers);
     std::vector<std::string> variants =
-        WalterUSDCommonUtils::getVariantsUSD(engine.getUsdStage());
+        WalterUSDCommonUtils::getVariantsUSD(
+            engine.getUsdStage(), "", true);
 
     mFlattenVariants = "";
     mPrimsCount = variants.size();

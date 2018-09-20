@@ -147,6 +147,8 @@ bool propertiesUSD(
  */
 bool getVariantsUSD(
     const WalterMaya::ShapeNode* node,
+    const MString& subNodeName,
+    bool recursively,
     MStringArray& result);
 
 /**
@@ -392,6 +394,16 @@ MStringArray getRenderPurpose(
  * @param fileName The USD file path.
  */
 bool savePurposes(
+    const MString& objectName,
+    const MString& fileName);
+
+/**
+ * @brief Export the variants layer content to the external file.
+ *
+ * @param objectName The Walter shape name.
+ * @param fileName The USD file path.
+ */
+bool saveVariantsLayer(
     const MString& objectName,
     const MString& fileName);
 

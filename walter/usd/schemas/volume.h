@@ -63,6 +63,11 @@ public:
     /// a non-empty typeName.
     static const bool IsConcrete = true;
 
+    /// Compile-time constant indicating whether or not this class inherits from
+    /// UsdTyped. Types which inherit from UsdTyped can impart a typename on a
+    /// UsdPrim.
+    static const bool IsTyped = true;
+
     /// Construct a WalterVolume on UsdPrim \p prim .
     /// Equivalent to WalterVolume::Get(prim.GetStage(), prim.GetPath())
     /// for a \em valid \p prim, but will not immediately throw an error for
@@ -278,7 +283,7 @@ public:
     /// A list of OpenVDB grids to read and make available as
     /// channels in the volume shading context.
     ///
-    /// \n  C++ Type: VtArray<string>
+    /// \n  C++ Type: VtArray<std::string>
     /// \n  Usd Type: SdfValueTypeNames->StringArray
     /// \n  Variability: SdfVariabilityVarying
     /// \n  Fallback Value: No Fallback

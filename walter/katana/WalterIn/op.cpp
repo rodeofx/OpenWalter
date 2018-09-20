@@ -1,4 +1,5 @@
 #include "walterUSDOp.h"
+#include "walterUSDCommonUtils.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -12,6 +13,10 @@
 #include <FnGeolib/op/FnGeolibCookInterface.h>
 #include <FnGeolib/util/AttributeKeyedCache.h>
 #include <FnGeolibServices/FnGeolibCookInterfaceUtilsService.h>
+
+#include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usdLux/light.h>
+#include <pxr/usd/usdGeom/camera.h>
 
 #include "AbcCook.h"
 #include "ArrayPropUtils.h"
@@ -1258,7 +1263,7 @@ public:
             {
                 for (const std::string& f : archives)
                 {
-                    if (!boost::algorithm::iends_with(f, ".abc"))
+                    if (f.find(".usd") != std::string::npos)
                     {
                         isUSD = true;
                         break;
@@ -1416,27 +1421,55 @@ private:
     CameraAndLightPathCache::IMPLPtr createValue(const FnAttribute::Attribute & iAttr)
     {
         CameraAndLightPathCache::IMPLPtr val(new FnAttribute::GroupAttribute);
+
         Alembic::AbcCoreFactory::IFactory factory;
-
-
         Alembic::AbcCoreFactory::IFactory::CoreType coreType;
 
-        Alembic::Abc::IArchive archive =
-            getArchive(
-                    factory,
-                    FnAttribute::StringAttribute(iAttr).getValue("", false),
-                    coreType);
+        std::string attrValue =
+            FnAttribute::StringAttribute(iAttr).getValue("", false);
 
-        if (archive.valid())
+        std::vector<std::string> archives;
+        splitArchives(attrValue, archives);
+
+        // Check if layers have a usd file. In this way it should be a USD
+        // variant of WalterIn.
+        bool isUSD = false;
+        for (const std::string& f : archives)
         {
-            std::vector<std::string> cameras, lights;
-            walk(archive.getTop(), cameras, lights);
-
-            val.reset(new FnAttribute::GroupAttribute(
-                    "cameras", FnAttribute::StringAttribute(cameras, 1),
-                    "lights", FnAttribute::StringAttribute(lights, 1),
-                            true));
+            if (f.find(".usd") != std::string::npos)
+            {
+                isUSD = true;
+                break;
+            }
         }
+
+        std::vector<std::string> cameras, lights;
+        if (isUSD)
+        {
+            SdfLayerRefPtr root = WalterUSDCommonUtils::getUSDLayer(archives);
+            const UsdStageRefPtr stage = UsdStage::Open(root);
+
+            UsdPrim rootPrim = stage->GetPseudoRoot();
+
+            walk(rootPrim, cameras, lights);
+        }
+        else
+        {
+            Alembic::Abc::IArchive archive =
+                getArchive(factory, attrValue, coreType);
+
+            if (archive.valid())
+            {
+                walk(archive.getTop(), cameras, lights);
+            }
+        }
+
+        val.reset(
+            new FnAttribute::GroupAttribute(
+                "cameras", FnAttribute::StringAttribute(cameras, 1),
+                "lights", FnAttribute::StringAttribute(lights, 1),
+                true)
+        );
 
         return val;
     }
@@ -1461,6 +1494,24 @@ private:
         for (size_t i = 0, e = object.getNumChildren(); i < e; ++i)
         {
             walk(object.getChild(i), cameras, lights);
+        }
+    }
+
+    void walk(UsdPrim prim, std::vector<std::string> & cameras,
+            std::vector<std::string> & lights)
+    {
+        if (prim.IsA<UsdGeomCamera>())
+        {
+            cameras.push_back(prim.GetPath().GetString());
+        }
+        else if (prim.IsA<UsdLuxLight>())
+        {
+            lights.push_back(prim.GetPath().GetString());
+        }
+
+        for (const UsdPrim& childPrim: prim.GetChildren())
+        {
+            walk(childPrim, cameras, lights);
         }
     }
 };
