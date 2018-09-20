@@ -1,5 +1,7 @@
 ![Open Walter](https://www.rodeofx.com/uploads/images/tech/Walter_logo_mini-01.png)
 
+[![Join the chat at https://gitter.im/OpenWalter/Lobby](https://badges.gitter.im/OpenWalter/Lobby.svg)](https://gitter.im/OpenWalter/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Walter is suite of plugins using USD for various DCCs and renderer.
 
 It's main goal is to stay as much as possible in the [*USD Stage*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Stage) 
