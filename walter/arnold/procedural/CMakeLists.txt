@@ -62,8 +62,7 @@ target_link_libraries(
     ${CMAKE_THREAD_LIBS_INIT}
     ${TBB_LIBRARIES}
     util
-    walterCommon
-    arnoldVersionPort)
+    walterCommon)
 
 if(USE_HDF5)
     target_link_libraries(

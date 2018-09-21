@@ -17,7 +17,6 @@ target_link_libraries(
     ${MTOATRANSLATOR}
     walterCommon
     walterMayaCommon
-    arnoldVersionPort
     ${ARNOLD_LIBRARY}
     ${Boost_REGEX_LIBRARY}
     ${MAYA_LIBRARIES}

@@ -1,7 +1,6 @@
 // Copyright 2017 Rodeo FX.  All rights reserved.
 
 #include "engine.h"
-#include "rdoArnold.h"
 
 #include <ai.h>
 #include <pxr/usd/sdf/path.h>
@@ -13,12 +12,11 @@ PXR_NAMESPACE_USING_DIRECTIVE
 struct ProceduralData
 {
     ProceduralData(
-        const std::string& dso,
         const std::string& prefix,
         const std::string& filePaths,
         RendererEngine* engine,
         const SdfPath& path) :
-            mData{dso, prefix, filePaths},
+            mData{prefix, filePaths},
             mEngine(engine),
             mPath(path)
     {}
@@ -41,9 +39,7 @@ const char* AiNodeLookUpAndGetStr(AtNode* node, const char* param)
 
 static int arnoldProceduralInit(AtNode* node, void** user_ptr)
 {
-// Get parameters
-#if AI_VERSION_ARCH_NUM == 5
-    const char* dso = "\n";
+    // Get parameters
     const char* file = AiNodeGetStr(node, "filePaths");
     const char* object = AiNodeGetStr(node, "objectPath");
     const char* sessionLayer = AiNodeGetStr(node, "sessionLayer");
@@ -51,16 +47,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
     const char* purposeLayer = AiNodeGetStr(node, "purposeLayer");
     const char* mayaStateLayer = AiNodeGetStr(node, "mayaStateLayer");
     const char* visibilityLayer = AiNodeGetStr(node, "visibilityLayer");
-#else  // ARNOLD 4
-    const char* dso = AiNodeGetStr(node, "dso");
-    const char* file = AiNodeLookUpAndGetStr(node, "filePaths");
-    const char* object = AiNodeLookUpAndGetStr(node, "objectPath");
-    const char* sessionLayer = AiNodeLookUpAndGetStr(node, "sessionLayer");
-    const char* variantsLayer = AiNodeLookUpAndGetStr(node, "variantsLayer");
-    const char* purposeLayer = AiNodeLookUpAndGetStr(node, "purposeLayer");
-    const char* mayaStateLayer = AiNodeLookUpAndGetStr(node, "mayaStateLayer");
-    const char* visibilityLayer = AiNodeLookUpAndGetStr(node, "visibilityLayer");
-#endif  // ARNOLD
 
     std::vector<std::string> overrides;
     for (const char* o : {sessionLayer, variantsLayer, mayaStateLayer, visibilityLayer, purposeLayer})
@@ -104,7 +90,7 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
         prefix = AiNodeGetName(node);
     }
 
-    ProceduralData* data = new ProceduralData(dso, prefix, file, engine, path);
+    ProceduralData* data = new ProceduralData(prefix, file, engine, path);
 
     // Get times
     const char* timeName = "frame";
@@ -121,8 +107,8 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
             case AI_TYPE_ARRAY:
             {
                 AtArray* array = AiNodeGetArray(node, timeName);
-                int keys = RdoAiArrayGetNumElements(array) *
-                    RdoAiArrayGetNumKeys(array);
+                int keys = AiArrayGetNumElements(array) *
+                    AiArrayGetNumKeys(array);
                 data->mTimes.reserve(keys);
                 for (int i = 0; i < keys; i++)
                 {
@@ -139,7 +125,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
         data->mTimes.push_back(1.0f);
     }
 
-#if AI_VERSION_ARCH_NUM != 4
     // It's possible that motion_start/motion_end are not there if motion blur
     // is disabled.
     const AtNodeEntry* entry = AiNodeGetNodeEntry(node);
@@ -151,7 +136,6 @@ static int arnoldProceduralInit(AtNode* node, void** user_ptr)
     {
         data->mData.motionEnd = AiNodeGetFlt(node, "motion_end");
     }
-#endif
 
     // Save it for future
     *user_ptr = data;
@@ -210,8 +194,6 @@ bool arnoldProceduralCleanupPlugin(void* plugin_user_ptr)
     return true;
 }
 
-#if AI_VERSION_ARCH_NUM == 5
-
 AI_PROCEDURAL_NODE_EXPORT_METHODS(WalterMtd);
 
 node_parameters
@@ -263,29 +245,3 @@ node_loader
     strcpy(node->version, AI_VERSION);
     return true;
 }
-
-#else  // ARNOLD 4
-
-// DSO export
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-AI_EXPORT_LIB int ProcLoader(AtProcVtable* vtable)
-{
-    // Arnold's initialization routine.
-    vtable->Init = arnoldProceduralInit;
-    vtable->Cleanup = arnoldProceduralCleanup;
-    vtable->NumNodes = arnoldProceduralNumNodes;
-    vtable->GetNode = arnoldProceduralGetNode;
-    vtable->InitPlugin = arnoldProceduralInitPlugin;
-    vtable->CleanupPlugin = arnoldProceduralCleanupPlugin;
-    strcpy(vtable->version, AI_VERSION);
-    return 1;
-}
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // ARNOLD

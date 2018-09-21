@@ -7,10 +7,8 @@
 
 #include "mtoaVersion.h"
 
-#if WALTER_MTOA_VERSION >= 10400
 #include <unordered_set>
 typedef std::unordered_set<AtNode*> AtNodeSet;
-#endif
 
 // Since MTOA 1.4 files like CMayaScene, CArnoldSession, CRenderSession are no
 // longer part of the API. But they are necessary to save Arnold shading
@@ -28,11 +26,7 @@ class MTOAScene {
         CNodeTranslator* exportNode(const MPlug& plug, AtNodeSet* nodes);
 
     private:
-#if WALTER_MTOA_VERSION >= 10400
         void *fSession;
-#else
-        CArnoldSession* fSession;
-#endif
 
         // Pointer to CMayaScene::End()
         MStatus (*mEnd)();

@@ -8,13 +8,8 @@ class CWalterStandinTranslator
    :   public CShapeTranslator
 {
 public:
-#if WALTER_MTOA_VERSION >= 10400
 	CWalterStandinTranslator();
 	void ExportMotion(AtNode*);
-#else
-	virtual void Update(AtNode* procedural);
-	void ExportMotion(AtNode*, unsigned int);
-#endif
 	AtNode* CreateArnoldNodes();
 	virtual void Export(AtNode* procedural);
 	static void NodeInitializer(CAbTranslator context);
@@ -49,16 +44,10 @@ private:
     // negative when the visibility can't be reached.
     int ComputeWalterVisibility(const MFnDependencyNode& node)const;
 
-#if WALTER_MTOA_VERSION >= 10400
     // The node which is at the root of this translator.
     AtNode* GetArnoldRootNode();
-#endif
 
-#if WALTER_MTOA_VERSION >= 10400
     void ExportFrame(AtNode* node);
-#else
-    void ExportFrame(AtNode* node, unsigned int step);
-#endif
 
     // Shortcut to the node which is at the root of this translator. Do not
     // delete, it is supposed to be one of the translators nodes.
