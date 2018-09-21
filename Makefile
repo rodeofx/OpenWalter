@@ -15,7 +15,7 @@
 # Set environment variables for the build.
 
 # 'Release' or 'Debug'
-BUILD_CONFIG := Debug
+BUILD_CONFIG := Release
 VERBOSE := 1
 BUILD_TESTS := ON
 BUILD_HOUDINI_PLUGINS := ON
