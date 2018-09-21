@@ -1,0 +1,1830 @@
+From de0c8830eea520457a3573142db17c75714995dc Mon Sep 17 00:00:00 2001
+From: Guillaume Laforge <glaforge@rodeofx.com>
+Date: Thu, 20 Sep 2018 16:04:40 -0400
+Subject: [PATCH] RDO: Texture coordinates' topology (e.g. indices) is now preserved
+
+---
+ pxr/usd/plugin/usdAbc/CMakeLists.txt               |  55 +-
+ pxr/usd/plugin/usdAbc/alembicReader.cpp            | 791 ++++-----------------
+ pxr/usd/plugin/usdAbc/alembicUtil.cpp              |   1 +
+ pxr/usd/plugin/usdAbc/alembicUtil.h                |   8 +-
+ pxr/usd/plugin/usdAbc/alembicWriter.cpp            | 127 +++-
+ .../usdAbc/testenv/testUsdAbcIndexedProperties.py  |  36 +
+ .../baseline/indexedTextureCoordinates.def.usda    |  63 ++
+ .../indexedTextureCoordinates.abc                  | Bin 0 -> 2601 bytes
+ .../plugin/usdAbc/testenv/testUsdAbcUvReadWrite.py |  78 ++
+ .../testUsdAbcUvReadWrite.usda                     |  53 ++
+ .../testenv/testUsdAbcUvReadWrite_OldEncoding.py   |  79 ++
+ .../testUsdAbcUvReadWrite_OldEncoding.usda         |  53 ++
+ 12 files changed, 658 insertions(+), 686 deletions(-)
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties.py
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/baseline/indexedTextureCoordinates.def.usda
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/indexedTextureCoordinates.abc
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite.py
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite/testUsdAbcUvReadWrite.usda
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding.py
+ create mode 100644 pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding/testUsdAbcUvReadWrite_OldEncoding.usda
+
+diff --git a/pxr/usd/plugin/usdAbc/CMakeLists.txt b/pxr/usd/plugin/usdAbc/CMakeLists.txt
+index 16ab350..b20c4d9 100644
+--- a/pxr/usd/plugin/usdAbc/CMakeLists.txt
++++ b/pxr/usd/plugin/usdAbc/CMakeLists.txt
+@@ -62,11 +62,14 @@ pxr_plugin(usdAbc
+ )
+ 
+ pxr_test_scripts(
+-    testenv/testUsdAbcAlembicData.py       
+-    testenv/testUsdAbcBugs.py              
+-    testenv/testUsdAbcCamera.py  
+-    testenv/testUsdAbcConversionSubdiv.py 
+-    testenv/testUsdAbcInstancing.py 
++    testenv/testUsdAbcAlembicData.py
++    testenv/testUsdAbcBugs.py
++    testenv/testUsdAbcCamera.py
++    testenv/testUsdAbcConversionSubdiv.py
++    testenv/testUsdAbcIndexedProperties.py
++    testenv/testUsdAbcInstancing.py
++    testenv/testUsdAbcUvReadWrite.py
++    testenv/testUsdAbcUvReadWrite_OldEncoding.py
+ )
+ 
+ pxr_install_test_dir(
+@@ -90,6 +93,11 @@ pxr_install_test_dir(
+ )
+ 
+ pxr_install_test_dir(
++    SRC testenv/testUsdAbcIndexedProperties
++    DEST testUsdAbcIndexedProperties
++)
++
++pxr_install_test_dir(
+     SRC testenv/testUsdAbcInstancing
+     DEST testUsdAbcInstancing
+ )
+@@ -109,6 +117,16 @@ pxr_install_test_dir(
+     DEST testUsdAbcInstancingPinst
+ )
+ 
++pxr_install_test_dir(
++    SRC testenv/testUsdAbcUvReadWrite
++    DEST testUsdAbcUvReadWrite
++)
++
++pxr_install_test_dir(
++    SRC testenv/testUsdAbcUvReadWrite_OldEncoding
++    DEST testUsdAbcUvReadWrite_OldEncoding
++)
++
+ pxr_register_test(testUsdAbcAlembicData
+     PYTHON
+     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdAbcAlembicData"
+@@ -135,6 +153,15 @@ pxr_register_test(testUsdAbcConversionSubdiv
+     EXPECTED_RETURN_CODE 0
+ )
+ 
++pxr_register_test(testUsdAbcIndexedProperties
++    PYTHON
++    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdAbcIndexedProperties"
++    DIFF_COMPARE indexedTextureCoordinates.def.usda
++    EXPECTED_RETURN_CODE 0
++    ENV
++        USD_ABC_TESTSUFFIX=def
++)
++
+ pxr_register_test(testUsdAbcInstancing
+     PYTHON
+     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdAbcInstancing"
+@@ -173,3 +200,21 @@ pxr_register_test(testUsdAbcInstancingNinst
+         USD_ABC_TESTSUFFIX=ninst
+         USD_ABC_DISABLE_INSTANCING=1
+ )
++
++pxr_register_test(testUsdAbcUvReadWrite
++    PYTHON
++    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdAbcUvReadWrite"
++    EXPECTED_RETURN_CODE 0
++    ENV
++        USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY=1
++        USD_ABC_READ_FLOAT2ARRAY_ST_PRIMVARS=0
++)
++
++pxr_register_test(testUsdAbcUvReadWrite_OldEncoding
++    PYTHON
++    COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testUsdAbcUvReadWrite_OldEncoding"
++    EXPECTED_RETURN_CODE 0
++    ENV
++        USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY=0
++        USD_ABC_READ_FLOAT2ARRAY_ST_PRIMVARS=1
++)
+diff --git a/pxr/usd/plugin/usdAbc/alembicReader.cpp b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+index 52ac371..6d27639 100644
+--- a/pxr/usd/plugin/usdAbc/alembicReader.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicReader.cpp
+@@ -56,14 +56,12 @@
+ #include <Alembic/AbcGeom/GeometryScope.h>
+ #include <Alembic/AbcGeom/ICamera.h>
+ #include <Alembic/AbcGeom/ICurves.h>
+-#include <Alembic/AbcGeom/ILight.h>
+ #include <Alembic/AbcGeom/IPoints.h>
+ #include <Alembic/AbcGeom/IPolyMesh.h>
+ #include <Alembic/AbcGeom/ISubD.h>
+ #include <Alembic/AbcGeom/IXform.h>
+ #include <Alembic/AbcGeom/SchemaInfoDeclarations.h>
+ #include <Alembic/AbcGeom/Visibility.h>
+-#include <Alembic/AbcMaterial/IMaterial.h>
+ #include <memory>
+ #include <mutex>
+ 
+@@ -87,11 +85,34 @@ TF_DEFINE_ENV_SETTING(
+     USD_ABC_NUM_OGAWA_STREAMS, 4,
+     "The number of threads available for reading ogawa-backed files via UsdAbc.");
+ 
++TF_DEFINE_ENV_SETTING(
++    USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY, false,
++    "Switch to true to enable writing Alembic uv sets as primvars:st with type "
++    "texCoord2fArray to USD");
++
+ namespace {
+ 
+ using namespace ::Alembic::AbcGeom;
+ using namespace UsdAbc_AlembicUtil;
+ 
++static const TfToken&
++_GetUVPropertyName()
++{
++    static const TfToken uvUsdAbcPropertyName =
++        (TfGetEnvSetting(USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY)) ?
++        (UsdAbcPropertyNames->st) : (UsdAbcPropertyNames->uv);
++    return uvUsdAbcPropertyName;
++}
++
++static const SdfValueTypeName&
++_GetUVTypeName()
++{
++    static const SdfValueTypeName uvTypeName =
++        (TfGetEnvSetting(USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY)) ?
++        (SdfValueTypeNames->TexCoord2fArray) : (SdfValueTypeNames->Float2Array);
++    return uvTypeName;
++}
++
+ static size_t
+ _GetNumOgawaStreams()
+ {
+@@ -649,7 +670,6 @@ public:
+         bool timeSampled;
+         bool uniform;
+         Converter converter;
+-        SdfPath relationshipTarget;
+     };
+     typedef std::map<TfToken, Property> PropertyMap;
+ 
+@@ -1149,13 +1169,8 @@ _ReaderContext::GetSpecType(const SdfAbstractDataSpecId& id) const
+ {
+     if (const Prim* prim = _GetPrim(id)) {
+         if (id.IsProperty()) {
+-            if (const Property* property = _GetProperty(*prim, id)) {
+-                if (!property->relationshipTarget.IsEmpty()) {
+-                    return SdfSpecTypeRelationship;
+-                }
+-                else {
+-                    return SdfSpecTypeAttribute;
+-                }
++            if (_GetProperty(*prim, id)) {
++                return SdfSpecTypeAttribute;
+             }
+         }
+         else if (prim == _pseudoRoot) {
+@@ -1243,24 +1258,15 @@ _ReaderContext::List(const SdfAbstractDataSpecId& id) const
+     if (const Prim* prim = _GetPrim(id)) {
+         if (id.IsProperty()) {
+             if (const Property* property = _GetProperty(*prim, id)) {
+-                if (property->relationshipTarget.IsEmpty()) {
+-                    // It's an attribute. We need the attribute fiels.
+-                    result.push_back(SdfFieldKeys->TypeName);
+-
+-                    if (property->timeSampled) {
+-                        result.push_back(SdfFieldKeys->TimeSamples);
+-                    }
+-                    else if (!property->sampleTimes.IsEmpty()) {
+-                        result.push_back(SdfFieldKeys->Default);
+-                    }
+-
+-                } else {
+-                    // It's an relationship. The main field is TargetPaths.
+-                    result.push_back(SdfFieldKeys->TargetPaths);
+-                }
+-
+-                result.push_back(SdfFieldKeys->Variability);
++                result.push_back(SdfFieldKeys->TypeName);
+                 result.push_back(SdfFieldKeys->Custom);
++                result.push_back(SdfFieldKeys->Variability);
++                if (property->timeSampled) {
++                    result.push_back(SdfFieldKeys->TimeSamples);
++                }
++                else if (!property->sampleTimes.IsEmpty()) {
++                    result.push_back(SdfFieldKeys->Default);
++                }
+ 
+                 // Add metadata.
+                 for (const auto& v : property->metadata) {
+@@ -1642,23 +1648,6 @@ _ReaderContext::_HasField(
+         return value.Set(property->uniform ? 
+                          SdfVariabilityUniform : SdfVariabilityVarying);
+     }
+-    else if (fieldName == SdfFieldKeys->TargetPaths) {
+-        // The relationship TargetPaths field.
+-        if (!property->relationshipTarget.IsEmpty()) {
+-            SdfPathVector items;
+-            items.push_back(property->relationshipTarget);
+-
+-            SdfPathListOp paths;
+-            paths.SetExplicitItems(items);
+-            return value.Set(paths);
+-        }
+-    }
+-    else if (fieldName == SdfFieldKeys->Variability) {
+-        // The relationship Variability field.
+-        if (!property->relationshipTarget.IsEmpty()) {
+-            return value.Set(SdfVariabilityUniform);
+-        }
+-    }
+     
+     TRACE_SCOPE("UsdAbc_AlembicDataReader::_HasField:OtherMetadata");
+     MetadataMap::const_iterator j = property->metadata.find(fieldName);
+@@ -1864,19 +1853,6 @@ public:
+                             const SdfValueTypeName& typeName,
+                             const T& converter);
+ 
+-    /// Adds a regular property with no uniform, custom, etc flag.
+-    template <class T>
+-    void AddRegularProperty(
+-        const TfToken& name,
+-        const SdfValueTypeName& typeName,
+-        const T& converter);
+-
+-    /// Adds a relationship named \p name allowing to target other prims,
+-    /// attributes, or relationships.
+-    void AddRelationship(
+-            const TfToken& name,
+-            const SdfPath& connection);
+-
+     /// Add an out-of-schema property, which uses the default conversion
+     /// for whatever Alembic type the property is.  If \p property is a
+     /// compound property then all of its descendants are added as
+@@ -1920,8 +1896,6 @@ public:
+     /// from the context so it cannot be extracted again.
+     AlembicProperty ExtractSchema(const std::string& name);
+ 
+-    AlembicProperty ExtractUV(const std::string& name);
+-
+     /// Returns the names of properties that have not been extracted yet
+     /// in Alembic property order.
+     std::vector<std::string> GetUnextractedNames() const;
+@@ -1950,7 +1924,6 @@ private:
+     _ReaderContext& _context;
+     IObject _prim;
+     ICompoundProperty _schema;
+-    ICompoundProperty _uvSchema;
+     SdfPath _path;
+     std::vector<std::string> _unextracted;
+     std::vector<std::string> _unextractedSchema;
+@@ -2037,9 +2010,6 @@ _PrimReaderContext::SetSchema(const std::string& schemaName)
+     _schema = ICompoundProperty(_prim.getProperties(), schemaName,
+                                 ErrorHandler::kQuietNoopPolicy);
+     if (_schema.valid()) {
+-        _uvSchema =
+-            ICompoundProperty(_schema, "uv", ErrorHandler::kQuietNoopPolicy);
+-
+         // Fill _unextractedSchema with all of the property names.
+         _unextractedSchema.resize(_schema.getNumProperties());
+         for (size_t i = 0, n = _unextractedSchema.size(); i != n; ++i) {
+@@ -2075,17 +2045,6 @@ _PrimReaderContext::ExtractSchema(const std::string& name)
+     return AlembicProperty(GetPath(), name);
+ }
+ 
+-AlembicProperty
+-_PrimReaderContext::ExtractUV(const std::string& name)
+-{
+-    if (_uvSchema.valid())
+-    {
+-        return AlembicProperty(GetPath(), name, _uvSchema);
+-    }
+-
+-    return AlembicProperty(GetPath(), name);
+-}
+-
+ std::vector<std::string>
+ _PrimReaderContext::GetUnextractedNames() const
+ {
+@@ -2125,33 +2084,6 @@ _PrimReaderContext::AddUniformProperty(
+     }
+ }
+ 
+-template <class T>
+-void _PrimReaderContext::AddRegularProperty(
+-    const TfToken& name,
+-    const SdfValueTypeName& typeName,
+-    const T& converter)
+-{
+-    if (converter(IsValidTag()))
+-    {
+-        Property& prop =
+-            _AddProperty(name, typeName, converter, converter, false);
+-        prop.converter = converter;
+-        prop.uniform = false;
+-        prop.timeSampled = false;
+-        prop.metadata[SdfFieldKeys->Custom] = VtValue(false);
+-    }
+-}
+-
+-void
+-_PrimReaderContext::AddRelationship(
+-    const TfToken& name,
+-    const SdfPath& connection)
+-{
+-    Property& prop = _AddProperty(name);
+-    prop.relationshipTarget = connection;
+-    prop.uniform = true;
+-}
+-
+ void
+ _PrimReaderContext::AddOutOfSchemaProperty(
+     const std::string& name,
+@@ -2182,14 +2114,8 @@ _PrimReaderContext::AddOutOfSchemaProperty(
+                 _CleanName(rawName, " .", usedNames,
+                            _AlembicFixName(),
+                            &SdfPath::IsValidIdentifier);
+-            const MetaData& meta = compound.getPropertyHeader(i).getMetaData();
+-            std::string nameSpace = name;
+-            if (meta.get("userData") == "yes")
+-            {
+-                nameSpace = SdfPath::JoinIdentifier(nameSpace, "userData");
+-            }
+             const std::string namespacedName =
+-                SdfPath::JoinIdentifier(nameSpace, cleanName);
++                SdfPath::JoinIdentifier(name, cleanName);
+             const SdfPath childPath =
+                 GetPath().AppendProperty(TfToken(namespacedName));
+             AddOutOfSchemaProperty(
+@@ -2216,21 +2142,26 @@ _PrimReaderContext::AddOutOfSchemaProperty(
+         _context.GetSchema().GetConversions().FindConverter(alembicType);
+     if (usdTypeName) {
+         _PrimReaderContext::Property &prop = 
+-            _AddProperty(TfToken(name), usdTypeName, header->getMetaData(), 
+-                     sampleTimes, isOutOfSchema);
+-
+-        if (sampleTimes.size() <= 1)
+-        {
+-            prop.metadata[SdfFieldKeys->Custom] = VtValue(false);
+-            prop.timeSampled = false;
+-        }
+-
++            (TfGetEnvSetting(USD_ABC_WRITE_UV_AS_ST_TEXCOORD2FARRAY) &&
++             name == UsdAbcPropertyNames->uvIndices)?
++                (_AddProperty(UsdAbcPropertyNames->stIndices,
++                             usdTypeName, header->getMetaData(),
++                             sampleTimes, isOutOfSchema)) :
++                (_AddProperty(TfToken(name),
++                             usdTypeName, header->getMetaData(),
++                             sampleTimes, isOutOfSchema));
+         prop.converter = std::bind(
+             _context.GetSchema().GetConversions().GetToUsdConverter(
+                 alembicType, prop.typeName),
+             property.GetParent(), property.GetName(),
+             std::placeholders::_2, std::placeholders::_1);
+     }
++    else {
++        TF_WARN("No conversion for \"%s\" of type \"%s\" at <%s>",
++                name.c_str(),
++                alembicType.Stringify().c_str(),
++                GetPath().GetText());
++    }
+ }
+ 
+ _PrimReaderContext::Property&
+@@ -2407,33 +2338,6 @@ _CopyGenericValue(const shared_ptr<TypedArraySample<AlembicTraits> >& src)
+     return VtValue(result);
+ }
+ 
+-/// A placeholder. It does nothing.
+-struct _CopyPlaceholder {
+-    MetaData metadata;
+-    _CopyPlaceholder() { }
+-
+-    bool operator()(_IsValidTag) const
+-    {
+-        return true;
+-    }
+-
+-    const MetaData& operator()(_MetaDataTag) const
+-    {
+-        return metadata;
+-    }
+-
+-    _AlembicTimeSamples operator()(_SampleTimesTag) const
+-    {
+-        return _AlembicTimeSamples();
+-    }
+-
+-    bool operator()(const UsdAbc_AlembicDataAny& dst,
+-                    const ISampleSelector& iss) const
+-    {
+-        return true;
+-    }
+-};
+-
+ /// Return a constant (default) value.
+ struct _CopySynthetic {
+     VtValue value;
+@@ -2464,7 +2368,7 @@ struct _CopySynthetic {
+ };
+ 
+ /// Copy a value from a property of a given type to \c UsdValueType.
+-template <class T, class UsdValueType = void>
++template <class T, class UsdValueType = void, bool expand = true>
+ struct _CopyGeneric {
+     typedef T PropertyType;
+     // This is defined for ITyped*Property.
+@@ -2498,10 +2402,13 @@ struct _CopyGeneric {
+ };
+ 
+ /// Copy a ITypedGeomParam.  These are either an ITypedArrayProperty or a
+-/// compound property with an ITypedArrayProperty and indices.  Either way
+-/// we can call getExpanded() to get the un-indexed values.
+-template <class T, class UsdValueType>
+-struct _CopyGeneric<ITypedGeomParam<T>, UsdValueType> {
++/// compound property with an ITypedArrayProperty and indices. If the template
++/// parameter `expand` is true (which is the default), then we will call
++/// getExpanced() to get the un-indexed values. Otherwise we will get the
++/// indexed values, but _CopyIndices will need to be used to extract the
++/// indices.
++template <class T, class UsdValueType, bool expand>
++struct _CopyGeneric<ITypedGeomParam<T>, UsdValueType, expand> {
+     typedef ITypedGeomParam<T> GeomParamType;
+     typedef typename GeomParamType::prop_type PropertyType;
+     typedef typename PropertyType::traits_type AlembicTraits;
+@@ -2529,12 +2436,57 @@ struct _CopyGeneric<ITypedGeomParam<T>, UsdValueType> {
+                     const ISampleSelector& iss) const
+     {
+         typename GeomParamType::sample_type sample;
+-        object.getExpanded(sample, iss);
++        if (expand == false && object.isIndexed()) {
++            object.getIndexed(sample, iss);
++        } else {
++            object.getExpanded(sample, iss);
++        }
+         return dst.Set(_CopyGenericValue<AlembicTraits,
+                                          UsdValueType>(sample.getVals()));
+     }
+ };
+ 
++/// Copy a ITypedGeomParam's index list as an int array.
++/// If the Alembic property is not indexed, it will do nothing.
++template <class GeomParamType>
++struct _CopyIndices {
++    typedef typename GeomParamType::prop_type PropertyType;
++    typedef typename PropertyType::traits_type AlembicTraits;
++
++    GeomParamType object;
++    _CopyIndices(const AlembicProperty& object_) :
++        object(object_.Cast<GeomParamType>())
++    {
++    }
++
++    bool operator()(_IsValidTag) const
++    {
++        return object.valid();
++    }
++
++    const MetaData& operator()(_MetaDataTag) const
++    {
++        return object.getMetaData();
++    }
++
++    _AlembicTimeSamples operator()(_SampleTimesTag) const
++    {
++        return _GetSampleTimes(object);
++    }
++
++    bool operator()(const UsdAbc_AlembicDataAny& dst,
++                    const ISampleSelector& iss) const
++    {
++        if (object.isIndexed()) {
++            typename GeomParamType::sample_type sample;
++            object.getIndexed(sample, iss);
++            return dst.Set(_CopyGenericValue<Uint32TPTraits,
++                                             int>(sample.getIndices()));
++        }
++        return false;
++    }
++};
++
+ /// Copy a bounding box from an IBox3dProperty.
+ struct _CopyBoundingBox : _CopyGeneric<IBox3dProperty> {
+     _CopyBoundingBox(const AlembicProperty& object_) :
+@@ -3012,6 +2964,31 @@ _ReadOther(_PrimReaderContext* context)
+     }
+ }
+ 
++template<class T, class UsdValueType>
++void
++_ReadProperty(_PrimReaderContext* context, const char* name, TfToken propName, SdfValueTypeName typeName)
++{
++    // Read a generic Alembic property and convert it to a USD property.
++    // If the Alembic property is indexed, this will add both the values
++    // property and the indices property, in order to preserve topology.
++    auto prop = context->ExtractSchema(name);
++    if (prop.Cast<T>().isIndexed()) {
++        context->AddProperty(
++            propName,
++            typeName,
++            _CopyGeneric<T, UsdValueType, false>(prop));
++        context->AddProperty(
++            TfToken(SdfPath::JoinIdentifier(propName, UsdGeomTokens->indices)),
++            SdfValueTypeNames->IntArray,
++            _CopyIndices<T>(prop));
++    } else {
++        context->AddProperty(
++            propName,
++            typeName,
++            _CopyGeneric<T, UsdValueType>(prop));
++    }
++}
++
+ /* Unused
+ static
+ void
+@@ -3112,7 +3089,7 @@ _ReadXform(_PrimReaderContext* context)
+     context->GetPrim().typeName = UsdAbcPrimTypeNames->Xform;
+ 
+     // Add properties.
+-    {
++    if (schema.getNumSamples() > 0) {
+         // We could author individual component transforms here, just 
+         // as the transform is represented in alembic, but round-tripping 
+         // will be an issue because of the way the alembicWriter reads
+@@ -3182,30 +3159,16 @@ _ReadPolyMesh(_PrimReaderContext* context)
+         SdfValueTypeNames->IntArray,
+         _CopyGeneric<IInt32ArrayProperty, int>(
+             context->ExtractSchema(".faceCounts")));
+-    context->AddProperty(
+-        UsdAbcPropertyNames->uv,
+-        SdfValueTypeNames->Float2Array,
+-        _CopyGeneric<IV2fArrayProperty, GfVec2f>(
+-            context->ExtractUV(".vals")));
+-    static const TfToken uvIndices("primvars:uv:indices");
+-    context->AddProperty(
+-        uvIndices,
+-        SdfValueTypeNames->IntArray,
+-        _CopyGeneric<IUInt32ArrayProperty, int>(
+-            context->ExtractUV(".indices")));
++
++    // Read texture coordinates
++    _ReadProperty<IV2fGeomParam, GfVec2f>(context, "uv", _GetUVPropertyName(), _GetUVTypeName());
+ 
+     // Custom subdivisionScheme property.  Alembic doesn't have this since
+     // the Alembic schema is PolyMesh.  Usd needs "none" as the scheme.
+-    context->AddRegularProperty(
++    context->AddUniformProperty(
+         UsdGeomTokens->subdivisionScheme,
+         SdfValueTypeNames->Token,
+         _CopySynthetic(UsdGeomTokens->none));
+-
+-    // Force doubleSided to avoid the problems with mirrored models.
+-    context->AddRegularProperty(
+-        TfToken("doubleSided"),
+-        SdfValueTypeNames->Bool,
+-        _CopySynthetic(true));
+ }
+ 
+ static
+@@ -3291,17 +3254,9 @@ _ReadSubD(_PrimReaderContext* context)
+         SdfValueTypeNames->FloatArray,
+         _CopyGeneric<IFloatArrayProperty, float>(
+             context->ExtractSchema(".creaseSharpnesses")));
+-    context->AddProperty(
+-        UsdAbcPropertyNames->uv,
+-        SdfValueTypeNames->Float2Array,
+-        _CopyGeneric<IV2fGeomParam, GfVec2f>(
+-            context->ExtractSchema("uv")));
+ 
+-    // Force doubleSided to avoid the problems with mirrored models.
+-    context->AddRegularProperty(
+-        TfToken("doubleSided"),
+-        SdfValueTypeNames->Bool,
+-        _CopySynthetic(true));
++    // Read texture coordinates
++    _ReadProperty<IV2fGeomParam, GfVec2f>(context, "uv", _GetUVPropertyName(), _GetUVTypeName());
+ }
+ 
+ static
+@@ -3486,149 +3441,6 @@ _ReadCameraParameters(_PrimReaderContext* context)
+     context->Extract(Type::schema_type::info_type::defaultName());
+ }
+ 
+-static void _ReadMaterialProperties(
+-    Alembic::AbcMaterial::IMaterialSchema& schema,
+-    _PrimReaderContext* context)
+-{
+-    // Output the material parameters.
+-    std::vector<std::string> targetNames;
+-    schema.getTargetNames(targetNames);
+-    for (const std::string& target : targetNames)
+-    {
+-        // target is "arnold"
+-        std::vector<std::string> shaderTypeNames;
+-        schema.getShaderTypesForTarget(target, shaderTypeNames);
+-        for(const std::string& shaderType : shaderTypeNames)
+-        {
+-            // shaderType is "displacement"
+-            const ICompoundProperty compound =
+-                schema.getShaderParameters(target, shaderType);
+-
+-            const std::string rawName = compound.getName();
+-            const std::string usdName =
+-                context->GetUsdName(target + ":" + shaderType);
+-
+-            // Create property.
+-            context->AddOutOfSchemaProperty(
+-                    usdName,
+-                    context->ExtractSchema(rawName));
+-        }
+-    }
+-
+-    // We don't care the used names at this point because all the names are
+-    // unique as child properties of ICompound. But we need to pass something to
+-    // _ClenName, so just create an empty set.
+-    std::set<std::string> usedNames;
+-
+-    std::vector<std::string> targets;
+-    schema.getNetworkTerminalTargetNames(targets);
+-
+-    for (const auto& target : targets) {
+-        std::vector<std::string> types;
+-        schema.getNetworkTerminalShaderTypesForTarget(target, types);
+-
+-        for (const auto& type : types) {
+-            std::string nodeName;
+-            std::string outputName;
+-
+-            if (!schema.getNetworkTerminal(target, type, nodeName, outputName)){
+-                continue;
+-            }
+-
+-            // Mangle the node name.
+-            nodeName =
+-                _CleanName(
+-                        nodeName,
+-                        " _",
+-                        usedNames,
+-                        _AlembicFixName(),
+-                        &SdfPath::IsValidIdentifier);
+-            // Generate the full path.
+-            SdfPath sourcePath =
+-                context->GetPath().AppendChild(TfToken(nodeName));
+-
+-            // Mangle the property name if necessary.
+-            if (!outputName.empty())
+-            {
+-                outputName = context->GetUsdName(outputName);
+-                sourcePath = sourcePath.AppendProperty(TfToken(outputName));
+-            }
+-
+-            // "connectedSourceFor:arnold:surface"
+-            const std::string targetType =
+-                SdfPath::JoinIdentifier(target, type);
+-
+-            // It's a convention of ConnectableAPI to use "connectedSourceFor"
+-            // prefix for specifying the connected source. For more information
+-            // see ConnectableAPI::ConnectToSource().
+-            const std::string namespacedTargetTarget =
+-                SdfPath::JoinIdentifier("connectedSourceFor", targetType);
+-
+-            // Save it.
+-            // USD requires an empty attribute to determine the type of the
+-            // connection. But there is no such informtion in Alembic. We assume
+-            // it's a connection of a color type.
+-            context->AddProperty(
+-                    TfToken(targetType),
+-                    SdfValueTypeNames->Color3f,
+-                    _CopyPlaceholder());
+-
+-            context->AddRelationship(
+-                    TfToken(namespacedTargetTarget),
+-                    sourcePath);
+-        }
+-    }
+-}
+-
+-static
+-void
+-_ReadMaterial(_PrimReaderContext* context)
+-{
+-    typedef Alembic::AbcMaterial::IMaterial Type;
+-
+-    // Wrap the object.
+-    if (!Type::matches(context->GetObject().getHeader())) {
+-        // Not of type Type.
+-        return;
+-    }
+-
+-    // Add child properties under schema.
+-    context->SetSchema(Type::schema_type::info_type::defaultName());
+-
+-    Type object(context->GetObject(), kWrapExisting);
+-    Type::schema_type& schema = object.getSchema();
+-
+-    // Set prim type.
+-    context->GetPrim().typeName = UsdAbcPrimTypeNames->Material;
+-
+-    _ReadMaterialProperties(schema, context);
+-}
+-
+-static void _ReadLight(_PrimReaderContext* context)
+-{
+-    typedef Alembic::AbcGeom::ILight Type;
+-
+-    // Wrap the object.
+-    if (!Type::matches(context->GetObject().getHeader()))
+-    {
+-        // Not of type Type.
+-        return;
+-    }
+-
+-    // Add child properties under schema.
+-    context->SetSchema(Type::schema_type::info_type::defaultName());
+-
+-    Type object(context->GetObject(), kWrapExisting);
+-    Type::schema_type& schema = object.getSchema();
+-    Alembic::AbcMaterial::IMaterialSchema material(
+-        schema.getPtr(), ".material");
+-
+-    // Set prim type.
+-    context->GetPrim().typeName = UsdAbcPrimTypeNames->ArnoldLight;
+-
+-    _ReadMaterialProperties(material, context);
+-}
+-
+ static
+ _ReaderContext::Ordering
+ _GetOrderingMetadata(
+@@ -3712,142 +3524,6 @@ _GetSchemaProperty(const IObject& object)
+ 
+ static
+ std::string
+-_ReadMaterialNetworkNode(
+-    _ReaderContext& context,
+-    const IObject& object,
+-    Alembic::AbcMaterial::IMaterialSchema::NetworkNode& node,
+-    const SdfPath& parentPath)
+-{
+-    // We don't care the used names at this point because all the names are
+-    // unique as child properties of ICompound. But we need to pass something to
+-    // _ClenName, so just create an empty set.
+-    std::set<std::string> usedNames;
+-
+-    // Node name.
+-    const std::string name =
+-        _CleanName(
+-                node.getName(),
+-                " _",
+-                usedNames,
+-                _AlembicFixName(),
+-                &SdfPath::IsValidIdentifier);
+-
+-    // Full path
+-    const SdfPath path = parentPath.AppendChild(TfToken(name));
+-
+-    _ReaderContext::Prim& prim = context.AddPrim(path);
+-    prim.typeName = UsdAbcPrimTypeNames->Shader;
+-
+-    // Form the context. Since we don't have a separate Alembic object for this
+-    // shading network node, we need to use the material object for that.
+-    _PrimReaderContext primContext(context, object, path);
+-    const ICompoundProperty compound = node.getParameters();
+-
+-    // Save the target and type of the node. USD doesn't have a standard schema
+-    // to save them because it's necessary to create a schema for all the known
+-    // types. Since we can't generate the types dynamically and we don't know
+-    // what types we can face with, we just put it in the "info" namespace.
+-    // Usually the target is the name of the renderer. ri, arnold, etc.
+-    std::string target = "<undefined>";
+-    node.getTarget(target);
+-    const std::string infoTarget = SdfPath::JoinIdentifier("info", "target");
+-    primContext.AddRegularProperty(
+-            TfToken(infoTarget),
+-            SdfValueTypeNames->Token,
+-            _CopySynthetic(TfToken(target)));
+-
+-    // The shading node type. standard, MayaFile, etc.
+-    std::string nodeType = "<undefined>";
+-    node.getNodeType(nodeType);
+-    const std::string infoType = SdfPath::JoinIdentifier("info", "type");
+-    primContext.AddRegularProperty(
+-            TfToken(infoType),
+-            SdfValueTypeNames->Token,
+-            _CopySynthetic(TfToken(nodeType)));
+-
+-    // Iterate the parameters.
+-    for (size_t i = 0, n = compound.getNumProperties(); i < n; ++i) {
+-        const std::string rawName = compound.getPropertyHeader(i).getName();
+-        const std::string cleanName = primContext.GetUsdName(rawName);
+-        const SdfPath childPath = path.AppendProperty(TfToken(cleanName));
+-
+-        // Create property.
+-        primContext.AddOutOfSchemaProperty(
+-                cleanName,
+-                AlembicProperty(childPath, rawName, compound));
+-    }
+-
+-    // Iterate connections.
+-    for (size_t i = 0, c = node.getNumConnections(); i < c; ++i) {
+-        std::string inputName;
+-        std::string connectedNodeName;
+-        std::string connectedOutputName;
+-
+-        if (!node.getConnection(
+-                    i, inputName, connectedNodeName, connectedOutputName)) {
+-            continue;
+-        }
+-
+-        // Mangle Arnold components. USD doesn't allow using dots in the names.
+-        // However, Arnold needs dots to specify color/vector components. The
+-        // only solution is using the namespace symbol ':'. Example:
+-        // "uvcoords.x" -> "uvcoords:x".
+-        int penultimate = inputName.length() - 2;
+-        if (penultimate > 0 && inputName[penultimate] == '.')
+-        {
+-            inputName[penultimate] = ':';
+-        }
+-        // Mangle the Alembic names to USD names.
+-        inputName = primContext.GetUsdName(inputName);
+-        // The new shade API (USD 0.8) requires that all the inputs should be in
+-        // the "inputs" namespace.
+-        inputName = "inputs:" + inputName;
+-        connectedNodeName =
+-            _CleanName(
+-                    connectedNodeName,
+-                    " _",
+-                    usedNames,
+-                    _AlembicFixName(),
+-                    &SdfPath::IsValidIdentifier);
+-
+-        // Generate full paths.
+-        SdfPath sourcePath = parentPath.AppendChild(TfToken(connectedNodeName));
+-
+-        if (!connectedOutputName.empty()) {
+-            // Mangle the Alembic names to USD names only if there is something
+-            // to mangle.
+-            connectedOutputName = primContext.GetUsdName(connectedOutputName);
+-            sourcePath =
+-                sourcePath.AppendProperty(TfToken(connectedOutputName));
+-        }
+-        else {
+-            // In Alembic the property is an optional because it's possible to
+-            // connect a node itself.
+-            sourcePath = sourcePath.AppendProperty(TfToken("out"));
+-        }
+-
+-        // It's a convention of ConnectableAPI to use "connectedSourceFor"
+-        // prefix for specifying the connected source. For more information see
+-        // ConnectableAPI::ConnectToSource().
+-        const std::string namespacedName =
+-            SdfPath::JoinIdentifier("connectedSourceFor", inputName);
+-
+-        // Save it.
+-        primContext.AddRegularProperty(
+-            TfToken(inputName),
+-            SdfValueTypeNames->Color3f,
+-            _CopyPlaceholder());
+-
+-        primContext.AddRelationship(
+-                TfToken(namespacedName),
+-                sourcePath);
+-    }
+-
+-    return name;
+-}
+-
+-static
+-std::string
+ _ReadPrim(
+     _ReaderContext& context,
+     const IObject& object,
+@@ -3867,10 +3543,6 @@ _ReadPrim(
+     // Handle non-instances.
+     _ReaderContext::Prim* instance = nullptr;
+     if (!context.IsInstance(object)) {
+-        // Don't combine. At RodeoFX we think that if the user doesn't want to
+-        // see shapes, he should export the model without shapes. We should
+-        // never modify the hierarchy.
+-        if (0)
+         // Combine geom with parent if parent is a transform.  There are
+         // several cases where we want to bail out and, rather than use a
+         // huge if statement or deep if nesting, we'll use do/while and
+@@ -4045,22 +3717,6 @@ _ReadPrim(
+     return name;
+ }
+ 
+-template<class T>
+-T
+-getChildProperty(const ICompoundProperty& parent, const std::string name)
+-{
+-    for (size_t j = 0, e = parent.getNumProperties(); j < e; ++j)
+-    {
+-        const auto& header = parent.getPropertyHeader(j);
+-        if (header.getName() == name)
+-        {
+-            return T(parent, name);
+-        }
+-    }
+-
+-    return T();
+-}
+-
+ static
+ void
+ _ReadPrimChildren(
+@@ -4069,136 +3725,6 @@ _ReadPrimChildren(
+     const SdfPath& path,
+     _ReaderContext::Prim& prim)
+ {
+-    if (object.valid() && !object.getParent().valid())
+-    {
+-        // Root.
+-        static const TfToken rdoexpression("Expression");
+-        static const char* expression = "expression";
+-        static const char* expressions = ".expressions";
+-        static const char* group = ".group";
+-        static const char* layers = ".layers";
+-        static const char* materialassign = ".material.assign";
+-        static const char* materials = "materials";
+-        static const char* name = ".name";
+-
+-        auto expProps =
+-            getChildProperty<ICompoundProperty>(
+-                    object.getProperties(), expressions);
+-        if (expProps.valid())
+-        {
+-            const SdfPath parentPath = path.AppendChild(TfToken(materials));
+-            _ReaderContext::Prim& matPrim = context.AddPrim(parentPath);
+-            matPrim.typeName = UsdAbcPrimTypeNames->Scope;
+-            std::set<std::string> usedExpressionNames;
+-
+-            for (size_t j = 0, e = expProps.getNumProperties(); j < e; ++j)
+-            {
+-                const auto& expHeader = expProps.getPropertyHeader(j);
+-                std::string rawExp = expHeader.getName();
+-                ICompoundProperty expProp(expProps, rawExp);
+-                if (!expProp.valid())
+-                {
+-                    continue;
+-                }
+-
+-                std::string childName =
+-                    _CleanName(
+-                            rawExp,
+-                            "",
+-                            usedExpressionNames,
+-                            _AlembicFixName(),
+-                            &SdfPath::IsValidIdentifier);
+-
+-                const SdfPath path = parentPath.AppendChild(TfToken(childName));
+-                _ReaderContext::Prim& expPrim = context.AddPrim(path);
+-                expPrim.typeName = rdoexpression;
+-
+-                _PrimReaderContext primContext(context, object, path);
+-
+-                // Save expression
+-                primContext.AddRegularProperty(
+-                        TfToken(expression),
+-                        SdfValueTypeNames->String,
+-                        _CopySynthetic(rawExp));
+-
+-                // Save group
+-                auto groupProp =
+-                    getChildProperty<ICompoundProperty>(expProp, group);
+-                if (groupProp.valid())
+-                {
+-                    auto groupName =
+-                        getChildProperty<IStringProperty>(groupProp, name);
+-
+-                    if (groupName.valid())
+-                    {
+-                        // Save expression
+-                        primContext.AddRegularProperty(
+-                                TfToken("group"),
+-                                SdfValueTypeNames->String,
+-                                _CopySynthetic(groupName.getValue()));
+-                    }
+-                }
+-
+-                // Save assignment
+-                auto layersPr =
+-                    getChildProperty<ICompoundProperty>(expProp, layers);
+-                for (size_t i = 0, l = layersPr.getNumProperties(); i < l; ++i)
+-                {
+-                    // On this point the header contains a target and shading
+-                    // type. ".defaultRenderLayer.attribute"
+-                    const auto& layerHeader = layersPr.getPropertyHeader(i);
+-                    // ".defaultRenderLayer.attribute"
+-                    std::string rawLayer = layerHeader.getName();
+-                    // Split it with "."
+-                    std::vector<std::string> layerTarget;
+-                    boost::split(layerTarget, rawLayer, boost::is_any_of("."));
+-                    // We need to have only valid items. So filter it.
+-                    std::vector<std::string> layerTargetFiltered;
+-                    layerTargetFiltered.push_back("assign");
+-                    std::copy_if(
+-                            layerTarget.begin(),
+-                            layerTarget.end(),
+-                            std::back_inserter(layerTargetFiltered),
+-                            [](const std::string& a) { return !a.empty(); });
+-                    // Join everything. At this point we should have
+-                    // "assign:defaultRenderLayer:attribute"
+-                    std::string usdLayer =
+-                        SdfPath::JoinIdentifier(layerTargetFiltered);
+-
+-                    // Get the material
+-                    ICompoundProperty layerProp(layersPr, rawLayer);
+-                    auto assign =
+-                        getChildProperty<IStringProperty>(
+-                                layerProp, materialassign);
+-                    // It looks like "aiStandard1.out"
+-                    std::string assignTarget = assign.getValue();
+-
+-                    // Split. First is the material name the second is the
+-                    // output name.
+-                    std::vector<std::string> material;
+-                    boost::split(material, assignTarget, boost::is_any_of("."));
+-                    // Create a full path to the material. In Alembic all the
+-                    // materials are in the material group.
+-                    SdfPath materialPath =
+-                        parentPath.AppendChild(TfToken(material[0]));
+-                    if (material.size()>1)
+-                    {
+-                        materialPath =
+-                            materialPath.AppendProperty(TfToken(material[1]));
+-                    }
+-
+-                    // Save it.
+-                    primContext.AddRelationship(
+-                            TfToken(usdLayer),
+-                            materialPath);
+-                }
+-
+-                usedExpressionNames.insert(childName);
+-                matPrim.children.push_back(TfToken(childName));
+-            }
+-        }
+-    }
+-
+     // Collect children names.  By prepopulating usedNames we ensure that
+     // the child with the valid name gets its name even if a child with a
+     // lower index has a name that mangles to the valid name.
+@@ -4216,48 +3742,6 @@ _ReadPrimChildren(
+             prim.children.push_back(TfToken(childName));
+         }
+     }
+-
+-    // Iterate the shading network nodes if possible. Materials contain shading
+-    // nodes but not as a part of the scene graph because all the shading nodes
+-    // are compounds of the materials, so it's not possible to iterate them with
+-    // the regular way.
+-    if (Alembic::AbcMaterial::IMaterial::matches(object.getHeader()))
+-    {
+-        prim.typeName = UsdAbcPrimTypeNames->Material;
+-
+-        // The shading nodes of the material is written as compounds in Alembic.
+-        Alembic::AbcMaterial::IMaterial material(object, kWrapExisting);
+-        Alembic::AbcMaterial::IMaterialSchema& schema = material.getSchema();
+-
+-        for (size_t i = 0, e = schema.getNumNetworkNodes(); i < e; ++i) {
+-            Alembic::AbcMaterial::IMaterialSchema::NetworkNode child =
+-                schema.getNetworkNode(i);
+-            const std::string childName =
+-                _ReadMaterialNetworkNode(context, object, child, path);
+-            if (!childName.empty()) {
+-                prim.children.push_back(TfToken(childName));
+-            }
+-        }
+-    }
+-    else if (Alembic::AbcGeom::ILight::matches(object.getHeader()))
+-    {
+-        // The shading nodes of the material shaders are written as compounds in
+-        // Alembic. We need to create children for them.
+-        Alembic::AbcGeom::ILight light(object, kWrapExisting);
+-        Alembic::AbcGeom::ILight::schema_type& schema = light.getSchema();
+-        Alembic::AbcMaterial::IMaterialSchema material(
+-            schema.getPtr(), ".material");
+-
+-        for (size_t i = 0, e = material.getNumNetworkNodes(); i < e; ++i) {
+-            Alembic::AbcMaterial::IMaterialSchema::NetworkNode child =
+-                material.getNetworkNode(i);
+-            const std::string childName =
+-                _ReadMaterialNetworkNode(context, object, child, path);
+-            if (!childName.empty()) {
+-                prim.children.push_back(TfToken(childName));
+-            }
+-        }
+-    }
+ }
+ 
+ // ----------------------------------------------------------------------------
+@@ -4336,12 +3820,6 @@ _ReaderSchemaBuilder::_ReaderSchemaBuilder()
+         .AppendReader(_ReadUserProperties)
+         .AppendReader(_ReadOther)
+         ;
+-    schema.AddType(Alembic::AbcMaterial::MaterialSchemaInfo::title())
+-        .AppendReader(_ReadMaterial)
+-        ;
+-    schema.AddType(Alembic::AbcGeom::LightSchemaInfo::title())
+-        .AppendReader(_ReadLight)
+-        ;
+ 
+     // This handles overs with no type and any unknown prim type.
+     schema.AddFallbackType()
+@@ -4618,3 +4096,4 @@ UsdAbc_AlembicDataReader::ListTimeSamplesForPath(
+ }
+ 
+ PXR_NAMESPACE_CLOSE_SCOPE
++
+diff --git a/pxr/usd/plugin/usdAbc/alembicUtil.cpp b/pxr/usd/plugin/usdAbc/alembicUtil.cpp
+index e558705..e9c48c3 100644
+--- a/pxr/usd/plugin/usdAbc/alembicUtil.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicUtil.cpp
+@@ -341,6 +341,7 @@ UsdAbc_AlembicConversions::UsdAbc_AlembicConversions()
+     data.AddConverter<GfVec3f, float32_t, 3>(SdfValueTypeNames->Color3f);
+     data.AddConverter<GfVec3d, float64_t, 3>(SdfValueTypeNames->Color3d);
+     data.AddConverter<GfMatrix4d, float64_t, 16>(SdfValueTypeNames->Frame4d);
++    data.AddConverter<GfVec2f, float32_t, 2>(SdfValueTypeNames->TexCoord2f);
+ }
+ 
+ } // namespace UsdAbc_AlembicUtil
+diff --git a/pxr/usd/plugin/usdAbc/alembicUtil.h b/pxr/usd/plugin/usdAbc/alembicUtil.h
+index 1b0b3e5..8346584 100644
+--- a/pxr/usd/plugin/usdAbc/alembicUtil.h
++++ b/pxr/usd/plugin/usdAbc/alembicUtil.h
+@@ -94,9 +94,6 @@ using namespace ::Alembic::Abc;
+     (PseudoRoot) \
+     (Scope) \
+     (Xform) \
+-    (Shader) \
+-    (Material) \
+-    (ArnoldLight) \
+     /* end */
+ TF_DECLARE_PUBLIC_TOKENS(UsdAbcPrimTypeNames, USD_ABC_PRIM_TYPE_NAMES);
+ 
+@@ -106,7 +103,10 @@ TF_DECLARE_PUBLIC_TOKENS(UsdAbcPrimTypeNames, USD_ABC_PRIM_TYPE_NAMES);
+     (userProperties) \
+     /* end */
+ #define USD_ABC_POINTBASED_NAMES \
+-    ((uv, "primvars:uv"))
++    ((uv, "primvars:uv")) \
++    ((uvIndices, "primvars:uv:indices")) \
++    ((st, "primvars:st")) \
++    ((stIndices, "primvars:st:indices")) \
+     /* end */
+ #define USD_ABC_PROPERTY_NAMES \
+     USD_ABC_GPRIM_NAMES \
+diff --git a/pxr/usd/plugin/usdAbc/alembicWriter.cpp b/pxr/usd/plugin/usdAbc/alembicWriter.cpp
+index b0f9595..3ad6ed8 100644
+--- a/pxr/usd/plugin/usdAbc/alembicWriter.cpp
++++ b/pxr/usd/plugin/usdAbc/alembicWriter.cpp
+@@ -32,6 +32,7 @@
+ #include "pxr/usd/usd/schemaRegistry.h"
+ #include "pxr/base/trace/trace.h"
+ #include "pxr/base/tf/enum.h"
++#include "pxr/base/tf/envSetting.h"
+ #include "pxr/base/tf/ostreamMethods.h"
+ #include <Alembic/Abc/OArchive.h>
+ #include <Alembic/Abc/OObject.h>
+@@ -62,6 +63,9 @@ TF_DEFINE_PRIVATE_TOKENS(
+     ((xformOpTransform, "xformOp:transform"))
+ );
+ 
++TF_DEFINE_ENV_SETTING(USD_ABC_READ_FLOAT2_AS_UV, true,
++        "Turn to false to disable reading float2 arrays as uv sets");
++
+ namespace {
+ 
+ using namespace ::Alembic::AbcGeom;
+@@ -897,9 +901,21 @@ public:
+     /// to include the sample times from the returned object.
+     UsdSamples ExtractSamples(const TfToken& name)
+     {
+-        UsdSamples result = _ExtractSamples(name);
+-        result.AddTimes(&_sampleTimes);
+-        return result;
++        return _ExtractSamples(name, {});
++    }
++
++    /// Returns the samples for a Usd property.  If the property doesn't
++    /// exist or has already been extracted then this returns an empty
++    /// samples object.  The property is extracted from the context so
++    /// it cannot be extracted again.  The sample times union is updated
++    /// to include the sample times from the returned object.  This
++    /// verifies that the property is holding a value of either the given type
++    //  or the alternative type;
++    /// if not it returns an empty samples object.
++    UsdSamples ExtractSamples(const TfToken& name, const SdfValueTypeName& type,
++                              const SdfValueTypeName& alternativeType)
++    {
++        return _ExtractSamples(name, {type, alternativeType});
+     }
+ 
+     /// Returns the samples for a Usd property.  If the property doesn't
+@@ -911,16 +927,17 @@ public:
+     /// if not it returns an empty samples object.
+     UsdSamples ExtractSamples(const TfToken& name, const SdfValueTypeName& type)
+     {
+-        UsdSamples result = _ExtractSamples(name);
+-        if (!result.IsEmpty() && type != result.GetTypeName()) {
+-            TF_WARN("Expected property '%s' to have type '%s', got '%s'",
+-                    GetPath().AppendProperty(name).GetText(),
+-                    type.GetAsToken().GetText(),
+-                    result.GetTypeName().GetAsToken().GetText());
+-            return UsdSamples(GetPath(), name);
++        return _ExtractSamples(name, {type});
++    }
++
++    /// Removes samples for a Usd property.  The property cannot be extracted
++    /// after removal.
++    void RemoveSamples(const TfToken& name)
++    {
++        auto i = std::find(_unextracted.begin(), _unextracted.end(), name);
++        if (i != _unextracted.end()) {
++            _unextracted.erase(i);
+         }
+-        result.AddTimes(&_sampleTimes);
+-        return result;
+     }
+ 
+     /// Returns the names of properties that have not been extracted yet
+@@ -929,6 +946,25 @@ public:
+
+ private:
+     UsdSamples _ExtractSamples(const TfToken& name);
++
++    UsdSamples _ExtractSamples(const TfToken& name,
++            const std::vector<SdfValueTypeName> &types)
++    {
++        UsdSamples result = _ExtractSamples(name);
++        if (!result.IsEmpty() && !types.empty()) {
++            SdfValueTypeName resultTypeName = result.GetTypeName();
++            if (find(types.begin(), types.end(), resultTypeName) ==
++                types.end())
++            {
++                TF_WARN("Property '%s' did not have expected type (got '%s')",
++                        GetPath().AppendProperty(name).GetText(),
++                        resultTypeName.GetAsToken().GetText());
++                return UsdSamples(GetPath(), name);
++            }
++        }
++        result.AddTimes(&_sampleTimes);
++        return result;
++    }
+ 
+ private:
+     typedef std::vector<SdfValueTypeName> SdfValueTypeNameVector;
+@@ -2230,7 +2266,7 @@ _WriteNamespacedPropertyGroup(
+     // Strip the namespace name from each name before copying.
+     if (anyProperties) {
+         OCompoundProperty parent = getParentProperty();
+-        if (! parent.valid()) {
++        if (!parent.valid()) {
+             // We can't get the parent property.  Just put the properties
+             // at the top level.
+             parent = context->GetParent().GetProperties();
+@@ -2240,8 +2276,13 @@ _WriteNamespacedPropertyGroup(
+         _CompoundPropertyTable subgroups(parent);
+
+         // Convert each property.
++        // We have to remap primvars:st:indices to primvars:uv:indices.
+         for (const auto& name : context->GetUnextractedNames()) {
+-            TfTokenVector names = SdfPath::TokenizeIdentifierAsTokens(name);
++            TfTokenVector names =
++                name == UsdAbcPropertyNames->stIndices ?
++                    SdfPath::TokenizeIdentifierAsTokens(
++                        UsdAbcPropertyNames->uvIndices) :
++                    SdfPath::TokenizeIdentifierAsTokens(name);
+             if (names.size() >= 2 && names[0] == namespaceName) {
+                 // Remove the namespace prefix.
+                 names.erase(names.begin());
+@@ -2256,9 +2297,9 @@ _WriteNamespacedPropertyGroup(
+                 // Write it.
+                 _WriteOutOfSchemaProperty(context, group, name, alembicName);
+             }
+-            }
+         }
+     }
++}
+ 
+ static
+ void
+@@ -2773,9 +2814,31 @@ _WritePolyMesh(_PrimWriterContext* context)
+     UsdSamples normals =
+         context->ExtractSamples(UsdGeomTokens->normals,
+                                 SdfValueTypeNames->Normal3fArray);
+-    UsdSamples uv =
+-        context->ExtractSamples(UsdAbcPropertyNames->uv,
+-                                SdfValueTypeNames->Float2Array);
++
++    // Default to look for primvars:st with type TexCoord2fArray or Float2Array
++    UsdSamples uv = (TfGetEnvSetting(USD_ABC_READ_FLOAT2_AS_UV))?
++                        (context->ExtractSamples(UsdAbcPropertyNames->st,
++                                    SdfValueTypeNames->TexCoord2fArray,
++                                    SdfValueTypeNames->Float2Array)) :
++                        (context->ExtractSamples(UsdAbcPropertyNames->st,
++                                    SdfValueTypeNames->TexCoord2fArray));
++   
++    // At this point if matching uv set has not been found, 
++    // look for primvars:uv with type TexCoord2fArray or Float2Array
++    if (uv.IsEmpty()) {
++        uv = (TfGetEnvSetting(USD_ABC_READ_FLOAT2_AS_UV))?
++                 (context->ExtractSamples(UsdAbcPropertyNames->uv,
++                                     SdfValueTypeNames->TexCoord2fArray,
++                                     SdfValueTypeNames->Float2Array)) :
++                 (context->ExtractSamples(UsdAbcPropertyNames->uv,
++                                     SdfValueTypeNames->TexCoord2fArray));
++        
++        context->RemoveSamples(UsdAbcPropertyNames->stIndices);
++    } else {
++        // We found a primvars:st, so remove samples with name "primvars:uv"
++        context->RemoveSamples(UsdAbcPropertyNames->uv);
++        context->RemoveSamples(UsdAbcPropertyNames->uvIndices);
++    }
+ 
+     // Adjust faceVertexIndices for winding order.
+     _ReverseWindingOrder(context, &faceVertexIndices, faceVertexCounts);
+@@ -2892,9 +2955,31 @@ _WriteSubD(_PrimWriterContext* context)
+     UsdSamples creaseSharpnesses =
+         context->ExtractSamples(UsdGeomTokens->creaseSharpnesses,
+                                 SdfValueTypeNames->FloatArray);
+-    UsdSamples uv =
+-        context->ExtractSamples(UsdAbcPropertyNames->uv,
+-                                SdfValueTypeNames->Float2Array);
++    
++    // Default to look for primvars:st with type TexCoord2fArray or Float2Array
++    UsdSamples uv = (TfGetEnvSetting(USD_ABC_READ_FLOAT2_AS_UV))?
++                        (context->ExtractSamples(UsdAbcPropertyNames->st,
++                                    SdfValueTypeNames->TexCoord2fArray,
++                                    SdfValueTypeNames->Float2Array)) :
++                        (context->ExtractSamples(UsdAbcPropertyNames->st,
++                                    SdfValueTypeNames->TexCoord2fArray));
++   
++    // At this point if matching uv set has not been found, 
++    // look for primvars:uv with type TexCoord2fArray or Float2Array
++    if (uv.IsEmpty()) {
++        uv = (TfGetEnvSetting(USD_ABC_READ_FLOAT2_AS_UV))?
++                 (context->ExtractSamples(UsdAbcPropertyNames->uv,
++                                     SdfValueTypeNames->TexCoord2fArray,
++                                     SdfValueTypeNames->Float2Array)) :
++                 (context->ExtractSamples(UsdAbcPropertyNames->uv,
++                                     SdfValueTypeNames->TexCoord2fArray));
++        
++        context->RemoveSamples(UsdAbcPropertyNames->stIndices);
++    } else {
++        // We found a primvars:st, so remove samples with name "primvars:uv"
++        context->RemoveSamples(UsdAbcPropertyNames->uv);
++        context->RemoveSamples(UsdAbcPropertyNames->uvIndices);
++    }
+ 
+     // Adjust faceVertexIndices for winding order.
+     _ReverseWindingOrder(context, &faceVertexIndices, faceVertexCounts);
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties.py b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties.py
+new file mode 100644
+index 0000000..354275d
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties.py
+@@ -0,0 +1,36 @@
++#!/pxrpythonsubst
++#
++# Copyright 2017 Pixar
++#
++# Licensed under the Apache License, Version 2.0 (the "Apache License")
++# with the following modification; you may not use this file except in
++# compliance with the Apache License and the following modification to it:
++# Section 6. Trademarks. is deleted and replaced with:
++#
++# 6. Trademarks. This License does not grant permission to use the trade
++#    names, trademarks, service marks, or product names of the Licensor
++#    and its affiliates, except as required to comply with Section 4(c) of
++#    the License and to reproduce the content of the NOTICE file.
++#
++# You may obtain a copy of the Apache License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the Apache License with the above modification is
++# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++# KIND, either express or implied. See the Apache License for the specific
++# language governing permissions and limitations under the Apache License.
++
++from pxr import Sdf, Usd, UsdAbc
++import unittest, os
++
++class TestUsdAbcIndexedProperties(unittest.TestCase):
++    def test_IndexedTextureCoordinates(self):
++        name = "indexedTextureCoordinates"
++        layer = Sdf.Layer.FindOrOpen('%s.abc' % (name, ))
++        self.assertTrue(layer)
++        layer.Export('%s.%s.usda' % (name, os.environ['USD_ABC_TESTSUFFIX']))
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/baseline/indexedTextureCoordinates.def.usda b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/baseline/indexedTextureCoordinates.def.usda
+new file mode 100644
+index 0000000..d81066e
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/baseline/indexedTextureCoordinates.def.usda
+@@ -0,0 +1,63 @@
++#usda 1.0
++(
++    defaultPrim = "Cube"
++    doc = "untitled"
++    endTimeCode = 0
++    framesPerSecond = 24
++    startTimeCode = 0
++    timeCodesPerSecond = 1
++    upAxis = "Y"
++)
++
++def Mesh "Cube"
++{
++    float3[] extent.timeSamples = {
++        0: [(-1, -1, -1), (1, 1, 1)],
++    }
++    int[] faceVertexCounts.timeSamples = {
++        0: [4, 4, 4, 4, 4, 4],
++    }
++    int[] faceVertexIndices.timeSamples = {
++        0: [2, 3, 1, 0, 6, 7, 3, 2, 4, 5, 7, 6, 0, 1, 5, 4, 0, 4, 6, 2, 5, 1, 3, 7],
++    }
++    uniform token orientation = "leftHanded"
++    point3f[] points (
++        interpolation = "vertex"
++    )
++    point3f[] points.timeSamples = {
++        0: [(-1, -1, 1), (-1, 1, 1), (-1, -1, -1), (-1, 1, -1), (1, -1, 1), (1, 1, 1), (1, -1, -1), (1, 1, -1)],
++    }
++    float2[] primvars:uv (
++        interpolation = "faceVarying"
++    )
++    float2[] primvars:uv.timeSamples = {
++        0: [(0.9999134, 0.25004348), (0.7499567, 0.2500434), (0.74995667, 0.50000006), (0.9999133, 0.5000001), (0.25004333, 0.25004333), (0.25004333, 0.000086587555), (0.000086587555, 0.000086587555), (0.000086587555, 0.25004333), (0.25004333, 0.50000006), (0.5, 0.50000006), (0.50000006, 0.25004336), (0.000086587555, 0.50000006), (0.000086587555, 0.7499568), (0.25004333, 0.7499568)],
++    }
++    int[] primvars:uv:indices (
++        interpolation = "faceVarying"
++    )
++    int[] primvars:uv:indices.timeSamples = {
++        0: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 4, 11, 12, 13, 8, 11, 8, 4, 7, 9, 2, 1, 10],
++    }
++    uniform token subdivisionScheme = "none"
++    custom bool userProperties:meshtype
++    bool userProperties:meshtype.timeSamples = {
++        0: 0,
++    }
++    token visibility.timeSamples = {
++        0: "inherited",
++    }
++    custom bool xform:inherits
++    bool xform:inherits.timeSamples = {
++        0: 0,
++    }
++    custom uchar xform:ops
++    uchar xform:ops.timeSamples = {
++        0: 48,
++    }
++    custom matrix4d xform:vals
++    matrix4d xform:vals.timeSamples = {
++        0: ( (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1) ),
++    }
++}
++
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/indexedTextureCoordinates.abc b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcIndexedProperties/indexedTextureCoordinates.abc
+new file mode 100644
+index 0000000000000000000000000000000000000000..5e9e8b6c4d9a273004ed661b14c44c60a20d675b
+GIT binary patch
+literal 2601
+zcmb_ddu&rx7(Ye22h6d}h+rI)j5s#nuI<J;Tf1(cLlOqXy-1vv+xE1(<hJ*E?`_$Z
+z7%omk!yqU@#SBb_e}N1LS>iN`N_-Fmd<0^A5EH~G{sAV25R-xDyZ1ZItnM%UlGEQg
+zzwddzd(P?lq_{=ALma;s6H8{=@VEK78bZpEAMd@BzIvprZD_@<{=>_o8;AoHOKdb%
+zT+cI?kH2F&eVeL|U5_8w{~ICZDIB3G$md)K$hoNq^Qq%hehi+s$oFj3jh6Fg2bVTC
+zT$Y{~ox$q4iw$090h<>h2RhiW6FJa<fGu#m8GxVzd*DG2F(D4_o2=bFI<j!yzVgqP
+zU;21*^410L`M1%+c#vnLY)ygQ^-0&!dz>{d{_wNS-eCIz`3JJSTYL^pn;<V=d3FA>
+z;uF2k9sHo6Ze9Ji9e-{OophSbwUeRHafUSvS-qhRjA!+S#u&#(&nx3iQwQh4o`tvk
+zV1A7GfE~;Mm$H~(3&{JPK79Mg@Y}^V8xK~T9wzs%h4Pra)idZ7^a6Uv`(MQ7aOP&Q
+z0lL|2l(2C(8=!+VAn2gaU<>_+nBc<?<lNiF(4OA&gWHp(tA0wpu*I>5DM5;zP3rN9
+zp~T#KE9-vwC^%uWH?V>BYWm;*-;Nh-9%{Sz{^c{Z#ZT>c`0B5_{BGD0$kX=3<m(C8
+zE+M%!p0wQht33T?Xfv~4Yys=k18fuvQo4_7lA)Kwa;BiD`iT+;aX5vnDC^K&kVCdF
+zIgNM{@oS7}ry`^kbJ||S<opEI&iVN`8C_DwQ#}s(i&!~vDModSPeNEhHDZsAxxlS?
+zfqB9+b^?<p<ot#_z7!3tW)!8U-e(M`lv}r=_D9UhThBj567?r!7qn8Ra$;pVu8%gk
+ziNg_&!j4LWgczf1>|I&RY>Qc?WYUHX{&R$kPPMS6s8ll~YH_84s6|&(B^4GmF~z7d
+zG9#0P^A1u97lp}Z*p%aluOZ$<w5<r~$Mpi+&vc>U%a^K0c3xR6f4}h3*|(DJ%iNwL
+z+#_3Bh*L<ia(H8QVFi;Ik@Iu#iM)usfc|hhS7oBKqfb<+bNB0SKL1VU9|IM85A~(n
+z_dj{=-3J%%{^ID!hs)mB`Ciqh56wd_LN<{Cp+BK$sYTGs!mOlAQJM0?aR(=R5i@pn
+zlk4|kHPwhA)Yo8qXbV(T7})mRh2h%p^=miVDz9xF-1gY)9d&EeIi3S!Rh1hjn#Rh|
+z!TQd#gjk;>$KgZsZ4Y6_0(gno72^dgu-9Z93%G~{;OQi7?Bh~BOtnraMZ40H5%e|)
+zZc73YQHr$6G!>O%-Bi;hB^|`2%Om&%k84RZBguxVRn=Us2A9|E@wq&1zq`S|qOr#I
+zR#jPwi3Yf?lxaFnHH&{lG-waI@&-)@duZI%E)KZr-7b&M@Ade-jS#BIHl%t?lT<4J
+zJFSu-(|CaOA0kDvSX9<4_;O#2Ul8^W1^*5?8O4PvYMMCkXg^DB1U&(Eq&i~k+y@g`
+zEg+>0s;L?^?25BAW+;r+bJrkfXc-z%l{or)VZM%aFqn`P(Wv)EjDW6Wv>3I>uI_eG
+zt;mZSRr(j@vSy9`{H&_N9D;hRkEX<6YcvMQBVk1zXlGADB<l&-s+FQnJJ~~#GXXmw
+znMvY5d1He0(aoLE?_7c@HTbQocwb(cjc`pO+4|;b_~`<3Kfis^@T9T_#}bp>I}o!G
+Qk8(F2@oM`qGFK!11<)@O4gdfE
+
+literal 0
+HcmV?d00001
+
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite.py b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite.py
+new file mode 100644
+index 0000000..c594589
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite.py
+@@ -0,0 +1,78 @@
++#!/pxrpythonsubst
++#
++# Copyright 2018 Pixar
++#
++# Licensed under the Apache License, Version 2.0 (the "Apache License")
++# with the following modification; you may not use this file except in
++# compliance with the Apache License and the following modification to it:
++# Section 6. Trademarks. is deleted and replaced with:
++#
++# 6. Trademarks. This License does not grant permission to use the trade
++#    names, trademarks, service marks, or product names of the Licensor
++#    and its affiliates, except as required to comply with Section 4(c) of
++#    the License and to reproduce the content of the NOTICE file.
++#
++# You may obtain a copy of the Apache License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the Apache License with the above modification is
++# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++# KIND, either express or implied. See the Apache License for the specific
++# language governing permissions and limitations under the Apache License.
++from pxr import Usd, UsdAbc, UsdGeom
++import tempfile, unittest
++
++class TestUsdAbcUvWrite(unittest.TestCase):
++    def test_Write(self):
++        with tempfile.NamedTemporaryFile(suffix='.abc') as tempAbcFile:
++            tempAbcFile.close()
++            testFile = 'testUsdAbcUvReadWrite.usda'
++
++            planeStPath = '/pPlaneSt'
++            planeUvPath = '/pPlaneUv'
++            planeStUvPath = '/pPlaneStUv'
++
++            UsdAbc._WriteAlembic(testFile, tempAbcFile.name)
++            stage = Usd.Stage.Open(testFile)
++            self.assertTrue(stage)
++            roundStage = Usd.Stage.Open(tempAbcFile.name)
++            self.assertTrue(roundStage)
++
++            planeSt = UsdGeom.Mesh.Get(stage, planeStPath)
++            planeUv = UsdGeom.Mesh.Get(stage, planeUvPath)
++            planeStUv = UsdGeom.Mesh.Get(stage, planeStUvPath)
++
++            self.assertTrue(planeSt)
++            self.assertTrue(planeUv)
++            self.assertTrue(planeStUv)
++
++            rplaneSt = UsdGeom.Mesh.Get(roundStage, planeStPath)
++            rplaneUv = UsdGeom.Mesh.Get(roundStage, planeUvPath)
++            rplaneStUv = UsdGeom.Mesh.Get(roundStage, planeStUvPath)
++
++            self.assertTrue(rplaneSt)
++            self.assertTrue(rplaneUv)
++            self.assertTrue(rplaneStUv)
++
++            self.assertEqual(planeSt.GetPrimvar('st').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(rplaneSt.GetPrimvar('st').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(planeSt.GetPrimvar('st').Get(), rplaneSt.GetPrimvar('st').Get(0))
++            self.assertEqual(planeSt.GetPrimvar('st').GetIndices(), rplaneSt.GetPrimvar('st').GetIndices(0))
++
++            self.assertEqual(planeUv.GetPrimvar('uv').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(rplaneUv.GetPrimvar('st').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(planeUv.GetPrimvar('uv').Get(), rplaneUv.GetPrimvar('st').Get(0))
++            self.assertEqual(planeUv.GetPrimvar('uv').GetIndices(), rplaneUv.GetPrimvar('st').GetIndices(0))
++
++            self.assertEqual(planeStUv.GetPrimvar('st').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(rplaneStUv.GetPrimvar('st').GetTypeName(), 'texCoord2f[]')
++            self.assertEqual(planeStUv.GetPrimvar('st').Get(), rplaneStUv.GetPrimvar('st').Get(0))
++            self.assertEqual(planeStUv.GetPrimvar('st').GetIndices(), rplaneStUv.GetPrimvar('st').GetIndices(0))
++
++            del stage
++            del roundStage
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite/testUsdAbcUvReadWrite.usda b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite/testUsdAbcUvReadWrite.usda
+new file mode 100644
+index 0000000..0f91435
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite/testUsdAbcUvReadWrite.usda
+@@ -0,0 +1,53 @@
++#usda 1.0
++(
++    defaultPrim = "pPlane1"
++    endTimeCode = 1
++    startTimeCode = 1
++    upAxis = "Y"
++)
++
++def Mesh "pPlaneSt" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:st:indices = [3, 2, 1, 0]
++}
++
++def Mesh "pPlaneUv" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    texCoord2f[] primvars:uv = [(0, 0), (2, 0), (2, 2), (0, 2)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:uv:indices = [0, 1, 2, 3]
++}
++
++def Mesh "pPlaneStUv" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:st:indices = [3, 2, 1, 0]
++    texCoord2f[] primvars:uv = [(0, 0), (2, 0), (2, 2), (0, 2)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:uv:indices = [0, 1, 2, 3]
++}
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding.py b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding.py
+new file mode 100644
+index 0000000..fd36a36
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding.py
+@@ -0,0 +1,79 @@
++#!/pxrpythonsubst
++#
++# Copyright 2018 Pixar
++#
++# Licensed under the Apache License, Version 2.0 (the "Apache License")
++# with the following modification; you may not use this file except in
++# compliance with the Apache License and the following modification to it:
++# Section 6. Trademarks. is deleted and replaced with:
++#
++# 6. Trademarks. This License does not grant permission to use the trade
++#    names, trademarks, service marks, or product names of the Licensor
++#    and its affiliates, except as required to comply with Section 4(c) of
++#    the License and to reproduce the content of the NOTICE file.
++#
++# You may obtain a copy of the Apache License at
++#
++#     http://www.apache.org/licenses/LICENSE-2.0
++#
++# Unless required by applicable law or agreed to in writing, software
++# distributed under the Apache License with the above modification is
++# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
++# KIND, either express or implied. See the Apache License for the specific
++# language governing permissions and limitations under the Apache License.
++from pxr import Usd, UsdAbc, UsdGeom
++import tempfile, unittest
++
++class TestUsdAbcUvWrite(unittest.TestCase):
++    def test_Write(self):
++        with tempfile.NamedTemporaryFile(suffix='.abc') as tempAbcFile:
++            tempAbcFile.close()
++            testFile = 'testUsdAbcUvReadWrite_OldEncoding.usda'
++
++            planeStPath = '/pPlaneSt'
++            planeUvPath = '/pPlaneUv'
++            planeStUvPath = '/pPlaneStUv'
++
++            UsdAbc._WriteAlembic(testFile, tempAbcFile.name)
++
++            stage = Usd.Stage.Open(testFile)
++            self.assertTrue(stage)
++            roundStage = Usd.Stage.Open(tempAbcFile.name)
++            self.assertTrue(roundStage)
++
++            planeSt = UsdGeom.Mesh.Get(stage, planeStPath)
++            planeUv = UsdGeom.Mesh.Get(stage, planeUvPath)
++            planeStUv = UsdGeom.Mesh.Get(stage, planeStUvPath)
++
++            self.assertTrue(planeSt)
++            self.assertTrue(planeUv)
++            self.assertTrue(planeStUv)
++
++            rplaneSt = UsdGeom.Mesh.Get(roundStage, planeStPath)
++            rplaneUv = UsdGeom.Mesh.Get(roundStage, planeUvPath)
++            rplaneStUv = UsdGeom.Mesh.Get(roundStage, planeStUvPath)
++
++            self.assertTrue(rplaneSt)
++            self.assertTrue(rplaneUv)
++            self.assertTrue(rplaneStUv)
++
++            self.assertEqual(planeSt.GetPrimvar('st').GetTypeName(), 'float2[]') 
++            self.assertEqual(rplaneSt.GetPrimvar('uv').GetTypeName(), 'float2[]')
++            self.assertEqual(planeSt.GetPrimvar('st').Get(), rplaneSt.GetPrimvar('uv').Get(0))
++            self.assertEqual(planeSt.GetPrimvar('st').GetIndices(), rplaneSt.GetPrimvar('uv').GetIndices(0))
++
++            self.assertEqual(planeUv.GetPrimvar('uv').GetTypeName(), 'float2[]') 
++            self.assertEqual(rplaneUv.GetPrimvar('uv').GetTypeName(), 'float2[]')
++            self.assertEqual(planeUv.GetPrimvar('uv').Get(), rplaneUv.GetPrimvar('uv').Get(0))
++            self.assertEqual(planeUv.GetPrimvar('uv').GetIndices(), rplaneUv.GetPrimvar('uv').GetIndices(0))
++
++            self.assertEqual(planeStUv.GetPrimvar('st').GetTypeName(), 'float2[]') 
++            self.assertEqual(rplaneStUv.GetPrimvar('uv').GetTypeName(), 'float2[]')
++            self.assertEqual(planeStUv.GetPrimvar('st').Get(), rplaneStUv.GetPrimvar('uv').Get(0))
++            self.assertEqual(planeStUv.GetPrimvar('st').GetIndices(), rplaneStUv.GetPrimvar('uv').GetIndices(0))
++
++            del stage
++            del roundStage
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding/testUsdAbcUvReadWrite_OldEncoding.usda b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding/testUsdAbcUvReadWrite_OldEncoding.usda
+new file mode 100644
+index 0000000..d01e300
+--- /dev/null
++++ b/pxr/usd/plugin/usdAbc/testenv/testUsdAbcUvReadWrite_OldEncoding/testUsdAbcUvReadWrite_OldEncoding.usda
+@@ -0,0 +1,53 @@
++#usda 1.0
++(
++    defaultPrim = "pPlane1"
++    endTimeCode = 1
++    startTimeCode = 1
++    upAxis = "Y"
++)
++
++def Mesh "pPlaneSt" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    float2[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:st:indices = [3, 2, 1, 0]
++}
++
++def Mesh "pPlaneUv" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    float2[] primvars:uv = [(0, 0), (2, 0), (2, 2), (0, 2)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:uv:indices = [0, 1, 2, 3]
++}
++
++def Mesh "pPlaneStUv" (
++    kind = "component"
++)
++{
++    float3[] extent = [(-0.5, 0.0, -0.5), (0.5, 0.0, 0.5)]
++    int[] faceVertexCounts = [4]
++    int[] faceVertexIndices = [0, 1, 3, 2]
++    point3f[] points = [(-0.5, 0.0, 0.5), (0.5, 0.0, 0.5), (-0.5, 0.0, -0.5), (0.5, 0.0, -0.5)]
++    float2[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:st:indices = [3, 2, 1, 0]
++    float2[] primvars:uv = [(0, 0), (2, 0), (2, 2), (0, 2)] (
++        interpolation = "vertex"
++    )
++    int[] primvars:uv:indices = [0, 1, 2, 3]
++}
+-- 
+2.3.0
+
