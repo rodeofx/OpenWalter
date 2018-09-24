@@ -132,6 +132,7 @@ set(SUBDIRECTORIES
 if(BUILD_MAYA_PLUGINS)
     # Find maya
     find_package(Maya REQUIRED)
+    find_package(Arnold REQUIRED)
     find_package(Mtoa REQUIRED)
     list(APPEND SUBDIRECTORIES maya)
     list(APPEND SUBDIRECTORIES arnold)
