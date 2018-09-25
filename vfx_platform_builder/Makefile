@@ -1820,6 +1820,7 @@ $(USD_STAMP) : $(ALEMBIC_STAMP) $(BOOST_STAMP) $(CMAKE_STAMP) $(DC_STAMP) $(EMBR
 	( git am $(THIS_DIR)/patches/USD/0018-RDO-the-ability-to-reference-a-root.patch ) && \
 	( git am $(THIS_DIR)/patches/USD/0019-RDO-USD-AlembicReader-Suppress-warnings.patch ) && \
 	( git am $(THIS_DIR)/patches/USD/0020-RDO-hdEngine-v0.8.5-broke-our-hdEmbree-plugin-when-used-.patch ) && \
+	( git am $(THIS_DIR)/patches/USD/0021-RDO-USD-Alembic-Fixed-texture-stretching-artifacts.patch ) && \
 	( printf "/find_library.*OPENEXR_.*_LIBRARY/a\nNAMES\n\044{OPENEXR_LIB}-2_2\n.\nw\nq" | ed -s cmake/modules/FindOpenEXR.cmake ) && \
 	( printf "/PATH_SUFFIXES/-a\n\"\044{OPENEXR_BASE_DIR}\"\n.\nw\nq" | ed -s cmake/modules/FindOpenEXR.cmake ) && \
 	( printf "/^namespace boost/s/namespace boost/namespace ${BOOST_NAMESPACE}/\nw\nq" | ed -s pxr/base/lib/tf/weakPtrFacade.h ) && \
