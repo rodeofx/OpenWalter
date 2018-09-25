@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.1.1] - 2018-09-21
+## [1.2.0] - 2018-09-25
 
 ### Added
 - Build system: Added option in vfx_platform_builder script to disable 
@@ -10,8 +10,9 @@
   "render" is viewed everywhere (viewport and render).
 - Katana: Handle USD Lights.
   All lights are scanned and put into a lightList at /root/world in Katana
-  to ensure render find them. Since UsdLuxLight is not a concrete schema, we made an ArnoldLight
-  that inherits from UsdLuxLight and allow us to have generic ArnoldLight into USD scene.
+  to ensure the renderer find them. Since UsdLuxLight is not a concrete schema, 
+  we made an ArnoldLight that inherits from UsdLuxLight and allow us to have generic 
+  ArnoldLight into USD scene.
 - Maya: Variants support in the Walter outliner.
 - Arnold: primvar support for Usd PointInstancer
 
