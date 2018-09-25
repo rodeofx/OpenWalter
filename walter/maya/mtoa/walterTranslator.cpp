@@ -3,7 +3,6 @@
 #include <ai_array.h>
 #include <ai_nodes.h>
 #include <ai_ray.h>
-#include "rdoArnold.h"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
@@ -33,7 +32,6 @@
 #endif
 
 
-#if WALTER_MTOA_VERSION >= 10400
 CWalterStandinTranslator::CWalterStandinTranslator() :
     m_arnoldRootNode(NULL)
 {
@@ -44,17 +42,9 @@ AtNode* CWalterStandinTranslator::GetArnoldRootNode()
     return m_arnoldRootNode;
 }
 
-#else
-void CWalterStandinTranslator::Update(AtNode* procedural)
-{
-    ExportProcedural(procedural, true);
-}
-
-#endif
-
 AtNode*  CWalterStandinTranslator::CreateArnoldNodes()
 {
-    m_arnoldRootNode = AddArnoldNode(RDO_WALTER_PROC);
+    m_arnoldRootNode = AddArnoldNode("walter");
     return m_arnoldRootNode;
 }
 
@@ -102,11 +92,8 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
     MStatus stat;
     m_DagNode.setObject(m_dagPath.node());
 
-#if WALTER_MTOA_VERSION >= 10400
     ExportMatrix(procedural);
-#else
-    ExportMatrix(procedural, 0);
-#endif
+
     ProcessRenderFlagsCustom(procedural);
 
     if (!update)
@@ -123,13 +110,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             // Use the standard name if not found.
             procLib = MString("walterProcedural") + LIBEXT;
         }
-
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeSetStr(procedural, "dso", procLib.asChar() );
-
-        bool loadAtInit =  m_DagNode.findPlug("loadAtInit").asBool();
-        AiNodeSetBool(procedural, "load_at_init", loadAtInit);
-        #endif
 
         // Split the string with ":" symbol, expand all the filenames and join
         // it back.
@@ -200,11 +180,7 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
                             MPlug sgPlug = connections[k];
                             if (sgPlug.node().apiType() == MFn::kShadingEngine || sgPlug.node().apiType() == MFn::kDisplacementShader)
                             {
-#if WALTER_MTOA_VERSION >= 10400
                                 ExportConnectedNode(sgPlug);
-#else
-                                ExportNode(sgPlug);
-#endif
                             }
                         }
                 }
@@ -236,25 +212,14 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             }
         }
 
-#if WALTER_MTOA_VERSION >= 10400
         ExportFrame(procedural);
-#else
-        ExportFrame(procedural, 0);
-#endif
 
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeDeclare(procedural, "objectPath", "constant STRING");
-        #endif
         AiNodeSetStr(procedural, "objectPath", "/");
 
         static const MTime sec(1.0, MTime::kSeconds);
         float fps = sec.as(MTime::uiUnit());
         AiNodeDeclare(procedural, "fps", "constant FLOAT");
         AiNodeSetFlt(procedural, "fps", fps);
-
-        #if AI_VERSION_ARCH_NUM==4
-        AiNodeDeclare(procedural, "filePaths", "constant STRING");
-        #endif
         AiNodeSetStr(procedural, "filePaths", abcfiles.asChar());
 
         // Output the USD session layer if exists.
@@ -263,9 +228,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString sessionLayer = usdSessionLayer.asString();
             if (sessionLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "sessionLayer", "constant STRING");
-#endif
                 AiNodeSetStr(procedural, "sessionLayer", sessionLayer.asChar());
             }
         }
@@ -276,9 +238,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString variantsLayer = usdVariantsLayer.asString();
             if (variantsLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "variantsLayer", "constant STRING");
-#endif
                 AiNodeSetStr(procedural, "variantsLayer", variantsLayer.asChar());
             }
         }
@@ -289,9 +248,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString purposeLayer = usdPurposeLayer.asString();
             if (purposeLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "purposeLayer", "constant STRING");
-#endif
                 AiNodeSetStr(procedural, "purposeLayer", purposeLayer.asChar());
             }
         }
@@ -302,9 +258,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString mayaStateLayer = usdMayaStateLayer.asString();
             if (mayaStateLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "mayaStateLayer", "constant STRING");
-#endif
                 AiNodeSetStr(
                     procedural, "mayaStateLayer", mayaStateLayer.asChar());
             }
@@ -316,16 +269,10 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             MString visibilityLayer = usdVisibilityLayer.asString();
             if (visibilityLayer.length())
             {
-#if AI_VERSION_ARCH_NUM == 4
-                AiNodeDeclare(procedural, "visibilityLayer", "constant STRING");
-#endif
                 AiNodeSetStr(procedural, "visibilityLayer", visibilityLayer.asChar());
             }
         }
 
-#if AI_VERSION_ARCH_NUM == 4
-        ExportBoundingBox(procedural);
-#else
         // MTOA does this for every node.
         if (RequiresMotionData())
         {
@@ -334,7 +281,6 @@ void CWalterStandinTranslator::ExportProcedural(AtNode* procedural, bool update)
             AiNodeSetFlt(procedural, "motion_start", (float)motionStart);
             AiNodeSetFlt(procedural, "motion_end", (float)motionEnd);
         }
-#endif
     }
 }
 
@@ -353,12 +299,7 @@ void CWalterStandinTranslator::ExportStandinsShaders(AtNode* procedural)
     if (!shadingGroupPlug.isNull())
     {
 
-        AtNode *shader =
-#if WALTER_MTOA_VERSION >= 10400
-            ExportConnectedNode(shadingGroupPlug);
-#else
-            ExportNode(shadingGroupPlug);
-#endif
+        AtNode *shader = ExportConnectedNode(shadingGroupPlug);
         if (shader != NULL)
         {
             // We can't put it to "shader" attribute because in this way we will
@@ -382,11 +323,7 @@ void CWalterStandinTranslator::ExportStandinsShaders(AtNode* procedural)
     }
 }
 
-#if WALTER_MTOA_VERSION >= 10400
 void CWalterStandinTranslator::ExportMotion(AtNode* anode)
-#else
-void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
-#endif
 {
     // Check if motionblur is enabled and early out if it's not.
     if (!IsMotionBlurEnabled())
@@ -394,53 +331,14 @@ void CWalterStandinTranslator::ExportMotion(AtNode* anode, unsigned int step)
         return;
     }
 
-#if WALTER_MTOA_VERSION >= 10400
     ExportMatrix(anode);
     ExportFrame(anode);
-#else
-    ExportMatrix(anode, step);
-    ExportFrame(anode, step);
-#endif
 }
-
-#if AI_VERSION_ARCH_NUM==4
-void CWalterStandinTranslator::ExportBoundingBox(AtNode* procedural)
-{
-    MBoundingBox boundingBox = m_DagNode.boundingBox();
-    MPoint bbMin = boundingBox.min();
-    MPoint bbMax = boundingBox.max();
-
-    float minCoords[4];
-    float maxCoords[4];
-
-    bbMin.get(minCoords);
-    bbMax.get(maxCoords);
-
-    AiNodeSetPnt(procedural, "min", minCoords[0], minCoords[1], minCoords[2]);
-    AiNodeSetPnt(procedural, "max", maxCoords[0], maxCoords[1], maxCoords[2]);
-}
-#endif
-
 
 void CWalterStandinTranslator::NodeInitializer(CAbTranslator context)
 {
-    CExtensionAttrHelper helper(context.maya, RDO_WALTER_PROC);
+    CExtensionAttrHelper helper(context.maya, "walter");
     CShapeTranslator::MakeCommonAttributes(helper);
-
-    #if AI_VERSION_ARCH_NUM==4
-    CAttrData data;
-
-    data.defaultValue.BOOL = false;
-    data.name = "overrideGlobalShader";
-    data.shortName = "ogs";
-    helper.MakeInputBoolean(data) ;
-
-    data.defaultValue.BOOL = true;
-    data.name = "loadAtInit";
-    data.shortName = "lai";
-    data.channelBox = true;
-    helper.MakeInputBoolean(data);
-    #endif
 }
 
 bool CWalterStandinTranslator::ExportMayaShadingGraph()
@@ -540,11 +438,7 @@ void CWalterStandinTranslator::ExportConnections(
     }
 
     // Push this connection to the shader to Arnold.
-#if WALTER_MTOA_VERSION >= 10400
     ExportConnectedNode(connections[0]);
-#else
-    ExportNode(connections[0]);
-#endif
 }
 
 int CWalterStandinTranslator::ComputeWalterVisibility(
@@ -592,7 +486,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_REFLECTED;
+            visibility &= ~AI_RAY_ALL_REFLECT;
         }
     }
 
@@ -602,7 +496,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_REFRACTED;
+            visibility &= ~AI_RAY_ALL_TRANSMIT;
         }
     }
 
@@ -612,7 +506,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_DIFFUSE;
+            visibility &= ~AI_RAY_ALL_DIFFUSE;
         }
     }
 
@@ -622,7 +516,7 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
         exists = true;
         if (!plug.asBool())
         {
-            visibility &= ~RDO_AI_RAY_GLOSSY;
+            visibility &= ~AI_RAY_ALL_SPECULAR;
         }
     }
 
@@ -634,29 +528,20 @@ int CWalterStandinTranslator::ComputeWalterVisibility(
     return visibility;
 }
 
-#if WALTER_MTOA_VERSION >= 10400
 void CWalterStandinTranslator::ExportFrame(AtNode* node)
-#else
-void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
-#endif
 {
     // The reference implementation is CDagTranslator::ExportMatrix.
     MTime time = m_DagNode.findPlug("time").asMTime() +
         m_DagNode.findPlug("timeOffset").asMTime();
     float frame = time.as(time.unit());
 
-#if WALTER_MTOA_VERSION >= 10400
     if (!IsExportingMotion())
-#else
-    if (step == 0)
-#endif
     {
         // We are here because it's called from Export.
         if (RequiresMotionData())
         {
-#if WALTER_MTOA_VERSION >= 10400
             int step = GetMotionStep();
-#endif
+
             AiNodeDeclare(node, "frame", "constant ARRAY FLOAT");
 
             AtArray* frames =
@@ -678,15 +563,9 @@ void CWalterStandinTranslator::ExportFrame(AtNode* node, unsigned int step)
         AtArray* frames = AiNodeGetArray(node, "frame");
         if (frames)
         {
-#if WALTER_MTOA_VERSION >= 10400
             int step = GetMotionStep();
-#endif
-            int arraySize =
-#if AI_VERSION_ARCH_NUM == 4
-                frames->nkeys * frames->nelements;
-#else
-                AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
-#endif
+
+            int arraySize = AiArrayGetNumKeys(frames) * AiArrayGetNumElements(frames);
             if (step >= arraySize)
 
             {

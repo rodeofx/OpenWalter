@@ -4,7 +4,6 @@
 
 #include "abcExporterUtils.h"
 #include "mtoaScene.h"
-#include "rdoArnold.h"
 
 #include <json/value.h>
 #include <json/writer.h>
@@ -85,8 +84,8 @@ Json::Value arnParamToJson(const AtNode* node, const AtParamEntry* param)
             }
         }
         else if (
-            type == AI_TYPE_VECTOR || type == RDO_AI_TYPE_VECTOR ||
-            type == RDO_AI_TYPE_VECTOR2)
+            type == AI_TYPE_VECTOR || type == AI_TYPE_VECTOR ||
+            type == AI_TYPE_VECTOR2)
         {
             switch (comp)
             {
@@ -130,16 +129,11 @@ Json::Value arnParamToJson(const AtNode* node, const AtParamEntry* param)
             case AI_TYPE_RGBA:
                 result["value"] = arnToJsonArray(AiNodeGetRGBA(node, name));
                 break;
-#if AI_VERSION_ARCH_NUM == 4
             case AI_TYPE_VECTOR:
                 result["value"] = arnToJsonArray(AiNodeGetVec(node, name));
                 break;
-#endif
-            case RDO_AI_TYPE_VECTOR:
-                result["value"] = arnToJsonArray(RdoAiNodeGetVec(node, name));
-                break;
-            case RDO_AI_TYPE_VECTOR2:
-                result["value"] = arnToJsonArray(RdoAiNodeGetVec2(node, name));
+            case AI_TYPE_VECTOR2:
+                result["value"] = arnToJsonArray(AiNodeGetVec2(node, name));
                 break;
             case AI_TYPE_STRING:
                 result["value"] = std::string(AiNodeGetStr(node, name));

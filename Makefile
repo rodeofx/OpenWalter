@@ -15,7 +15,15 @@
 # Set environment variables for the build.
 
 # 'Release' or 'Debug'
-BUILD_CONFIG := Release
+ 
+MAKE_MODE := release
+ifeq "$(MAKE_MODE)" "debug"
+CMAKE_BUILD_TYPE := Debug
+else
+CMAKE_BUILD_TYPE := Release
+endif
+
+
 VERBOSE := 1
 BUILD_TESTS := ON
 BUILD_HOUDINI_PLUGINS := ON
@@ -186,7 +194,7 @@ $(WALTER_DCC_STAMP) : $(USD_DCC_STAMP) $(JSONCPP_STAMP) $(GOOGLETEST_STAMP) $(OP
 	-DBUILD_TESTS=$(BUILD_TESTS) \
 	-DBUILD_VIEWER=$(BUILD_VIEWER) \
 	-DBoost_NAMESPACE=$(BOOST_NAMESPACE) \
-	-DCMAKE_BUILD_TYPE=$(BUILD_CONFIG) \
+	-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 	-DCMAKE_INSTALL_PREFIX=$(PREFIX_ROOT)/walter \
 	-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--no-undefined \
@@ -229,7 +237,7 @@ $(WALTER_DCC_STAMP) : $(USD_DCC_STAMP) $(JSONCPP_STAMP) $(GOOGLETEST_STAMP) $(OP
 	-DUSE_STATIC_HDF5=ON \
 	-DZLIB_ROOT=$(PREFIX_ROOT)/zlib \
 	$(THIS_DIR)/walter && \
-	$(CMAKE) --build . --target install --config $(BUILD_CONFIG) -- -j$(JOB_COUNT) && \
+	$(CMAKE) --build . --target install --config $(CMAKE_BUILD_TYPE) -- -j$(JOB_COUNT) && \
 	echo timestamp > $(WALTER_DCC_STAMP)
 
 # fast build rule for target.
@@ -260,7 +268,7 @@ $(WALTER_PROCEDURAL_STAMP) : $(USD_PROCEDURAL_STAMP) $(JSONCPP_STAMP) $(OPENVDB_
 	-DBUILD_MAYA_PLUGINS=OFF \
 	-DBUILD_TESTS=ON \
 	-DBoost_NAMESPACE=$(BOOST_NAMESPACE) \
-	-DCMAKE_BUILD_TYPE=$(BUILD_CONFIG) \
+	-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 	-DCMAKE_INSTALL_PREFIX=$(PREFIX_ROOT)/walter \
 	-DCMAKE_SHARED_LINKER_FLAGS=-Wl,--no-undefined \
@@ -303,7 +311,7 @@ $(WALTER_PROCEDURAL_STAMP) : $(USD_PROCEDURAL_STAMP) $(JSONCPP_STAMP) $(OPENVDB_
 	-DUSE_STATIC_HDF5=ON \
 	-DZLIB_ROOT=$(PREFIX_ROOT)/zlib \
 	$(THIS_DIR)/walter && \
-	$(CMAKE) --build . --target install --config $(BUILD_CONFIG) -- -j$(JOB_COUNT)
+	$(CMAKE) --build . --target install --config $(CMAKE_BUILD_TYPE) -- -j$(JOB_COUNT)
 	echo timestamp > $(WALTER_PROCEDURAL_STAMP)
 
 # fast build rule for target.
@@ -325,6 +333,7 @@ vfx_builder = \
 	echo "Building" $(1) "for Walter" && \
 	cd $(THIS_DIR)/vfx_platform_builder && \
 	make CC=$(GCC_BIN_PATH)/gcc CXX=$(GCC_BIN_PATH)/g++ \
+	MAKE_MODE=$(MAKE_MODE) \
 	USD_PACKAGE_NAME=$(2) \
 	BOOST_NAMESPACE=$(3) \
 	TBB_NAMESPACE=$(4) \
@@ -345,11 +354,11 @@ help:
 	printf '\tlibXxf86vm-devel libXrandr-devel libXinerama-devel\n' ; \
 	printf '\tlibXcursor-devel libXi-devel libXt-devel\n\n' ; \
 	printf 'Usage to build all (VFX Platform, Walter for Katana, Houdini, Maya and Arnold):\n' ; \
-	printf '\tmake\nor\n\tmake BUILD_CONFIG=Debug\n\n' ; \
+	printf '\tmake\nor\n\tmake MAKE_MODE=debug\n\n' ; \
 	printf 'Options:\n' ; \
 	printf '\tCC\t\t: C copiler path.\t value: $(CC)\n' ; \
 	printf '\tCXX\t\t: C++ copiler path.\t value: $(CXX)\n' ; \
-	printf '\tBUILD_CONFIG\t: Debug|Release.\t value: $(BUILD_CONFIG)\n' ; \
+	printf '\tMAKE_MODE\t: debug|release.\t value: $(MAKE_MODE)\n' ; \
 	printf '\tSOURCES_ROOT\t: Source directory.\t value: $(SOURCES_ROOT)\n' ; \
 	printf '\tBUILD_ROOT\t: Building directory.\t value: $(BUILD_ROOT)\n' ; \
 	printf '\tPREFIX_ROOT\t: Installation dir.\t value: $(PREFIX_ROOT)\n' ; \

@@ -1,5 +1,7 @@
 ![Open Walter](https://www.rodeofx.com/uploads/images/tech/Walter_logo_mini-01.png)
 
+[![Join the chat at https://gitter.im/OpenWalter/Lobby](https://badges.gitter.im/OpenWalter/Lobby.svg)](https://gitter.im/OpenWalter/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Walter is suite of plugins using USD for various DCCs and renderer.
 
 It's main goal is to stay as much as possible in the [*USD Stage*](http://graphics.pixar.com/usd/docs/USD-Glossary.html#USDGlossary-Stage) 
@@ -41,7 +43,7 @@ The following versions were used in production.
 
 | Application     | Version   |
 | ----------------| --------- |
-| Arnold          | 4.2.16.2, 5.0.2.4, 5.1.1.1 |
+| Arnold          | 5.0.2.4, 5.1.1.1 |
 | Houdini         | 16.5.350, 16.5.496 |
 | Katana          | 2.5v7, 3.0.2 |
 | Maya            | 2016SP4, 2018.3 |
@@ -103,7 +105,7 @@ You must set the Arnold root path in your environment.
 
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
-| ARNOLD_ROOT       | The root path to Arnold install                                                                 | 4.2.16.2 5.0.2.4 5.1.1.1 |
+| ARNOLD_ROOT       | The root path to Arnold install                                                                 | 5.0.2.4 5.1.1.1 |
 
 
 ##### Houdini Plugin
@@ -121,7 +123,7 @@ You must set the Houdini and HtoA root paths in your environment.
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
 | HOUDINI_ROOT      | The root path to Houdini install                                                                | 16.5.350 16.5.496 |
-| HTOA_ROOT         | The root path to HtoA install                                                                   | 2.2.4  3.0.3 |
+| HTOA_ROOT         | The root path to HtoA install                                                                   | 3.0.3 |
 
 
 ##### Katana Plugin
@@ -135,7 +137,7 @@ You must set the Maya and MtoA root paths in your environment.
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
 | KATANA_ROOT       | The root path to Katana install                                                                 | 2.5v7 3.0.2 |
-| KTOA_ROOT         | The root path to KtoA install                                                                   | 2.0.4.0 2.0.8.0 2.1.2.0 |
+| KTOA_ROOT         | The root path to KtoA install                                                                   | 2.1.2.0 |
 
 ##### Maya Plugin
 
@@ -171,7 +173,7 @@ You must set the Maya and MtoA install paths in your environment.
 | Variable Name     | Description                                                                                     | Version   |
 | ----------------- | -----------------------------------                                                             | --------- |
 | MAYA_ROOT         | The root path to Maya install                                                                   | 2016SP4 2018.3 |
-| MTOA_ROOT         | The root path to MtoA install                                                                   | 1.4.2  2.0.2.2 3.0.1.1 |
+| MTOA_ROOT         | The root path to MtoA install                                                                   | 3.0.1.1 |
 
 For example:
 ```

@@ -16,7 +16,6 @@ License along with this library.*/
 #include "abcCacheExportCmd.h"
 #include "abcExporterUtils.h"
 #include "mtoaScene.h"
-#include "rdoArnold.h"
 #include "mtoaVersion.h"
 
 #include <Alembic/AbcCoreLayer/Util.h>
@@ -259,13 +258,9 @@ MStatus abcCacheExportCmd::doIt( const MArgList &args)
             // Export nodes to Arnold using MTOA
             AtNodeSet roots;
             CNodeTranslator* translator = scene.exportNode(toExport.first, &roots);
-#if WALTER_MTOA_VERSION >= 10400
             // exportNode() from the latest MTOA doesn't fill roots. The only
             // way to get the node is using the translator.
             AtNode* root = translator->GetArnoldNode();
-#else
-            BOOST_FOREACH(AtNode* root, roots)
-#endif
              {
                  exportedNodes->insert(root);
                  // We need to traverse the tree again...
@@ -320,7 +315,7 @@ MStatus abcCacheExportCmd::doIt( const MArgList &args)
                             AtArray* paramArray = AiNodeGetArray(*sit, paramName);
 
                             processArrayValues(*sit, paramName, paramArray, outputType, matObj, nodeName, container.name());
-                            for(unsigned int i=0; i < RdoAiArrayGetNumElements(paramArray); i++)
+                            for(unsigned int i=0; i < AiArrayGetNumElements(paramArray); i++)
                             {
                                 processArrayParam(*sit, paramName, paramArray, i, outputType, matObj, nodeName, container.name());
                             }
