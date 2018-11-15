@@ -180,7 +180,7 @@ find_program(MAYA_EXECUTABLE maya
     PATHS ${MAYA_LOCATION}/bin
     DOC "Maya's executable path")
 
-string(REGEX REPLACE "/bin/maya.*" "" MAYA_LOCATION "${MAYA_EXECUTABLE}")
+# string(REGEX REPLACE "/bin/maya.*" "" MAYA_LOCATION "${MAYA_EXECUTABLE}")
 
 string(REGEX MATCH "20[0-9][0-9]" MAYA_VERSION "${MAYA_LOCATION}")
 

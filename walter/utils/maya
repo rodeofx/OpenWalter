@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-: ${WALTER_ROOT:=./build/lib/walter}
+: ${WALTER_ROOT:=/home/rodeofxlucille/rdoenv/openwalter/build/lib/walter}
 
 # MtoA
 export MAYA_MODULE_PATH=${MTOA_ROOT}:${MAYA_MODULE_PATH}
@@ -10,4 +10,4 @@ export MAYA_MODULE_PATH=${WALTER_ROOT}/maya:${MAYA_MODULE_PATH}
 export MAYA_PLUG_IN_PATH=${WALTER_ROOT}/maya:${MAYA_PLUG_IN_PATH}
 export PYTHONPATH=${WALTER_ROOT}/maya/scripts/:${PYTHONPATH}
 
-${MAYA_ROOT}/bin/maya2018 $@
+${MAYA_ROOT}/bin/maya2016 $@

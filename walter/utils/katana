@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-: ${WALTER_ROOT:=./build/lib/walter}
+: ${WALTER_ROOT:=/home/rodeofxlucille/rdoenv/openwalter/build/lib/walter}
 
 # KtoA
 export KATANA_RESOURCES=${KTOA_ROOT}
