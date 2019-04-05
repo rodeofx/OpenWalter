@@ -61,7 +61,7 @@ foreach (COMPONENT ${_usd_all_components})
 
     find_library (
         USD_${UPPERCOMPONENT}_LIBRARY
-        NAMES ${COMPONENT} ${COMPONENT}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        NAMES ${COMPONENT} ${COMPONENT}${CMAKE_STATIC_LIBRARY_SUFFIX} ${COMPONENT}${CMAKE_SHARED_LIBRARY_SUFFIX}
         PATHS ${USD_ROOT}/lib ${USD_ROOT}/plugin/usd
         NO_DEFAULT_PATH)
 endforeach ()

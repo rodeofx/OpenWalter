@@ -6,7 +6,6 @@
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/imageable.h>
-#include <pxr/usdImaging/usdImagingGL/gl.h>
 
 #include "walterShapeNode.h"
 #include "rdoProfiling.h"
@@ -60,7 +59,7 @@ void DrawOverride::UserData::draw(
     // Get USD stuff from the node.
     UsdStageRefPtr stage = mShapeNode->getStage();
     // TODO: const_cast is bad
-    UsdImagingGLSharedPtr renderer =
+    UsdImagingGLEngineSharedPtr renderer =
         const_cast<ShapeNode*>(mShapeNode)->getRenderer();
     if (!renderer || !stage)
     {
@@ -99,7 +98,7 @@ void DrawOverride::UserData::draw(
 
     // Create render parameters. We can't define them as a member of UserData
     // because Draw should be const.
-    UsdImagingGL::RenderParams params = mShapeNode->mParams;
+    UsdImagingGLRenderParams params = mShapeNode->mParams;
     // Frame number.
     params.frame = UsdTimeCode(mShapeNode->time * getCurrentFPS());
     params.highlight = mIsSelected;
@@ -109,16 +108,16 @@ void DrawOverride::UserData::draw(
     {
         if (displayStyle & MHWRender::MFrameContext::kGouraudShaded)
         {
-            params.drawMode = UsdImagingGLEngine::DRAW_WIREFRAME_ON_SURFACE;
+            params.drawMode = UsdImagingGLDrawMode::DRAW_WIREFRAME_ON_SURFACE;
         }
         else
         {
-            params.drawMode = UsdImagingGLEngine::DRAW_WIREFRAME;
+            params.drawMode = UsdImagingGLDrawMode::DRAW_WIREFRAME;
         }
     }
     else
     {
-        params.drawMode = UsdImagingGLEngine::DRAW_SHADED_SMOOTH;
+        params.drawMode = UsdImagingGLDrawMode::DRAW_SHADED_SMOOTH;
     }
 
     GfMatrix4d viewMatrix(viewData);
@@ -374,7 +373,7 @@ bool DrawOverride::userSelect(
 
     // Get USD stuff from the node.
     UsdStageRefPtr stage = node->getStage();
-    UsdImagingGLSharedPtr renderer = node->getRenderer();
+    UsdImagingGLEngineSharedPtr renderer = node->getRenderer();
     if (!renderer || !stage)
     {
         return false;
@@ -394,9 +393,9 @@ bool DrawOverride::userSelect(
 
     GfVec3d outHitPoint;
     SdfPath outHitPrimPath;
-    UsdImagingGL::RenderParams params = node->mParams;
+    UsdImagingGLRenderParams params = node->mParams;
     params.frame = UsdTimeCode(node->time * getCurrentFPS());
-    params.drawMode = UsdImagingGLEngine::DRAW_SHADED_SMOOTH;
+    params.drawMode = UsdImagingGLDrawMode::DRAW_SHADED_SMOOTH;
     bool didHit = renderer->TestIntersection(
         viewMatrix,
         projectionMatrix,

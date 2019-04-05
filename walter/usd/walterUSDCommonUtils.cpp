@@ -40,7 +40,6 @@ SdfLayerRefPtr WalterUSDCommonUtils::getUSDLayer(
     const std::vector<std::string>& paths)
 {
     ArResolver& resolver = ArGetResolver();
-    resolver.Clear();
 
     // Open and compose several layers. Since we can compose several different
     // formats, we need to be sure that alembics are composed with AbcCoreLayer.

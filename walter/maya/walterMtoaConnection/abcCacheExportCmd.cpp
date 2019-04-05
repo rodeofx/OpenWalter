@@ -179,7 +179,7 @@ MStatus abcCacheExportCmd::doIt( const MArgList &args)
                          continue;
                      }
 
-                     BOOST_FOREACH (auto key, exportKeys) {
+                     for (auto key : exportKeys) {
                          // Get
                          //     walterStandin.
                          //     layersAssignation[].
@@ -225,7 +225,7 @@ MStatus abcCacheExportCmd::doIt( const MArgList &args)
          }
 
 
-        BOOST_FOREACH(const TargetPlug& toExport, shaderToExport)
+        for (const TargetPlug& toExport : shaderToExport)
         {
             // TODO: WTF is this? It looks like it's a set that contains all the
             // nodes that are in the Alembic container. But it's filled, then

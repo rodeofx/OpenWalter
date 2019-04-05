@@ -10,11 +10,8 @@ if( "${CMAKE_SYSTEM_NAME}" MATCHES "Linux" )
     add_definitions(-DLINUX -D_LINUX)
 endif()
 
-# We use the custom namespace for TBB because the standard namespace conflicts
-# with Maya when static linking.
-if (NOT TBB_NAMESPACE)
-    add_definitions(-Dtbb=rdotbb)
-else()
+# use tbb namespace if passed in
+if (TBB_NAMESPACE)
     add_definitions(-Dtbb=${TBB_NAMESPACE})
 endif()
 
@@ -25,7 +22,8 @@ add_definitions(
 
 
 set(CMAKE_SKIP_RPATH TRUE)
-cmake_policy(SET CMP0012 OLD)
+cmake_policy(SET CMP0074 NEW)
+cmake_policy(SET CMP0072 NEW)
 
 set(LINUX FALSE)
 if ("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
@@ -33,14 +31,14 @@ if ("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 endif()
 
 option(USE_HDF5 "Include HDF5 stuff" OFF)
-option(USE_STATIC_BOOST "Build with static Boost libs" ON)
-option(USE_ILMBASE_STATIC_LIBS "Build with static ilmBase libs" ON)
+option(USE_STATIC_BOOST "Build with static Boost libs" OFF)
+option(USE_ILMBASE_STATIC_LIBS "Build with static ilmBase libs" OFF)
 option(USE_STATIC_HDF5 "Build with static HDF5 libs" OFF)
 option(ALEMBIC_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_ARNOLD_PROCEDURALS "Build Arnold procedurals" ON)
-option(BUILD_KATANA_PLUGINS "Build Katana plugins" ON)
+option(BUILD_KATANA_PLUGINS "Build Katana plugins" OFF)
 option(BUILD_MAYA_PLUGINS "Build Maya plugins" ON)
-option(BUILD_HOUDINI_PLUGINS "Build Houdini plugins" ON)
+option(BUILD_HOUDINI_PLUGINS "Build Houdini plugins" OFF)
 option(BUILD_TESTS "Enable test series" OFF)
 option(BUILD_VIEWER "Build the Walter viewer app" OFF)
 
@@ -128,6 +126,7 @@ set(SUBDIRECTORIES
         common
         tests/resources
 )
+list(APPEND SUBDIRECTORIES usd)
 
 if(BUILD_MAYA_PLUGINS)
     # Find maya
@@ -135,7 +134,9 @@ if(BUILD_MAYA_PLUGINS)
     find_package(Arnold REQUIRED)
     find_package(Mtoa REQUIRED)
     list(APPEND SUBDIRECTORIES maya)
-    list(APPEND SUBDIRECTORIES arnold)
+    if(NOT BUILD_ARNOLD_PROCEDURALS)
+        list(APPEND SUBDIRECTORIES arnold)
+    endif()
 endif()
 
 if(BUILD_KATANA_PLUGINS)
@@ -165,7 +166,6 @@ if(BUILD_HOUDINI_PLUGINS)
     list(APPEND SUBDIRECTORIES houdini)
 endif()
 
-list(APPEND SUBDIRECTORIES usd)
 if (BUILD_TESTS)
     list(APPEND SUBDIRECTORIES usd/tests)
 endif()

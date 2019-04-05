@@ -1,6 +1,7 @@
 # Copyright 2017 Rodeo FX.  All rights reserved.
 
 set(PROC walterProcedural)
+cmake_policy(SET CMP0074 NEW)
 
 # The procedural.
 file(GLOB SRC "*.cpp" "*h")

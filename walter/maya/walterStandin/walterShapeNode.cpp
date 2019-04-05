@@ -1484,7 +1484,7 @@ void ShapeUI::drawUSD(
 
     // Get USD stuff from the node.
     UsdStageRefPtr stage = node->getStage();
-    UsdImagingGLSharedPtr renderer = node->getRenderer();
+    UsdImagingGLEngineSharedPtr renderer = node->getRenderer();
     if (!renderer || !stage)
     {
         return;
@@ -1512,7 +1512,7 @@ void ShapeUI::drawUSD(
     const MColor wireframeColor = request.color();
 
     // USD render.
-    UsdImagingGL::RenderParams params;
+    UsdImagingGLRenderParams params;
     params.frame = UsdTimeCode(node->time * getCurrentFPS());
     params.highlight = false;
 
@@ -1522,12 +1522,12 @@ void ShapeUI::drawUSD(
         // Wireframe color is not 0, so we need to draw the wireframe.
         if (wireframe) {
             // It's a wireframe-only mode.
-            params.drawMode = UsdImagingGLEngine::DRAW_WIREFRAME;
+            params.drawMode = UsdImagingGLDrawMode::DRAW_WIREFRAME;
         }
         else {
             // It's a wireframe with shading mode.
 			params.highlight = true;
-            params.drawMode = UsdImagingGLEngine::DRAW_WIREFRAME_ON_SURFACE;
+            params.drawMode = UsdImagingGLDrawMode::DRAW_WIREFRAME_ON_SURFACE;
         }
 
         params.wireframeColor =
@@ -1539,7 +1539,7 @@ void ShapeUI::drawUSD(
     }
     else {
         // No wireframe. Draw shaded only.
-        params.drawMode = UsdImagingGLEngine::DRAW_SHADED_SMOOTH;
+        params.drawMode = UsdImagingGLDrawMode::DRAW_SHADED_SMOOTH;
     }
 
     renderer->Render(
@@ -1629,7 +1629,7 @@ bool ShapeUI::select(
 
     // Get USD stuff from the node.
     UsdStageRefPtr stage = node->getStage();
-    UsdImagingGLSharedPtr renderer = node->getRenderer();
+    UsdImagingGLEngineSharedPtr renderer = node->getRenderer();
     if (!renderer || !stage)
     {
         return false;
@@ -1661,16 +1661,16 @@ bool ShapeUI::select(
 
     GfVec3d outHitPoint;
     SdfPath outHitPrimPath;
-    UsdImagingGL::RenderParams params;
+    UsdImagingGLRenderParams params;
     params.frame = UsdTimeCode(node->time * getCurrentFPS());
 
     if (wireframeSelection)
     {
-        params.drawMode = UsdImagingGLEngine::DRAW_WIREFRAME;
+        params.drawMode = UsdImagingGLDrawMode::DRAW_WIREFRAME;
     }
     else
     {
-        params.drawMode = UsdImagingGLEngine::DRAW_SHADED_SMOOTH;
+        params.drawMode = UsdImagingGLDrawMode::DRAW_SHADED_SMOOTH;
     }
 
     bool didHit = renderer->TestIntersection(
@@ -2100,7 +2100,7 @@ UsdStageRefPtr ShapeNode::getStage() const
     return mStage;
 }
 
-UsdImagingGLSharedPtr ShapeNode::getRenderer()
+UsdImagingGLEngineSharedPtr ShapeNode::getRenderer()
 {
     if (mJustLoaded)
     {
@@ -2117,7 +2117,7 @@ UsdImagingGLSharedPtr ShapeNode::getRenderer()
         mRendererNeedsUpdate = false;
 
         // Create the new instance of the Hydra renderer.
-        mRenderer = boost::make_shared<UsdImagingGL>();
+        mRenderer = std::make_shared<UsdImagingGLEngine>();
 
         // Get the name of the necessary Hydra plugin.
         MFnDagNode fn(thisMObject());
