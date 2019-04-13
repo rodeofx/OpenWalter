@@ -1,5 +1,7 @@
 set(WALTERSTANDIN walterStandin)
 
+cmake_policy(SET CMP0074 NEW)
+
 find_package(OpenGL REQUIRED)
 
 file(GLOB SRC "*.cpp" "*h")
@@ -32,8 +34,8 @@ find_package(X11 REQUIRED)
 find_package(Zlib REQUIRED)
 
 # Standard FindGLEW is looking in the system. Fix it.
-set(GLEW_INCLUDE_DIR ${GLEW_LOCATION}/include)
-file(GLOB GLEW_LIBRARY "${GLEW_LOCATION}/lib/libGLEW*")
+#set(GLEW_INCLUDE_DIR ${GLEW_LOCATION}/include)
+#file(GLOB GLEW_LIBRARY "${GLEW_LOCATION}/lib/libGLEW*")
 find_package(GLEW REQUIRED)
 
 # Definitions
@@ -58,7 +60,7 @@ target_include_directories(
 
 # USD libraries.
 set(USD_ALL_LIBS
-    ${USD_INCLUDE_DIR}/../lib/hdEmbree.a
+  #  ${USD_INCLUDE_DIR}/../lib/hdEmbree.a
     ${HYDRA_LIBRARIES}
     ${USD_LIBRARIES}
     walterUsdExtras)
@@ -74,14 +76,14 @@ target_link_libraries(
 target_link_libraries(
     ${WALTERSTANDIN}
     PRIVATE
-    ${USD_INCLUDE_DIR}/../../embree/lib/libembree.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libembree_avx.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libembree_avx2.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libembree_sse42.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libsys.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libsimd.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/libtasking.a
-    ${USD_INCLUDE_DIR}/../../embree/lib/liblexers.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libembree.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libembree_avx.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libembree_avx2.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libembree_sse42.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libsys.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libsimd.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/libtasking.a
+   # ${USD_INCLUDE_DIR}/../../embree/lib/liblexers.a
     ${OIIO_LIBRARIES}
     ${CMAKE_DL_LIBS}
     ${GLEW_LIBRARIES}
@@ -92,7 +94,8 @@ target_link_libraries(
     ${PNG_LIBRARY}
     ${PTEX_LIBRARY}
     ${TBB_LIBRARIES}
-    TIFF::TIFF
+${TIFF_LIBRARY}/libtiff.so
+#    TIFF::TIFF
     ${Boost_ATOMIC_LIBRARY}
     ${Boost_CHRONO_LIBRARY}
     ${Boost_DATE_TIME_LIBRARY}
@@ -132,6 +135,10 @@ if(USE_HDF5)
 endif()
 
 set_target_properties(${WALTERSTANDIN} PROPERTIES PREFIX "")
+
+get_target_property(OUT ${WALTERSTANDIN} LINK_LIBRARIES)
+#message(STATUS ${OUT})
+message(TIFF ${TIFF_LIBRARIES})
 
 MAYA_SET_PLUGIN_PROPERTIES(${WALTERSTANDIN})
 
@@ -186,5 +193,6 @@ if(BUILD_TESTS)
     maya_render_test(testPrimVertexColor.ma)
 
 endif()
+
 
 install(TARGETS ${WALTERSTANDIN} DESTINATION ${CMAKE_INSTALL_PREFIX}/maya/plug-ins)

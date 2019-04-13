@@ -1,6 +1,7 @@
 # Copyright 2017 Rodeo FX.  All rights reserved.
 
 set(PROC walterProcedural)
+cmake_policy(SET CMP0074 NEW)
 
 # The procedural.
 file(GLOB SRC "*.cpp" "*h")
@@ -35,7 +36,7 @@ target_include_directories(
 # USD libraries.
 set(USD_ALL_LIBS
     ${USD_LIBRARIES}
-    walterUsdExtras)
+    )
 
 # Put them as whole-archive.
 target_link_libraries(
@@ -62,7 +63,8 @@ target_link_libraries(
     ${CMAKE_THREAD_LIBS_INIT}
     ${TBB_LIBRARIES}
     util
-    walterCommon)
+    walterCommon
+    walterUsdExtras)
 
 if(USE_HDF5)
     target_link_libraries(

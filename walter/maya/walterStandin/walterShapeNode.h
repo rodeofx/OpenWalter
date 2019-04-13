@@ -7,10 +7,9 @@
 #include <maya/MPxSurfaceShape.h>
 #include <maya/MPxSurfaceShapeUI.h>
 #include <maya/MStringArray.h>
-#include <pxr/usdImaging/usdImagingGL/gl.h>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp> 
-#include <boost/unordered_map.hpp>
+#include <pxr/usdImaging/usdImagingGL/engine.h>
+#include <memory>
+#include <unordered_map>
 #include <set>
 #include <vector>
 #include <maya/MNodeMessage.h>
@@ -25,6 +24,8 @@
 #include <pxr/usd/usd/stage.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
+
+typedef std::shared_ptr<class UsdImagingGLEngine> UsdImagingGLEngineSharedPtr;
 
 namespace WalterMaya {
 
@@ -226,7 +227,7 @@ public:
      *
      * @return Current Hydra renderer.
      */
-    UsdImagingGLSharedPtr getRenderer();
+    UsdImagingGLEngineSharedPtr getRenderer();
 
     /** @brief Called when the loading of the USD file is finished. It's a bit
      * ugly because we call it from SubNode::getCachedGeometry(), but it's done
@@ -300,7 +301,7 @@ public:
      */
     void onTimeChanged(double previous);
 
-    UsdImagingGL::RenderParams mParams;
+    UsdImagingGLRenderParams mParams;
     
 private:
     // Prohibited and not implemented.
@@ -349,7 +350,7 @@ private:
 
     UsdStageRefPtr mStage;
     bool mRendererNeedsUpdate;
-    UsdImagingGLSharedPtr mRenderer;
+    UsdImagingGLEngineSharedPtr mRenderer;
 
     ExpMap mAssignments;
     ExpGroup mGroups;

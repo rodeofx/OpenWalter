@@ -113,6 +113,7 @@ target_link_libraries(
 
 # USD requirements.
 find_package(TBB REQUIRED)
+find_package(Python COMPONENTS Development REQUIRED)
 
 if("${USD_RESOLVER_NAME}" MATCHES RdoResolver)
     find_package(RdoResolver REQUIRED)
@@ -130,7 +131,8 @@ target_compile_definitions(
 target_include_directories(walterUsdExtras
     PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${Boost_INCLUDE_DIR})
+    ${Boost_INCLUDE_DIR}
+    ${Python_INCLUDE_DIRS})
 
 target_include_directories(walterUsdExtras
     PRIVATE
